@@ -31,8 +31,8 @@ Start an empty Python Capability Container shell (see lcaarch/Readme.txt for mor
 
 At the prompt, start the iosptest script:
 ><>
-	from ion.play import iosptest
-	iosptest.main(locals())
+	from ion.play import iospservice
+	iospservice.main(locals())
 	
 Open a new terminal and navigate to the eoi directory:
 (all subsequent steps assume you are in the eoi/ root dir)

@@ -37,9 +37,8 @@ At the prompt, start the iosptest script:
 Open a new terminal and navigate to the eoi directory:
 (all subsequent steps assume you are in the eoi/ root dir)
 
-
-Use the ant tasks to test the iosp:
-
-ant fullTest
+Use ant to test the iosp (use "ant -p" to see a list of tasks):
+::
+	ant fullTest
 
 	

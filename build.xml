@@ -1,0 +1,92 @@
+<project name="EOI" default="info">
+	
+	<!-- set global properties for this build -->
+	<property name="projname" value="eoi"/>
+	<property name="version" value="0.1.0"/>
+	<property name="src" location="src"/>
+	<property name="build" location="build"/>
+	<property name="classes" location="${build}/classes"/>
+	<property name="javadoc" location="${build}/javadoc"/>
+	<property name="dist"  location="dist"/>
+	
+    <property name="testname" value="testdataset"/>
+
+	<path id="libs-core">
+		<pathelement location="./lib/commons-cli-1.1.jar"/>
+		<pathelement location="./lib/commons-io-1.2.jar"/>
+		<pathelement location="./lib/json_simple-1.1.jar"/>
+		<pathelement location="./lib/msgpack-0.3.jar"/>
+		<pathelement location="./lib/rabbitmq-client.jar"/>
+		<pathelement location="./lib/base64coder.jar"/>
+		<pathelement location="./../ooi-netcdf-java/dist/ooi-netcdf-full-4.2.4.jar"/>
+		<pathelement location="./../ioncore-java/dist/lib/ioncore-full-0.1.0.jar"/>
+	</path>
+		
+	<path id="libs-example">
+		<pathelement location="${classes}"/>
+		<path refid="libs-core"/>
+	</path>
+
+	<target name="info" depends="" description="Hello">
+		<echo message="EOI library build. Please specify a target. Use 'ant -p' to list targets."/>
+	</target>
+
+	<!-- ================================= 
+          target: compile              
+         ================================= -->
+	<target name="compile" depends="" description="Compile Sources">
+		<mkdir dir="${classes}"/>
+		<javac srcdir="${src}" destdir="${classes}" debug="on" classpathref="libs-example"/>
+	</target>
+
+	<!-- ================================= 
+          target: fullTest              
+         ================================= -->
+    
+    <target name="fullTest" depends="compile,clearStore,addToStore,testIOSP" description="Tests the complete cycle - clearStore, addToStore, testIOSP, clearStore">
+    	<antcall target="clearStore"/>
+    </target>
+
+	<!-- ================================= 
+          target: clearStore              
+         ================================= -->
+	<target name="clearStore" depends="compile" description="Clears the attribute store">
+		<java classname="ooici.eoi.netcdf.test.ClearStore">
+			<classpath refid="libs-example"/>
+			<arg value="ooici.properties"/>
+		</java>
+	</target>
+	
+	<!-- ================================= 
+          target: addToStore              
+         ================================= -->
+	<target name="addToStore" depends="compile" description="Adds the './data/test.nc' dataset to the store">
+		<java classname="ooici.eoi.netcdf.test.AddDatasetToStore">
+			<classpath refid="libs-example"/>
+			<arg value="ooici.properties"/>
+			<arg value="data/test.nc"/>
+			<arg value="${testname}"/>
+		</java>
+	</target>
+	
+	<!-- ================================= 
+          target: testIOSP              
+         ================================= -->
+	<target name="testIOSP" depends="compile" description="Tests the ooi iosp by reading the test dataset from the store - run 'addToStore' first!">
+		<java classname="ooici.eoi.netcdf.test.TestIOSP">
+			<classpath refid="libs-example"/>
+			<arg value="ooici.properties"/>
+			<arg value="${testname}"/>
+		</java>
+	</target>
+	
+	<!-- ================================= 
+          target: clean              
+         ================================= -->
+    <target name="clean" depends="" description="Clean Outputs">
+    	<delete dir="${classes}"/>
+    	<delete dir="${build}"/>
+    	<delete dir="${dist}"/>
+    </target>
+
+</project>

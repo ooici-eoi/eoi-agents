@@ -26,8 +26,11 @@ Usage
 
 Start an empty Python Capability Container shell (see lcaarch/Readme.txt for more information):
 (from lcaarch/ root directory)
+
+You can of course swap out the host with your own or leave the -h out to use localhost
+The sysname needs to be set to "cmueller" - this will be fixed...
 ::
-	bin/start-cc
+	bin/start-cc -h amoeba.ucsd.edu -a sysname=cmueller
 
 At the prompt, start the iosptest script:
 ><>

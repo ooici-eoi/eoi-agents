@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2" >
+<!-- adapted from trajSingle.ncml -->
+  <dimension name="time" length="1" />
+
+  <attribute name="CF:featureType" value="trajectory" />
+  <attribute name="Conventions" value="CF-1.5" />
+  <!-- <attribute name="cdm_datatype" value="trajectory" /> -->
+  
+  <variable name="lon" shape="time" type="float">
+    <attribute name="long_name" value="longitude" />
+    <attribute name="units" value="degrees_east" />
+  </variable>
+  <variable name="lat" shape="time" type="float">
+    <attribute name="long_name" value="latitude" />
+    <attribute name="units" value="degrees_north" />
+  </variable>
+  <variable name="time" shape="time" type="int">
+    <attribute name="long_name" value="time" />
+    <attribute name="units" value="seconds since 1970-01-01 00:00:00" />
+    <attribute name="missing_value" type="int" value="-9999" />
+  </variable>
+<!--
+  <variable name="ex_data" shape="time" type="float">
+    <attribute name="long_name" value="skin temperature" />
+    <attribute name="units" value="Celsius" />
+    <attribute name="coordinates" value="time lon lat" />
+  </variable>
+-->
+</netcdf>
+

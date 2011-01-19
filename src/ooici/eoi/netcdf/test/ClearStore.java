@@ -14,7 +14,9 @@ import ooici.netcdf.iosp.messaging.AttributeStore;
 /**
  *
  * @author cmueller
+ * @deprecated This class was for early prototype testing and is no longer functional
  */
+@Deprecated
 public class ClearStore {
 
     public ClearStore(String props) {

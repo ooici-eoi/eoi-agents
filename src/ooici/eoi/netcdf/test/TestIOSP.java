@@ -14,7 +14,9 @@ import ucar.nc2.dataset.NetcdfDataset;
 /**
  *
  * @author cmueller
+ * @deprecated This class was for early prototype testing and is no longer functional
  */
+@Deprecated
 public class TestIOSP {
 
     private Properties ooiciProps;

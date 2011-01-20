@@ -196,7 +196,7 @@ public class SosAgent extends AbstractAsciiAgent{
             int obsId = 0;
             while ((line = csvReader.readLine()) != null) {
                 tokens = line.split(",");
-                if (obs == null /*|| !stnId.equals(tokens[0]) || !snsId.equals(tokens[1]) || (lat != (tla = Float.valueOf(tokens[2]))) || (lon != (tlo = Float.valueOf(tokens[3])))*/) {
+                if (obs == null || (lat != (tla = Float.valueOf(tokens[2]))) || (lon != (tlo = Float.valueOf(tokens[3])))/*|| !stnId.equals(tokens[0]) || !snsId.equals(tokens[1]) || (lat != (tla = Float.valueOf(tokens[2]))) || (lon != (tlo = Float.valueOf(tokens[3])))*/) {
 
                     /* New group of observations */
                     stnId = tokens[0];

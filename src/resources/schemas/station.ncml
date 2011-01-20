@@ -8,15 +8,18 @@
 
   <variable name="lon" shape="" type="float">
     <attribute name="long_name" value="longitude" />
-    <attribute name="units" value="degrees_east" />
+    <attribute name="standard_name" value="longitude" />
+    <attribute name="units" value="degree_east" />
   </variable>
   <variable name="lat" shape="" type="float">
     <attribute name="long_name" value="latitude" />
-    <attribute name="units" value="degrees_north" />
+    <attribute name="standard_name" value="latitude" />
+    <attribute name="units" value="degree_north" />
   </variable>
 
   <variable name="time" shape="time" type="int">
     <attribute name="long_name" value="time" />
+    <attribute name="standard_name" value="time" />
     <attribute name="units" value="seconds since 1970-01-01 00:00:00" />
   </variable>
   

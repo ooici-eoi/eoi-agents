@@ -9,11 +9,13 @@
   
   <variable name="lon" shape="" type="float">
     <attribute name="long_name" value="longitude" />
-    <attribute name="units" value="degrees_east" />
+    <attribute name="standard_name" value="longitude" />
+    <attribute name="units" value="degree_east" />
   </variable>
   <variable name="lat" shape="" type="float">
     <attribute name="long_name" value="latitude" />
-    <attribute name="units" value="degrees_north" />
+    <attribute name="standard_name" value="latitude" />
+    <attribute name="units" value="degree_north" />
   </variable>
   <variable name="stnId" shape="" type="int">
     <attribute name="standard_name" value="station_id" />

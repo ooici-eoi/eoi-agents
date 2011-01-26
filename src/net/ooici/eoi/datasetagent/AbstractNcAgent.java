@@ -30,31 +30,31 @@ public abstract class AbstractNcAgent extends AbstractDatasetAgent implements IN
                                                .append(data.getClass().getName())
                                                .append("' type was received").toString());
         }
-        return buildDataset((String) data);
+        return buildDataset((NetcdfDataset) data);
     }
     
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.INcAgent#buildDataset(java.lang.String)
-     */
-    @Override
-    public final NetcdfDataset buildDataset(NetcdfDataset ncDataset) {
-        /* NOTE: Template method.  Do not reorder */
-        NcdsTemplate templateType = getNcdsTemplate();
-        
-        /* FIXME: Handle this exception correctly or bubble it up (I'd prefer the latter) [TPL] */
-        NetcdfDataset templateDataset = null;
-        try {
-            templateDataset = templateType.getTempDataset();
-        } catch (FileNotFoundException e) {
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        
-        return fillNcdsTemplate(templateDataset, ncDataset);
-    }
-    
-    protected abstract NcdsTemplate getNcdsTemplate();
-    
-    protected abstract NetcdfDataset fillNcdsTemplate(NetcdfDataset template, NetcdfDataset ncDataset);
+//    /* (non-Javadoc)
+//     * @see net.ooici.agent.abstraction.INcAgent#buildDataset(java.lang.String)
+//     */
+//    @Override
+//    public final NetcdfDataset buildDataset(NetcdfDataset ncDataset) {
+//        /* NOTE: Template method.  Do not reorder */
+//        NcdsTemplate templateType = getNcdsTemplate();
+//
+//        /* FIXME: Handle this exception correctly or bubble it up (I'd prefer the latter) [TPL] */
+//        NetcdfDataset templateDataset = null;
+//        try {
+//            templateDataset = templateType.getTempDataset();
+//        } catch (FileNotFoundException e) {
+//            throw new RuntimeException(e);
+//        } catch (IOException e) {
+//            throw new RuntimeException(e);
+//        }
+//
+//        return fillNcdsTemplate(templateDataset, ncDataset);
+//    }
+//
+//    protected abstract NcdsTemplate getNcdsTemplate();
+//
+//    protected abstract NetcdfDataset fillNcdsTemplate(NetcdfDataset template, NetcdfDataset ncDataset);
 }

@@ -14,6 +14,6 @@ import ucar.nc2.dataset.NetcdfDataset;
  */
 public interface INcAgent extends IDatasetAgent {
 
-    NetcdfDataset buildDataset(NetcdfDataset ncdDataset);
+    NetcdfDataset buildDataset(NetcdfDataset ncds);
     
 }

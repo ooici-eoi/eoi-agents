@@ -13,8 +13,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ucar.ma2.Array;
 import ucar.ma2.ArrayDouble;
 import ucar.ma2.ArrayFloat;
@@ -35,10 +35,22 @@ import ucar.nc2.dataset.VariableDS;
  */
 public class NcdsFactory {
 
+    private static final Logger log = LoggerFactory.getLogger(NcdsFactory.class);
+
     public enum NcdsTemplate {
 
-        STATION("station.ncml");
+        GRID("grid.ncml"),
+        POINT("point.ncml"),
+        PROFILE("profile.ncml"),
+        STATION("station.ncml"),
+        STATION_MULTI("stationMulti.ncml"),
+        STATION_PROFILE("stationProfile.ncml"),
+        STATION_PROFILE_MULTI("stationProfileMulti.ncml"),
+        TRAJECTORY("trajectory.ncml"),
+        TRAJECTORY_MULTI("trajectoryMulti.ncml");
+
         String resourceName = null;
+
         NcdsTemplate(String resourceName) {
             if (null == resourceName || resourceName.isEmpty()) {
                 throw new IllegalArgumentException("Argument resourceName cannot be NULL or empty");
@@ -46,36 +58,19 @@ public class NcdsFactory {
             this.resourceName = resourceName;
         }
 
-        /**
-         * Creates a temporary local copy of the NCDS resource of the same type as this NcdsTemplate and returns this as a NetcdfDataset object.<br />
-         * <br />
-         * <em>Usage Note:</em><br />
-         * The temporary file copy of this resource will be marked for deletion upon closure of this JVM instance.
-         *
-         * @return a NetcdfDataset object structured as a CDM/CF compliant version of this NcdsTemplate
-         *
-         * @throws IOException
-         * @throws FileNotFoundException
-         */
-        public final NetcdfDataset getTempDataset() throws FileNotFoundException, IOException {
-            File temp = File.createTempFile("ooi", ".ncml");
-            NetcdfDataset ncds = getNcdsFromTemplate(temp, "station.ncml");
-
-            temp.deleteOnExit();
-            return ncds;
+        public String getResourceName() {
+            return resourceName;
         }
     }
-    
+
     public static NetcdfDataset buildStation(IObservationGroup obsGroup) {
         if (obsGroup.getDepths().length > 1) {
             return buildStationProfile(obsGroup);
         }
         NetcdfDataset ncds = null;
-        File temp = null;
         try {
             /* Instantiate an empty NetcdfDataset object from the template ncml */
-            temp = File.createTempFile("ooi", ".ncml");
-            ncds = getNcdsFromTemplate(temp, "station.ncml");
+            ncds = getNcdsFromTemplate(NcdsTemplate.STATION);
 
             Map<String, String> allAttributes = new HashMap<String, String>();
             allAttributes.putAll(obsGroup.getAttributes());
@@ -131,18 +126,9 @@ public class NcdsFactory {
             for (String key : allAttributes.keySet()) {
                 ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
             }
-
-
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Error building station NetcdfDataset", ex);
         } finally {
-            if (temp != null) {
-                if (!temp.delete()) {
-                    temp.deleteOnExit();
-                }
-            }
             if (ncds != null) {
                 ncds.finish();
             }
@@ -163,11 +149,9 @@ public class NcdsFactory {
             return buildStation(obsGroup);
         }
         NetcdfDataset ncds = null;
-        File temp = null;
         try {
             /* Instantiate an empty NetcdfDataset object from the template ncml */
-            temp = File.createTempFile("ooi", ".ncml");
-            ncds = getNcdsFromTemplate(temp, "stationProfile.ncml");
+            ncds = getNcdsFromTemplate(NcdsTemplate.STATION_PROFILE);
 
             Map<String, String> allAttributes = new HashMap<String, String>();
             allAttributes.putAll(obsGroup.getAttributes());
@@ -225,16 +209,9 @@ public class NcdsFactory {
             for (String key : allAttributes.keySet()) {
                 ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
             }
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Error building stationProfile NetcdfDataset", ex);
         } finally {
-            if (temp != null) {
-                if (!temp.delete()) {
-                    temp.deleteOnExit();
-                }
-            }
             if (ncds != null) {
                 ncds.finish();
             }
@@ -244,7 +221,7 @@ public class NcdsFactory {
     }
 
     public static NetcdfDataset buildStationProfileMulti(List<IObservationGroup> obsGroups) {
-        if(obsGroups.size() == 1) {
+        if (obsGroups.size() == 1) {
             return buildStationProfile(obsGroups.get(0));
         }
         throw new UnsupportedOperationException();
@@ -261,11 +238,9 @@ public class NcdsFactory {
 //        }
 
         NetcdfDataset ncds = null;
-        File temp = null;
         try {
             /* Instantiate an empty NetcdfDataset object from the template ncml */
-            temp = File.createTempFile("ooi", ".ncml");
-            ncds = getNcdsFromTemplate(temp, "trajectory.ncml");
+            ncds = getNcdsFromTemplate(NcdsTemplate.TRAJECTORY);
 
             int nobs = obsGroups.size();
             List<Number> allDepths = new ArrayList<Number>();
@@ -361,16 +336,9 @@ public class NcdsFactory {
             for (String key : allAttributes.keySet()) {
                 ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
             }
-        } catch (FileNotFoundException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Error building trajectory NetcdfDataset", ex);
         } finally {
-            if (temp != null) {
-                if (!temp.delete()) {
-                    temp.deleteOnExit();
-                }
-            }
             if (ncds != null) {
                 ncds.finish();
             }
@@ -393,9 +361,12 @@ public class NcdsFactory {
         }
     }
 
-    private static NetcdfDataset getNcdsFromTemplate(File tempFile, String schemaName) throws FileNotFoundException, IOException {
-        getSchemaTemplate(tempFile, schemaName);
-        return NetcdfDataset.openDataset(tempFile.getCanonicalPath());
+    public static NetcdfDataset getNcdsFromTemplate(NcdsTemplate ncdsTemp) throws FileNotFoundException, IOException {
+        File temp = File.createTempFile("ooi", ".ncml");
+        temp.deleteOnExit();
+
+        getSchemaTemplate(temp, ncdsTemp.getResourceName());
+        return NetcdfDataset.openDataset(temp.getCanonicalPath());
     }
 
     private static void getSchemaTemplate(File tempFile, String schemaName) throws FileNotFoundException, IOException {
@@ -516,7 +487,7 @@ public class NcdsFactory {
         try {
             ucar.nc2.FileWriter.writeToFile(ncds, "output/test/out1.nc");
         } catch (IOException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Error writing NetCDF File", ex);
         }
 
 
@@ -539,7 +510,7 @@ public class NcdsFactory {
         try {
             ucar.nc2.FileWriter.writeToFile(ncds, "output/test/out2.nc");
         } catch (IOException ex) {
-            Logger.getLogger(NcdsFactory.class.getName()).log(Level.SEVERE, null, ex);
+            log.error("Error writing NetCDF File", ex);
         }
 
 

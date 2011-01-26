@@ -4,6 +4,10 @@
  */
 package net.ooici.eoi.proto;
 
+import net.ooici.cdm.syntactic.Cdmdatatype;
+import net.ooici.core.type.Type;
+import ucar.ma2.DataType;
+
 /**
  *
  * @author cmueller
@@ -12,110 +16,111 @@ public class ProtoUtils {
 
     private ProtoUtils() {
     }
+    
+//
+//    public static String getClassStringFromGPBType(Type.GPBType gpbType) {
+//        StringBuilder sb = new StringBuilder(gpbType.getPackage());
+//        sb.append(".").append(gpbType.getProtofile().substring(0, 1).toUpperCase()).append(gpbType.getProtofile().substring(1));
+//        sb.append("$").append(gpbType.getCls());
+//        return sb.toString();
+//    }
 
-    public static String getClassStringFromGPBType(net.ooici.core.type.Type.GPBType gpbType) {
-        StringBuilder sb = new StringBuilder(gpbType.getPackage());
-        sb.append(".").append(gpbType.getProtofile().substring(0, 1).toUpperCase()).append(gpbType.getProtofile().substring(1));
-        sb.append("$").append(gpbType.getCls());
-        return sb.toString();
-    }
-
-    public static net.ooici.data.cdm.syntactic.Cdmdatatype.DataType getOoiDataType(ucar.ma2.DataType ucarDT) {
-        net.ooici.data.cdm.syntactic.Cdmdatatype.DataType ret = null;
+    public static Cdmdatatype.DataType getOoiDataType(DataType ucarDT) {
+        Cdmdatatype.DataType ret = null;
 
         switch (ucarDT) {
             case BOOLEAN:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.BOOLEAN;
+                ret = Cdmdatatype.DataType.BOOLEAN;
                 break;
             case BYTE:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.BYTE;
+                ret = Cdmdatatype.DataType.BYTE;
                 break;
             case SHORT:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.SHORT;
+                ret = Cdmdatatype.DataType.SHORT;
                 break;
             case INT:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.INT;
+                ret = Cdmdatatype.DataType.INT;
                 break;
             case LONG:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.LONG;
+                ret = Cdmdatatype.DataType.LONG;
                 break;
             case FLOAT:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.FLOAT;
+                ret = Cdmdatatype.DataType.FLOAT;
                 break;
             case DOUBLE:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.DOUBLE;
+                ret = Cdmdatatype.DataType.DOUBLE;
                 break;
             case CHAR:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.CHAR;
+                ret = Cdmdatatype.DataType.CHAR;
                 break;
             case STRING:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.STRING;
+                ret = Cdmdatatype.DataType.STRING;
                 break;
             case STRUCTURE:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.STRUCTURE;
+                ret = Cdmdatatype.DataType.STRUCTURE;
                 break;
             case SEQUENCE:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.SEQUENCE;
+                ret = Cdmdatatype.DataType.SEQUENCE;
                 break;
             case ENUM1:
             case ENUM2:
             case ENUM4:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.ENUM;
+                ret = Cdmdatatype.DataType.ENUM;
                 break;
             case OPAQUE:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.OPAQUE;
+                ret = Cdmdatatype.DataType.OPAQUE;
                 break;
             default:
-                ret = net.ooici.data.cdm.syntactic.Cdmdatatype.DataType.STRING;
+                ret = Cdmdatatype.DataType.STRING;
         }
         return ret;
     }
 
-    public static ucar.ma2.DataType getNcDataType(net.ooici.data.cdm.syntactic.Cdmdatatype.DataType ooiDT) {
-        ucar.ma2.DataType ret = null;
+    public static DataType getNcDataType(Cdmdatatype.DataType ooiDT) {
+        DataType ret = null;
 
         switch (ooiDT) {
             case BOOLEAN:
-                ret = ucar.ma2.DataType.BOOLEAN;
+                ret = DataType.BOOLEAN;
                 break;
             case BYTE:
-                ret = ucar.ma2.DataType.BYTE;
+                ret = DataType.BYTE;
                 break;
             case SHORT:
-                ret = ucar.ma2.DataType.SHORT;
+                ret = DataType.SHORT;
                 break;
             case INT:
-                ret = ucar.ma2.DataType.INT;
+                ret = DataType.INT;
                 break;
             case LONG:
-                ret = ucar.ma2.DataType.LONG;
+                ret = DataType.LONG;
                 break;
             case FLOAT:
-                ret = ucar.ma2.DataType.FLOAT;
+                ret = DataType.FLOAT;
                 break;
             case DOUBLE:
-                ret = ucar.ma2.DataType.DOUBLE;
+                ret = DataType.DOUBLE;
                 break;
             case CHAR:
-                ret = ucar.ma2.DataType.CHAR;
+                ret = DataType.CHAR;
                 break;
             case STRING:
-                ret = ucar.ma2.DataType.STRING;
+                ret = DataType.STRING;
                 break;
             case STRUCTURE:
-                ret = ucar.ma2.DataType.STRUCTURE;
+                ret = DataType.STRUCTURE;
                 break;
             case SEQUENCE:
-                ret = ucar.ma2.DataType.SEQUENCE;
+                ret = DataType.SEQUENCE;
                 break;
             case ENUM:
-                ret = ucar.ma2.DataType.ENUM1;
+                ret = DataType.ENUM1;
                 break;
             case OPAQUE:
-                ret = ucar.ma2.DataType.OPAQUE;
+                ret = DataType.OPAQUE;
                 break;
             default:
-                ret = ucar.ma2.DataType.STRING;
+                ret = DataType.STRING;
         }
         return ret;
     }

@@ -5,17 +5,20 @@
 package net.ooici.eoi.proto;
 
 import com.google.protobuf.ByteString;
+import ion.core.IonBootstrap;
 import java.io.IOException;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import net.ooici.core.container.Container;
 import net.ooici.core.link.Link.CASRef;
 import net.ooici.core.type.Type;
 import net.ooici.data.cdm.Cdmdataset;
-import net.ooici.data.cdm.syntactic.Cdmarray;
-import net.ooici.data.cdm.syntactic.Cdmattribute;
-import net.ooici.data.cdm.syntactic.Cdmdimension;
-import net.ooici.data.cdm.syntactic.Cdmgroup;
-import net.ooici.data.cdm.syntactic.Cdmvariable;
-import net.ooici.SHA1;
+import net.ooici.cdm.syntactic.Cdmarray;
+import net.ooici.cdm.syntactic.Cdmattribute;
+import net.ooici.cdm.syntactic.Cdmdimension;
+import net.ooici.cdm.syntactic.Cdmgroup;
+import net.ooici.cdm.syntactic.Cdmvariable;
+import ion.core.utils.SHA1;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.ma2.IndexIterator;
@@ -39,7 +42,7 @@ public class Unidata2Ooi {
 
         return struct.toByteArray();
     }
-    
+
     public static void packDataset(NetcdfDataset ncds) throws java.io.IOException {
         Type.GPBType gpbType;
         ByteString byteString;
@@ -202,7 +205,7 @@ public class Unidata2Ooi {
         for (int i : ncVar.getShape()) {
             bnds = Cdmvariable.BoundedArray.Bounds.newBuilder().setOrigin(0).setSize(i).build();
             ooiBABldr.addBounds(bnds);
-            addElementToStructure(true, SHA1.getSHA1Hash(bnds.toByteArray()), getGPBType(bnds.getClass()), bnds.toByteString());
+//            addElementToStructure(true, SHA1.getSHA1Hash(bnds.toByteArray()), getGPBType(bnds.getClass()), bnds.toByteString());
         }
         switch (dt) {
             case BYTE:
@@ -280,22 +283,106 @@ public class Unidata2Ooi {
     }
 
     private static Type.GPBType getGPBType(Class clazz) {
-        String pn = clazz.getPackage().getName();
-        String cn = clazz.getSimpleName();
-        String pfn = clazz.getName().replace(pn, "").replace(cn, "").replace(".", "").replace("$", "").toLowerCase(); // get the full class name, remove the package, remove the "inner" class, trim the leading '.' and trailing '$'
+        int _ID = ion.core.IonBootstrap.getKeyValueForMappedClass(clazz);
+        return Type.GPBType.newBuilder().setObjectId(_ID).setVersion(1).build();
 
-        return getGPBType(pn, cn, pfn);
+//        String pn = clazz.getPackage().getName();
+//        String cn = clazz.getSimpleName();
+//        String pfn = clazz.getName().replace(pn, "").replace(cn, "").replace(".", "").replace("$", "").toLowerCase(); // get the full class name, remove the package, remove the "inner" class, trim the leading '.' and trailing '$'
+//
+//        return getGPBType(pn, cn, pfn);
     }
 
-    private static Type.GPBType getGPBType(String packageName, String className, String protoFileName) {
-        return Type.GPBType.newBuilder().setPackage(packageName).setCls(className).setProtofile(protoFileName).build();
-    }
-
+//    private static Type.GPBType getGPBType(String packageName, String className, String protoFileName) {
+//        return Type.GPBType.newBuilder().setPackage(packageName).setCls(className).setProtofile(protoFileName).build();
+//    }
     private static CASRef getLink(boolean isLeaf, String key, Type.GPBType gpbType) {
         return CASRef.newBuilder().setKey(key).setType(gpbType).setIsleaf(isLeaf).build();
     }
 
-    private static String genKey() {
-        throw new UnsupportedOperationException();
+    private static String genKey(byte[] content, Type.GPBType type) {
+        String key = SHA1.getSHA1Hash(content);
+
+
+        return SHA1.getSHA1Hash(key);
+    }
+
+    public static void main(String[] args) {
+        try {
+            IonBootstrap.bootstrap();
+
+            net.ooici.cdm.syntactic.Cdmarray.stringArray sarr = net.ooici.cdm.syntactic.Cdmarray.stringArray.newBuilder().addValue("lets").addValue("test").addValue("this!").build();
+            System.out.println(sarr.getClass().getName());
+            Type.GPBType type = getGPBType(sarr.getClass());
+            System.out.println("GPB Type:");
+            System.out.println(type.toString());
+            System.out.println("stringArray {\n");
+            System.out.println(sarr);
+            System.out.println("}");
+            String key = SHA1.getSHA1Hash(sarr.toByteArray());
+            System.out.println("Key Before GPBType: " + key);
+            key = SHA1.getSHA1Hash(key + type.toByteString());
+            System.out.println("Key After GPBType: " + key);
+
+            System.out.println();
+            System.out.println("--------------------");
+            System.out.println();
+
+            net.ooici.cdm.syntactic.Cdmdimension.Dimension dim = net.ooici.cdm.syntactic.Cdmdimension.Dimension.newBuilder().setName("test_dimension").setLength(10).build();
+            System.out.println(dim.getClass().getName());
+            Type.GPBType type1 = getGPBType(dim.getClass());
+            System.out.println("GPB Type:");
+            System.out.println(type1.toString());
+            System.out.println("Dimension {\n");
+            System.out.println(dim);
+            System.out.println("}");
+            String key1 = SHA1.getSHA1Hash(dim.toByteArray());
+            System.out.println("Key Before GPBType: " + key1);
+            key1 = SHA1.getSHA1Hash(key1 + type1.toByteString());
+            System.out.println("Key After GPBType: " + key1);
+
+            System.out.println();
+            System.out.println("--------------------");
+            System.out.println();
+
+            net.ooici.cdm.syntactic.Cdmarray.int32Array i32arr = net.ooici.cdm.syntactic.Cdmarray.int32Array.newBuilder().addValue(1).addValue(3).addValue(4).addValue(8).build();
+            System.out.println(i32arr.getClass().getName());
+            Type.GPBType type2 = getGPBType(i32arr.getClass());
+            System.out.println("GPB Type:");
+            System.out.println(type2.toString());
+            java.util.List<Integer> ivals = i32arr.getValueList();
+            System.out.println("int32Array {\n");
+            System.out.println(i32arr);
+            System.out.println("}");
+            String key2 = SHA1.getSHA1Hash(i32arr.toByteArray());
+            System.out.println("Key Before GPBType: " + key2);
+            key2 = SHA1.getSHA1Hash(key2 + type2.toByteString());
+            System.out.println("Key After GPBType: " + key2);
+
+//            String ds = "/Users/cmueller/Development/OOI/Dev/code/eoidev/proto_test/station_profile.nc";
+//
+//            NetcdfDataset ncds = NetcdfDataset.openDataset("/Users/cmueller/Development/OOI/Dev/code/eoidev/proto_test/station_profile.nc");
+////            byte[] data = Unidata2Ooi.ncdfToByteArray(ncds);
+////            System.out.println(data);
+//
+//            structBldr = Container.Structure.newBuilder();
+//
+//
+//            packDataset(ncds);
+//
+//
+//            Container.Structure struct = structBldr.build();
+//            /* Print structure to console */
+////        System.out.println("************ Structure ************");
+////        System.out.println(struct);
+//
+//            /* Write structure to disk */
+//            new java.io.File("output").mkdirs();
+//            java.io.FileOutputStream fos = new java.io.FileOutputStream("output/" + "" + ds.substring(ds.lastIndexOf("/")).replace(".nc", ".protostruct"));
+//            struct.writeTo(fos);
+
+        } catch (Exception ex) {
+            Logger.getLogger(Unidata2Ooi.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }

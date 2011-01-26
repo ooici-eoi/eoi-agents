@@ -1,4 +1,4 @@
-package net.ooici;
+package ion.core.utils;
 
 
 import java.security.MessageDigest;
@@ -15,7 +15,7 @@ import java.security.NoSuchAlgorithmException;
  */
 public abstract class SHA1 {
 
-	static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(SHA1.class);
+	static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SHA1.class);
 	private static final char hexDigit[] = { '0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
 
 	/**
@@ -27,12 +27,12 @@ public abstract class SHA1 {
 		// long i = Long.parseLong("0111 0011     0000 0101    0001 1111    1111 1110", 2);
 		// int i = Integer.parseInt("01110011000001010001111111111110", 2);
 		int i = Integer.parseInt("00000001000000100000001100000100", 2);
-		System.out.println(i);
-		System.out.println(Integer.toBinaryString(i));
-		System.out.println();
+		log.debug(String.valueOf(i));
+		log.debug(Integer.toBinaryString(i));
+		
 
 		for (byte b : getBytes32Bit(i)) {
-			System.out.println(b);
+			log.debug(String.valueOf(b));
 		}
 	}
 
@@ -133,7 +133,7 @@ public abstract class SHA1 {
 			MessageDigest sha = MessageDigest.getInstance("SHA1");
 			result = bytesToHex(sha.digest(bytes));
 		} catch (NoSuchAlgorithmException ex) {
-			LOGGER.error("SHA-1 hashing algorithm is not available); bytes cannot be hashed.", ex);
+			log.error("SHA-1 hashing algorithm is not available; bytes cannot be hashed.", ex);
 		}
 		return result;
 	}

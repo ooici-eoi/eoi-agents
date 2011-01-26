@@ -341,7 +341,7 @@ public class SosAgent extends AbstractAsciiAgent{
         if(true) {
             context = TEST_CONTEXT_GLIDER_1;
         }
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_NAME)[0]);
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_TYPE)[0]);
         NetcdfDataset dataset = agent.doUpdate(context);
         if (! new File(outDir).exists()) {
             new File(outDir).mkdirs();
@@ -362,19 +362,19 @@ public class SosAgent extends AbstractAsciiAgent{
     private static int outCount = 0;
     
     static {
-        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.SOURCE_NAME, new String[] {"SOS"});
-        TEST_CONTEXT_STATION_1.put("base_url",   new String[] {"http://sdf.ndbc.noaa.gov/sos/server.php?"});
-        TEST_CONTEXT_STATION_1.put("start_time", new String[] {"2008-08-01T00:00:00Z"});
-        TEST_CONTEXT_STATION_1.put("end_time",   new String[] {"2008-08-02T00:00:00Z"});
-        TEST_CONTEXT_STATION_1.put("property",   new String[] {"sea_water_temperature"});
-        TEST_CONTEXT_STATION_1.put("stationId",  new String[] {"41012"});
+        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.SOURCE_TYPE, new String[] {"SOS"});
+        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.BASE_URL,   new String[] {"http://sdf.ndbc.noaa.gov/sos/server.php?"});
+        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.START_TIME, new String[] {"2008-08-01T00:00:00Z"});
+        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.END_TIME,   new String[] {"2008-08-02T00:00:00Z"});
+        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.PROPERTY,   new String[] {"sea_water_temperature"});
+        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.STATION_ID,  new String[] {"41012"});
 
-        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.SOURCE_NAME, new String[] {"SOS"});
-        TEST_CONTEXT_GLIDER_1.put("base_url",   new String[] {"http://sdf.ndbc.noaa.gov/sos/server.php?"});
-        TEST_CONTEXT_GLIDER_1.put("start_time", new String[] {"2010-07-26T00:00:00Z"});
-        TEST_CONTEXT_GLIDER_1.put("end_time",   new String[] {"2010-07-27T00:00:00Z"});
-        TEST_CONTEXT_GLIDER_1.put("property",   new String[] {"salinity"});
-        TEST_CONTEXT_GLIDER_1.put("stationId",  new String[] {"48900"});
+        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.SOURCE_TYPE, new String[] {"SOS"});
+        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.BASE_URL,   new String[] {"http://sdf.ndbc.noaa.gov/sos/server.php?"});
+        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.START_TIME, new String[] {"2010-07-26T00:00:00Z"});
+        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.END_TIME,   new String[] {"2010-07-27T00:00:00Z"});
+        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.PROPERTY,   new String[] {"salinity"});
+        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.STATION_ID,  new String[] {"48900"});
         
         
     }

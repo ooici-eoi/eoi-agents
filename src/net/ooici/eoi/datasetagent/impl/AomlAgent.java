@@ -335,7 +335,7 @@ public class AomlAgent extends AbstractAsciiAgent {
         if(false) {//set == true to test xbt
             TEST_CONTEXT.put(DataSourceRequestKeys.TYPE, new String[]{"xbt"});
         }
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_NAME)[0]);
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_TYPE)[0]);
         NetcdfDataset dataset = agent.doUpdate(context);
         
         log.debug(dataset.toString());
@@ -350,7 +350,7 @@ public class AomlAgent extends AbstractAsciiAgent {
         startTime.add(java.util.Calendar.DAY_OF_MONTH, -10);
 
         /* Store the example parameters */
-        TEST_CONTEXT.put(DataSourceRequestKeys.SOURCE_NAME, new String[]{"AOML"});
+        TEST_CONTEXT.put(DataSourceRequestKeys.SOURCE_TYPE, new String[]{"AOML"});
         TEST_CONTEXT.put(DataSourceRequestKeys.BASE_URL, new String[]{"http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?"});
         TEST_CONTEXT.put(DataSourceRequestKeys.LEFT, new String[]{"-82.0"});
         TEST_CONTEXT.put(DataSourceRequestKeys.RIGHT, new String[]{"-60.0"});

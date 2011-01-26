@@ -31,7 +31,7 @@ public final class DataSourceRequestKeys {
 	 * The name of a given data source. Source name may provide one or more datasets, but this mapping provides a single value for
 	 * 'source_name'
 	 */
-	public static final String SOURCE_NAME = "source_name";
+	public static final String SOURCE_TYPE = "source_type";
 	/**
 	 * The starting time for the datasource
 	 */

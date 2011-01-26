@@ -44,8 +44,10 @@ public class AgentFactory {
             case AOML:
                 agent = new AomlAgent();
                 break;
-            case RADS:
             case NC_GRID:
+                agent = new NcGridAgent();
+                break;
+            case RADS:
             default:
                 throw new IllegalArgumentException("Invalid source_type = " + st.toString());
         }

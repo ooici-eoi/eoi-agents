@@ -4,6 +4,10 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
+import java.util.TimeZone;
+
 /**
  * Provides utility methods which are shared between various Agent classes
  * 
@@ -52,4 +56,17 @@ public class AgentUtils {
         }
         return sb.toString();
     }
+
+    /**
+	 * SimpleDateFormat used for parsing incoming values mapped to START_TIME and END_TIME. This date format complies to the ISO 8601
+	 * International Standard Representation of Dates and Times (http://www.w3.org/TR/NOTE-datetime)
+	 */
+	public static final DateFormat ISO8601_DATE_FORMAT;
+    /**
+	 * Static initializer for ISO8601_DATE_FORMAT field
+	 */
+	static {
+		ISO8601_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		ISO8601_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
+	}
 }

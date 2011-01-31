@@ -26,6 +26,7 @@ public final class DataSourceRequestKeys {
 	 * SimpleDateFormat used for parsing incoming values mapped to START_TIME and END_TIME. This date format complies to the ISO 8601
 	 * International Standard Representation of Dates and Times (http://www.w3.org/TR/NOTE-datetime)
 	 */
+    @Deprecated
 	public static final DateFormat ISO8601_FORMAT;
 	/**
 	 * The name of a given data source. Source name may provide one or more datasets, but this mapping provides a single value for

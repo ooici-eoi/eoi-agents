@@ -45,3 +45,19 @@ Use ant to test the iosp (use "ant -p" to see a list of tasks):
 	ant fullTest
 
 	
+
+
+**************************
+Notes:
+- the contents of "ion-libs" and the associated line in ivysettings.xml are temporary - they will be replaced when the libraries are available on the package server
+- zz is because the ooi-netcdf-full lib has conflicting dependencies - will fix after decision on dependency management
+
+Ivy Installation:
+- install ivy
+	- download source from svn co https://svn.apache.org/repos/asf/ant/ivy/core/trunk ivy
+	- from ivy directory, run "ant jar"
+	- put the ivy.jar file in /usr/share/ant/java/ant-1.8.1/lib/
+	- full install instructions: http://ant.apache.org/ivy/history/2.2.0-rc1/install.html
+		- find where ant is installed this way: http://stackoverflow.com/questions/4823367/where-is-ant-installed-on-mac-os-x-snow-leopard-by-default
+From eoi-agents-ivy:
+- run "ant test-all" --> calls the "resolve" and "compile" targets

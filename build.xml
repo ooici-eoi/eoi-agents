@@ -1,92 +1,114 @@
-<project name="EOI" default="info">
-	
-	<!-- set global properties for this build -->
-	<property name="projname" value="eoi"/>
-	<property name="version" value="0.1.0"/>
-	<property name="src" location="src"/>
-	<property name="build" location="build"/>
-	<property name="classes" location="${build}/classes"/>
-	<property name="javadoc" location="${build}/javadoc"/>
-	<property name="dist"  location="dist"/>
-	
-    <property name="testname" value="testdataset"/>
+<!--
+   Licensed to the Apache Software Foundation (ASF) under one
+   or more contributor license agreements.  See the NOTICE file
+   distributed with this work for additional information
+   regarding copyright ownership.  The ASF licenses this file
+   to you under the Apache License, Version 2.0 (the
+   "License"); you may not use this file except in compliance
+   with the License.  You may obtain a copy of the License at
 
-	<path id="libs-core">
-		<pathelement location="./lib/commons-cli-1.1.jar"/>
-		<pathelement location="./lib/commons-io-1.2.jar"/>
-		<pathelement location="./lib/json_simple-1.1.jar"/>
-		<pathelement location="./lib/msgpack-0.3.jar"/>
-		<pathelement location="./lib/rabbitmq-client.jar"/>
-		<pathelement location="./lib/base64coder.jar"/>
-		<pathelement location="./../ooi-netcdf-java/dist/ooi-netcdf-full-4.2.4.jar"/>
-		<pathelement location="./../ioncore-java/dist/lib/ioncore-full-0.1.0.jar"/>
-	</path>
-		
-	<path id="libs-example">
-		<pathelement location="${classes}"/>
-		<path refid="libs-core"/>
-	</path>
+     http://www.apache.org/licenses/LICENSE-2.0
 
-	<target name="info" depends="" description="Hello">
-		<echo message="EOI library build. Please specify a target. Use 'ant -p' to list targets."/>
-	</target>
-
-	<!-- ================================= 
-          target: compile              
-         ================================= -->
-	<target name="compile" depends="" description="Compile Sources">
-		<mkdir dir="${classes}"/>
-		<javac srcdir="${src}" destdir="${classes}" debug="on" classpathref="libs-example"/>
-	</target>
-
-	<!-- ================================= 
-          target: fullTest              
-         ================================= -->
+   Unless required by applicable law or agreed to in writing,
+   software distributed under the License is distributed on an
+   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+   KIND, either express or implied.  See the License for the
+   specific language governing permissions and limitations
+   under the License.    
+-->
+<project name="eoi-agents" default="run" xmlns:ivy="antlib:org.apache.ivy.ant" basedir=".">
+    <!-- some variables used -->
+    <property name="lib.dir" value="lib" />
+    <property name="build.dir" value="build" />
+    <property name="src.dir" value="src" />
     
-    <target name="fullTest" depends="compile,clearStore,addToStore,testIOSP" description="Tests the complete cycle - clearStore, addToStore, testIOSP, clearStore">
-    	<antcall target="clearStore"/>
+    <!-- paths used for compilation and run  -->
+    <path id="lib.path.id">
+        <fileset dir="${lib.dir}" />
+	</path>
+    <path id="run.path.id">
+        <path refid="lib.path.id" />
+        <path location="${build.dir}/" />
+    </path>
+    
+    <!-- ================================= 
+          target: resolve
+          NOTE: may want this to depends="clean" because when a dependency is removed,
+          the jar(s) are not removed from the 'lib' directory after re-running 'ant resolve'
+         ================================= -->
+    <target name="resolve" description="--> retreive dependencies with ivy">
+        <ivy:retrieve/>
+    </target>    
+    
+    <!-- ================================= 
+          target: report-deps              
+         ================================= -->
+    <target name="report-deps" depends="resolve" description="--> generates a report of dependencies">
+        <ivy:report todir="${build.dir}"/>
     </target>
 
-	<!-- ================================= 
-          target: clearStore              
+    <!-- ================================= 
+          target: compile
          ================================= -->
-	<target name="clearStore" depends="compile" description="Clears the attribute store">
-		<java classname="ooici.eoi.netcdf.test.ClearStore">
-			<classpath refid="libs-example"/>
-			<arg value="ooici.properties"/>
-		</java>
-	</target>
-	
-	<!-- ================================= 
-          target: addToStore              
+    <target name="compile" depends="resolve" description="--> compile the project">
+        <mkdir dir="${build.dir}" />
+        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="lib.path.id" />
+        <!-- copy the resources directory -->
+        <mkdir dir="${build.dir}/resources" />
+        <copy todir="${build.dir}/resources">
+        	<fileset dir="${src.dir}/resources"/>
+        </copy>
+        <!-- copy the log4j.properties file -->
+        <copy file="${src.dir}/log4j.properties" todir="${build.dir}" />
+    </target>
+
+<!-- ================================= 
+          target: test_sos
          ================================= -->
-	<target name="addToStore" depends="compile" description="Adds the './data/test.nc' dataset to the store">
-		<java classname="ooici.eoi.netcdf.test.AddDatasetToStore">
-			<classpath refid="libs-example"/>
-			<arg value="ooici.properties"/>
-			<arg value="data/test.nc"/>
-			<arg value="${testname}"/>
-		</java>
+	<target name="test-all" description="--> runs all tests">
+		<antcall target="test-sos"/>
+		<antcall target="test-usgs"/>
+		<antcall target="test-ncagent"/>
 	</target>
-	
-	<!-- ================================= 
-          target: testIOSP              
+
+<!-- ================================= 
+          target: test_sos
          ================================= -->
-	<target name="testIOSP" depends="compile" description="Tests the ooi iosp by reading the test dataset from the store - run 'addToStore' first!">
-		<java classname="ooici.eoi.netcdf.test.TestIOSP">
-			<classpath refid="libs-example"/>
-			<arg value="ooici.properties"/>
-			<arg value="${testname}"/>
-		</java>
-	</target>
-	
-	<!-- ================================= 
+    <target name="test-sos" depends="compile" description="--> runs a simple test">
+    	<property name="msg" value="Testing SosAgent..."/>
+        <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.SosAgent" />
+    </target>
+    
+<!-- ================================= 
+          target: test-usgs
+         ================================= -->
+    <target name="test-usgs" depends="compile" description="--> runs a simple test">
+    	<property name="msg" value="Testing UsgsAgent..."/>
+        <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.UsgsAgent" />
+    </target>
+    
+<!-- ================================= 
+          target: test-ncagent
+         ================================= -->
+    <target name="test-ncagent" depends="compile" description="--> runs a simple test">
+    	<property name="msg" value="Testing NcAgent..."/>
+        <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.NcAgent" />
+    </target>
+
+    <!-- ================================= 
           target: clean              
          ================================= -->
-    <target name="clean" depends="" description="Clean Outputs">
-    	<delete dir="${classes}"/>
-    	<delete dir="${build}"/>
-    	<delete dir="${dist}"/>
+    <target name="clean" description="--> clean the project">  
+    	<delete dir="build"/>
+    	<delete dir="lib"/>
+    	<delete dir="dist"/>
+    	<delete dir="output"/>
     </target>
-
+	
+    <!-- ================================= 
+          target: clean-ivy-cache              
+         ================================= -->
+	<target name="clean-ivy-cache" description="--> clean the ivy cache">
+		<ivy:cleancache />
+	</target>
 </project>

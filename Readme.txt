@@ -46,7 +46,8 @@ Use ant to test the iosp (use "ant -p" to see a list of tasks):
 
 	
 
-
+**************************
+IVY Instructions
 **************************
 Notes:
 - the contents of "ion-libs" and the associated line in ivysettings.xml are temporary - they will be replaced when the libraries are available on the package server
@@ -54,10 +55,14 @@ Notes:
 
 Ivy Installation:
 - install ivy
-	- download source from svn co https://svn.apache.org/repos/asf/ant/ivy/core/trunk ivy
-	- from ivy directory, run "ant jar"
-	- put the ivy.jar file in /usr/share/ant/java/ant-1.8.1/lib/
-	- full install instructions: http://ant.apache.org/ivy/history/2.2.0-rc1/install.html
-		- find where ant is installed this way: http://stackoverflow.com/questions/4823367/where-is-ant-installed-on-mac-os-x-snow-leopard-by-default
+	1. download source from:  svn co https://svn.apache.org/repos/asf/ant/ivy/core/trunk ivy
+	2. from ivy directory, run "ant jar"
+	3. from ivy directory, run "sudo cp build/artifact/jars/ivy.jar /usr/share/ant/lib/ivy.jar"
+	**IF that copy doesn't work:
+		- put the ivy.jar file (from "ivy/build/artifact/jars/") in /usr/share/ant/java/ant-1.8.1/lib/
+			- full install instructions: http://ant.apache.org/ivy/history/2.2.0-rc1/install.html
+				- you can find where ant is installed this way: http://stackoverflow.com/questions/4823367/where-is-ant-installed-on-mac-os-x-snow-leopard-by-default
+	4. Check that ivy is installed by running "ant" from the ivy/src/example/hello-ivy directory – if it doesn't bomb, it's installed correctly
+
 From eoi-agents-ivy:
 - run "ant test-all" --> calls the "resolve" and "compile" targets

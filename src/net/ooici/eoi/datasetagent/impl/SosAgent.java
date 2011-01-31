@@ -27,6 +27,7 @@ import net.ooici.eoi.datasetagent.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.datasetagent.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
+import net.ooici.eoi.datasetagent.AgentUtils;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -51,22 +52,22 @@ public class SosAgent extends AbstractAsciiAgent{
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
     @Override
-    public String buildRequest(Map<String, String[]> parameters) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         log.debug("");
-        log.info("Building SOS Request for context [" + parameters.toString().substring(0, 40) + "...]");
+        log.info("Building SOS Request for context [" + context.toString() + "]");
         
         StringBuilder result = new StringBuilder();
 
-        String baseUrl = parameters.get(DataSourceRequestKeys.BASE_URL)[0];
-        String top[] = parameters.get(DataSourceRequestKeys.TOP);
-        String bottom[] = parameters.get(DataSourceRequestKeys.BOTTOM);
-        String left[] = parameters.get(DataSourceRequestKeys.LEFT);
-        String right[] = parameters.get(DataSourceRequestKeys.RIGHT);
-        String sTimeString = parameters.get(DataSourceRequestKeys.START_TIME)[0];
-        String eTimeString = parameters.get(DataSourceRequestKeys.END_TIME)[0];
+        String baseUrl = context.getBaseUrl();
+        String top = String.valueOf(context.getTop());
+        String bottom = String.valueOf(context.getBottom());
+        String left = String.valueOf(context.getLeft());
+        String right = String.valueOf(context.getRight());
+        String sTimeString = context.getStartTime();
+        String eTimeString = context.getEndTime();
 
-        String property = parameters.get(DataSourceRequestKeys.PROPERTY)[0];
-        String stnId[] = parameters.get(DataSourceRequestKeys.STATION_ID);
+        String property = context.getProperty(0);
+        String stnId = context.getStationId(0);
 
         
         /** TODO: null-check here */
@@ -76,12 +77,12 @@ public class SosAgent extends AbstractAsciiAgent{
             Date sTime = null;
             Date eTime = null;
             try {
-                sTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(sTimeString);
+                sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
             } catch (ParseException e) {
                 throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
             }
             try {
-                eTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(eTimeString);
+                eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
             } catch (ParseException e) {
                 throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
             }
@@ -97,12 +98,8 @@ public class SosAgent extends AbstractAsciiAgent{
 
         /** Configure the BBOX parameter (if avail) */
         String bbox = null;
-        if (null != top && null != top[0] && !top[0].isEmpty()
-                && null != bottom && null != bottom[0] && !bottom[0].isEmpty()
-                && null != left && null != left[0] && !left[0].isEmpty()
-                && null != right && null != right[0] && !right[0].isEmpty()) {
-
-            bbox = new StringBuilder(left[0]).append(',').append(bottom[0]).append('.').append(right[0]).append(',').append(top[0]).append(',').toString();
+        if (null != top && null != bottom && null != left && null != right) {
+            bbox = new StringBuilder(left).append(',').append(bottom).append('.').append(right).append(',').append(top).append(',').toString();
         }
 
 
@@ -113,7 +110,7 @@ public class SosAgent extends AbstractAsciiAgent{
         result.append("&service=").append("SOS");
         result.append("&observedproperty=").append(property);
         if (null != stnId) {
-            result.append("&offering=urn:ioos:station:wmo:").append(stnId[0]);
+            result.append("&offering=urn:ioos:station:wmo:").append(stnId);
         } else if (null != bbox) {
             result.append("&offering=urn:ioos:network:noaa.nws.ndbc:all");
             result.append("&featureofInterest=BBOX:").append(bbox);
@@ -333,50 +330,37 @@ public class SosAgent extends AbstractAsciiAgent{
     /*****************************************************************************************************************/
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
-
-    
-    
+ 
     public static void main(String[] args) {
-        Map<String, String[]> context = TEST_CONTEXT_STATION_1;
-        if(true) {
-            context = TEST_CONTEXT_GLIDER_1;
+        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.SOS);
+        cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
+        if(false) {//test station
+            cBldr.setStartTime("2008-08-01T00:00:00Z");
+            cBldr.setEndTime("2008-08-02T00:00:00Z");
+            cBldr.addProperty("sea_water_temperature");
+            cBldr.addStationId("41012");
+        } else {//test glider
+            cBldr.setStartTime("2010-07-26T00:00:00Z");
+            cBldr.setEndTime("2010-07-27T00:00:00Z");
+            cBldr.addProperty("salinity");
+            cBldr.addStationId("48900");
         }
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_TYPE)[0]);
-        NetcdfDataset dataset = agent.doUpdate(context);
-        if (! new File(outDir).exists()) {
-            new File(outDir).mkdirs();
-        }
-        String outName = "SOS_" + ++outCount + ".nc";
-        try {
-            log.info("Writing NC output to [" + outDir + outName + "]...");
-            ucar.nc2.FileWriter.writeToFile(dataset, outDir + outName);
-        } catch (IOException ex) {
-            log.warn("Could not write NC to file: " + outDir + outName, ex);
-        }
-        
-    }
-    
-    private static Map<String, String[]> TEST_CONTEXT_STATION_1 = new HashMap<String, String[]>();
-    private static Map<String, String[]> TEST_CONTEXT_GLIDER_1 = new HashMap<String, String[]>();
-    private static String outDir = "output/sos/";
-    private static int outCount = 0;
-    
-    static {
-        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.SOURCE_TYPE, new String[] {"SOS"});
-        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.BASE_URL,   new String[] {"http://sdf.ndbc.noaa.gov/sos/server.php?"});
-        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.START_TIME, new String[] {"2008-08-01T00:00:00Z"});
-        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.END_TIME,   new String[] {"2008-08-02T00:00:00Z"});
-        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.PROPERTY,   new String[] {"sea_water_temperature"});
-        TEST_CONTEXT_STATION_1.put(DataSourceRequestKeys.STATION_ID,  new String[] {"41012"});
 
-        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.SOURCE_TYPE, new String[] {"SOS"});
-        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.BASE_URL,   new String[] {"http://sdf.ndbc.noaa.gov/sos/server.php?"});
-        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.START_TIME, new String[] {"2010-07-26T00:00:00Z"});
-        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.END_TIME,   new String[] {"2010-07-27T00:00:00Z"});
-        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.PROPERTY,   new String[] {"salinity"});
-        TEST_CONTEXT_GLIDER_1.put(DataSourceRequestKeys.STATION_ID,  new String[] {"48900"});
+        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
         
-        
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
+        NetcdfDataset dataset = agent.doUpdate(context);
+        String outdir = "output/sos/";
+        if (! new File(outdir).exists()) {
+            new File(outdir).mkdirs();
+        }
+        String outName = "SOS_Test.nc";
+        try {
+            log.info("Writing NC output to [" + outdir + outName + "]...");
+            ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
+        } catch (IOException ex) {
+            log.warn("Could not write NC to file: " + outdir + outName, ex);
+        }   
     }
-    
 }

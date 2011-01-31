@@ -46,7 +46,7 @@ public class Unidata2Ooi {
     public static void packDataset(NetcdfDataset ncds) throws java.io.IOException {
         Type.GPBType gpbType;
         ByteString byteString;
-        String key;
+        byte[] key;
 
         Cdmgroup.Group.Builder grpBldr = Cdmgroup.Group.newBuilder().setName("root");
 
@@ -97,13 +97,14 @@ public class Unidata2Ooi {
         byteString = dataset.toByteString();
         dataset = null;
         key = SHA1.getSHA1Hash(byteString.toByteArray());
-        structBldr.setHead(Container.StructureElement.newBuilder().setIsleaf(false).setKey(key).setType(gpbType).setValue(byteString).build());
+        structBldr.setHead(Container.StructureElement.newBuilder().setIsleaf(false).setKey(com.google.protobuf.ByteString.copyFrom(key)).setType(gpbType).setValue(byteString).build());
 
         /* DONE!! */
     }
 
-    private static void addElementToStructure(boolean isLeaf, String key, Type.GPBType gpbType, ByteString value) {
-        structBldr.addItems(Container.StructureElement.newBuilder().setIsleaf(isLeaf).setKey(key).setType(gpbType).setValue(value).build());
+    private static void addElementToStructure(boolean isLeaf, byte[] key, Type.GPBType gpbType, ByteString value) {
+        com.google.protobuf.ByteString keyS = com.google.protobuf.ByteString.copyFrom(key);
+        structBldr.addItems(Container.StructureElement.newBuilder().setIsleaf(isLeaf).setKey(keyS).setType(gpbType).setValue(value).build());
     }
 
     private static Cdmdimension.Dimension getOoiDimension(Dimension ncDim) {
@@ -116,7 +117,7 @@ public class Unidata2Ooi {
         Cdmattribute.Attribute.Builder attBldr = Cdmattribute.Attribute.newBuilder().setName(ncAtt.getName()).setDataType(ProtoUtils.getOoiDataType(dt));
         Type.GPBType gpbType = null;
         ByteString byteString = null;
-        String key;
+        byte[] key;
         switch (dt) {
             case STRING:
                 String val = ncAtt.getStringValue();
@@ -176,7 +177,7 @@ public class Unidata2Ooi {
         Cdmvariable.Variable.Builder varBldr = Cdmvariable.Variable.newBuilder().setName(ncVar.getName()).setDataType(ProtoUtils.getOoiDataType(dt));
         Type.GPBType gpbType;
         ByteString byteString;
-        String key;
+        byte[] key;
         /* Add all the attributes */
         for (Attribute ncAtt : ncVar.getAttributes()) {
             Cdmattribute.Attribute ooiAtt = getOoiAttribute(ncAtt);
@@ -296,93 +297,124 @@ public class Unidata2Ooi {
 //    private static Type.GPBType getGPBType(String packageName, String className, String protoFileName) {
 //        return Type.GPBType.newBuilder().setPackage(packageName).setCls(className).setProtofile(protoFileName).build();
 //    }
-    private static CASRef getLink(boolean isLeaf, String key, Type.GPBType gpbType) {
-        return CASRef.newBuilder().setKey(key).setType(gpbType).setIsleaf(isLeaf).build();
+    private static CASRef getLink(boolean isLeaf, byte[] key, Type.GPBType gpbType) {
+        com.google.protobuf.ByteString keyS = com.google.protobuf.ByteString.copyFrom(key);
+        return CASRef.newBuilder().setKey(keyS).setType(gpbType).setIsleaf(isLeaf).build();
     }
 
-    private static String genKey(byte[] content, Type.GPBType type) {
-        String key = SHA1.getSHA1Hash(content);
-
-
-        return SHA1.getSHA1Hash(key);
+    private static byte[] genKey(byte[] content, Type.GPBType type) {
+        byte[] key = SHA1.getSHA1Hash(content);
+        byte[] type_ba = type.toByteArray();
+        byte[] comb = new byte[key.length + type_ba.length];
+        System.arraycopy(key, 0, comb, 0, key.length);
+        System.arraycopy(type_ba, 0, comb, key.length, type_ba.length);
+        return SHA1.getSHA1Hash(comb);
     }
 
     public static void main(String[] args) {
         try {
             IonBootstrap.bootstrap();
 
-            net.ooici.cdm.syntactic.Cdmarray.stringArray sarr = net.ooici.cdm.syntactic.Cdmarray.stringArray.newBuilder().addValue("lets").addValue("test").addValue("this!").build();
-            System.out.println(sarr.getClass().getName());
-            Type.GPBType type = getGPBType(sarr.getClass());
-            System.out.println("GPB Type:");
-            System.out.println(type.toString());
-            System.out.println("stringArray {\n");
-            System.out.println(sarr);
-            System.out.println("}");
-            String key = SHA1.getSHA1Hash(sarr.toByteArray());
-            System.out.println("Key Before GPBType: " + key);
-            key = SHA1.getSHA1Hash(key + type.toByteString());
-            System.out.println("Key After GPBType: " + key);
+//            net.ooici.cdm.syntactic.Cdmdimension.Dimension dim = net.ooici.cdm.syntactic.Cdmdimension.Dimension.newBuilder().setName("test_dimension").setLength(10).build();
+//            System.out.println(dim.getClass().getName());
+//            Type.GPBType type1 = getGPBType(dim.getClass());
+//            System.out.println("GPB Type:");
+//            System.out.println(type1.toString());
+//            System.out.println("Dimension {\n");
+//            System.out.println(dim);
+//            System.out.println("}");
+//            byte[] key1 = SHA1.getSHA1Hash(dim.toByteArray());
+//            System.out.print("Key Before GPBType:\t");
+//            printBytes(key1);
+//            System.out.println("SHA Args:");
+//            System.out.print("key1:\t");
+//            printBytes(key1);
+//            System.out.print("type1:\t");
+//            printBytes(type1.toByteArray());
+//
+//            byte[] type_ba = type1.toByteArray();
+//            byte[] comb = new byte[key1.length + type_ba.length];
+//            System.arraycopy(key1, 0, comb, 0, key1.length);
+//            System.arraycopy(type_ba, 0, comb, key1.length, type_ba.length);
+//            System.out.print("Combined Bytes:\t");
+//            printBytes(comb);
+//
+//            byte[] key2 = SHA1.getSHA1Hash(comb);
+//            System.out.print("Key After GPBType:\t");
+//            printBytes(key2);
+//            System.out.println("Key After SHA1 2 Hex: " + SHA1.getSHA1HashString(key2));
+//
+//            System.out.println();
+//            System.out.println("--------------------");
+//            System.out.println();
+//
+//            printBytes(genKey(dim.toByteArray(), type1));
 
-            System.out.println();
-            System.out.println("--------------------");
-            System.out.println();
 
-            net.ooici.cdm.syntactic.Cdmdimension.Dimension dim = net.ooici.cdm.syntactic.Cdmdimension.Dimension.newBuilder().setName("test_dimension").setLength(10).build();
-            System.out.println(dim.getClass().getName());
-            Type.GPBType type1 = getGPBType(dim.getClass());
-            System.out.println("GPB Type:");
-            System.out.println(type1.toString());
-            System.out.println("Dimension {\n");
-            System.out.println(dim);
-            System.out.println("}");
-            String key1 = SHA1.getSHA1Hash(dim.toByteArray());
-            System.out.println("Key Before GPBType: " + key1);
-            key1 = SHA1.getSHA1Hash(key1 + type1.toByteString());
-            System.out.println("Key After GPBType: " + key1);
+//            net.ooici.cdm.syntactic.Cdmarray.stringArray sarr = net.ooici.cdm.syntactic.Cdmarray.stringArray.newBuilder().addValue("lets").addValue("test").addValue("this!").build();
+//            System.out.println(sarr.getClass().getName());
+//            Type.GPBType type = getGPBType(sarr.getClass());
+//            System.out.println("GPB Type:");
+//            System.out.println(type.toString());
+//            System.out.println("stringArray {\n");
+//            System.out.println(sarr);
+//            System.out.println("}");
+//            String key = SHA1.getSHA1Hash(sarr.toByteArray());
+//            System.out.println("Key Before GPBType: " + key);
+//            key = SHA1.getSHA1Hash(key + type.toByteString());
+//            System.out.println("Key After GPBType: " + key);
+//
+//            System.out.println();
+//            System.out.println("--------------------");
+//            System.out.println();
 
-            System.out.println();
-            System.out.println("--------------------");
-            System.out.println();
+//            net.ooici.cdm.syntactic.Cdmarray.int32Array i32arr = net.ooici.cdm.syntactic.Cdmarray.int32Array.newBuilder().addValue(1).addValue(3).addValue(4).addValue(8).build();
+//            System.out.println(i32arr.getClass().getName());
+//            Type.GPBType type2 = getGPBType(i32arr.getClass());
+//            System.out.println("GPB Type:");
+//            System.out.println(type2.toString());
+//            java.util.List<Integer> ivals = i32arr.getValueList();
+//            System.out.println("int32Array {\n");
+//            System.out.println(i32arr);
+//            System.out.println("}");
+//            String key2 = SHA1.getSHA1Hash(i32arr.toByteArray());
+//            System.out.println("Key Before GPBType: " + key2);
+//            key2 = SHA1.getSHA1Hash(key2 + type2.toByteString());
+//            System.out.println("Key After GPBType: " + key2);
 
-            net.ooici.cdm.syntactic.Cdmarray.int32Array i32arr = net.ooici.cdm.syntactic.Cdmarray.int32Array.newBuilder().addValue(1).addValue(3).addValue(4).addValue(8).build();
-            System.out.println(i32arr.getClass().getName());
-            Type.GPBType type2 = getGPBType(i32arr.getClass());
-            System.out.println("GPB Type:");
-            System.out.println(type2.toString());
-            java.util.List<Integer> ivals = i32arr.getValueList();
-            System.out.println("int32Array {\n");
-            System.out.println(i32arr);
-            System.out.println("}");
-            String key2 = SHA1.getSHA1Hash(i32arr.toByteArray());
-            System.out.println("Key Before GPBType: " + key2);
-            key2 = SHA1.getSHA1Hash(key2 + type2.toByteString());
-            System.out.println("Key After GPBType: " + key2);
+            String ds = "/Users/cmueller/Development/OOI/Dev/code/eoidev/proto_test/station_profile.nc";
 
-//            String ds = "/Users/cmueller/Development/OOI/Dev/code/eoidev/proto_test/station_profile.nc";
-//
-//            NetcdfDataset ncds = NetcdfDataset.openDataset("/Users/cmueller/Development/OOI/Dev/code/eoidev/proto_test/station_profile.nc");
-////            byte[] data = Unidata2Ooi.ncdfToByteArray(ncds);
-////            System.out.println(data);
-//
-//            structBldr = Container.Structure.newBuilder();
-//
-//
-//            packDataset(ncds);
-//
-//
-//            Container.Structure struct = structBldr.build();
-//            /* Print structure to console */
-////        System.out.println("************ Structure ************");
-////        System.out.println(struct);
-//
-//            /* Write structure to disk */
-//            new java.io.File("output").mkdirs();
-//            java.io.FileOutputStream fos = new java.io.FileOutputStream("output/" + "" + ds.substring(ds.lastIndexOf("/")).replace(".nc", ".protostruct"));
-//            struct.writeTo(fos);
+            NetcdfDataset ncds = NetcdfDataset.openDataset("/Users/cmueller/Development/OOI/Dev/code/eoidev/proto_test/station_profile.nc");
+//            byte[] data = Unidata2Ooi.ncdfToByteArray(ncds);
+//            System.out.println(data);
+
+            structBldr = Container.Structure.newBuilder();
+
+
+            packDataset(ncds);
+
+
+            Container.Structure struct = structBldr.build();
+            /* Print structure to console */
+//        System.out.println("************ Structure ************");
+//        System.out.println(struct);
+
+            /* Write structure to disk */
+            new java.io.File("output").mkdirs();
+            java.io.FileOutputStream fos = new java.io.FileOutputStream("output/" + "" + ds.substring(ds.lastIndexOf("/")).replace(".nc", ".protostruct"));
+            struct.writeTo(fos);
 
         } catch (Exception ex) {
             Logger.getLogger(Unidata2Ooi.class.getName()).log(Level.SEVERE, null, ex);
         }
+    }
+
+    private static void printBytes(byte[] key) {
+        for (byte b : key) {
+            System.out.print(" " + b);
+//            System.out.print(SHA1.bytesToHex(b));
+
+        }
+        System.out.println();
     }
 }

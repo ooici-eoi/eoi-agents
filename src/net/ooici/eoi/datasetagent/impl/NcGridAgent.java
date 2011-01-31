@@ -25,6 +25,7 @@ import ucar.ma2.Section;
 import ucar.nc2.Attribute;
 import ucar.nc2.Dimension;
 import ucar.nc2.Variable;
+import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1D;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
@@ -41,10 +42,10 @@ public class NcGridAgent extends AbstractNcAgent {
     private Date sTime = null;
     private Date eTime = null;
 
-    public String buildRequest(Map<String, String[]> context) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         /* Store the sTime and eTime for later */
-        String sTimeString = context.get(DataSourceRequestKeys.START_TIME)[0];
-        String eTimeString = context.get(DataSourceRequestKeys.END_TIME)[0];
+        String sTimeString = context.getStartTime();
+        String eTimeString = context.getEndTime();
         try {
             sTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(sTimeString);
         } catch (ParseException e) {
@@ -56,7 +57,7 @@ public class NcGridAgent extends AbstractNcAgent {
             throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
         }
         /* Return the dataset URL */
-        return context.get(DataSourceRequestKeys.BASE_URL)[0];
+        return context.getDatasetUrl();
     }
 
     public Object acquireData(String request) {
@@ -106,7 +107,11 @@ public class NcGridAgent extends AbstractNcAgent {
                     Dimension dim;
                     CoordinateAxis1D ca;
                     CoordinateAxis1DTime cat;
-                    switch (a.getAxisType()) {
+                    AxisType at = a.getAxisType();
+                    if (at == null) {
+                        continue;
+                    }
+                    switch (at) {
                         case GeoY:
                         case Lat:
                             dim = ncds.findDimension(a.getName());
@@ -315,20 +320,69 @@ public class NcGridAgent extends AbstractNcAgent {
     }
 
     public static void main(String[] args) {
-        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.SOURCE_TYPE, new String[] {"NC_GRID"});
+        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.SOURCE_TYPE, new String[]{"NC_GRID"});
 //        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.BASE_URL, new String[] {"input/grid.nc"});
 //        //yyyy-MM-dd'T'HH:mm:ss'Z'
 //        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.START_TIME, new String[] {"2006-09-28T00:00:00Z"});
 //        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[] {"2006-09-29T00:00:00Z"});
 
-        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.BASE_URL, new String[] {"http://thredds1.pfeg.noaa.gov:8080/thredds/dodsC/satellite/CM/vsfc/hday"});
-        //yyyy-MM-dd'T'HH:mm:ss'Z'
-        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.START_TIME, new String[] {"2009-01-05T19:00:00Z"});
-        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[] {"2009-01-06T19:00:00Z"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.BASE_URL, new String[] {"http://thredds1.pfeg.noaa.gov:8080/thredds/dodsC/satellite/CM/vsfc/hday"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.START_TIME, new String[] {"2009-01-05T19:00:00Z"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[] {"2009-01-06T19:00:00Z"});
+
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.BASE_URL, new String[] {"http://sdf.ndbc.noaa.gov/thredds/dodsC/hfradar_usegc_6km"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.START_TIME, new String[] {"2011-01-26T00:00:00Z"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[] {"2011-01-26T20:00:00Z"});
+
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.BASE_URL, new String[] {"http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/avhrr/bigbight"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.START_TIME, new String[] {"2011-01-26T00:00:00Z"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[] {"2011-01-26T20:00:00Z"});
+
+        /* This dataset has issues because of it's size - the server throws the following error when it tries to read the first data variable (salinity) which has 489753000 float values for 1 timestep...
+         *
+        Start Time Index: 23
+        End Time Index: 23
+        Depth reading {~bytes = 132}... in 2 milliseconds
+        Y reading {~bytes = 13192}... in 2 milliseconds
+        X reading {~bytes = 18000}... in 1 milliseconds
+        MT reading {~bytes = 8}... in 1 milliseconds
+        Date reading {~bytes = 8}... in 0 milliseconds
+        Latitude reading {~bytes = 59364000}... in 86427 milliseconds
+        Longitude reading {~bytes = 59364000}... in 90022 milliseconds
+        opendap.dap.DAP2Exception: Method failed:HTTP/1.1 403 Forbidden
+        salinity reading {~bytes = 1959012000}... net.ooici.eoi.datasetagent.impl.NcGridAgent.buildDataset(){287} - Error creating NetcdfDataset
+        java.io.IOException: Method failed:HTTP/1.1 403 Forbidden
+        at ucar.nc2.dods.DODSNetcdfFile.readData(DODSNetcdfFile.java:1330)
+        at ucar.nc2.Variable.reallyRead(Variable.java:846)
+        at ucar.nc2.Variable._read(Variable.java:832)
+        at ucar.nc2.Variable.read(Variable.java:644)
+        at net.ooici.eoi.datasetagent.impl.NcGridAgent.buildDataset(NcGridAgent.java:268)
+        at net.ooici.eoi.datasetagent.AbstractNcAgent.buildDataset(AbstractNcAgent.java:33)
+        at net.ooici.eoi.datasetagent.AbstractDatasetAgent.doUpdate(AbstractDatasetAgent.java:29)
+        at net.ooici.eoi.datasetagent.impl.NcGridAgent.main(NcGridAgent.java:347)
+        net.ooici.eoi.datasetagent.impl.NcGridAgent.main(){353} - Writing NC output to [output/ncgrid/nc_grid.nc]...
+        at opendap.dap.DConnect2.openConnection(DConnect2.java:228)
+        at opendap.dap.DConnect2.getData(DConnect2.java:708)
+        at opendap.dap.DConnect2.getData(DConnect2.java:988)
+        at ucar.nc2.dods.DODSNetcdfFile.readDataDDSfromServer(DODSNetcdfFile.java:1159)
+        at ucar.nc2.dods.DODSNetcdfFile.readData(DODSNetcdfFile.java:1323)
+        at ucar.nc2.Variable.reallyRead(Variable.java:846)
+        at ucar.nc2.Variable._read(Variable.java:832)
+        at ucar.nc2.Variable.read(Variable.java:644)
+        at net.ooici.eoi.datasetagent.impl.NcGridAgent.buildDataset(NcGridAgent.java:268)
+        at net.ooici.eoi.datasetagent.AbstractNcAgent.buildDataset(AbstractNcAgent.java:33)
+        at net.ooici.eoi.datasetagent.AbstractDatasetAgent.doUpdate(AbstractDatasetAgent.java:29)
+        at net.ooici.eoi.datasetagent.impl.NcGridAgent.main(NcGridAgent.java:347)
+         *
+         */
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.BASE_URL, new String[]{"http://tds.hycom.org/thredds/dodsC/GLBa0.08/expt_90.9/2011"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.START_TIME, new String[]{"2011-01-26T00:00:00Z"});
+//        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[]{"2011-01-26T00:00:00Z"});
 
         Map<String, String[]> context = TEST_CONTEXT_GRID;
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_TYPE)[0]);
-        NetcdfDataset dataset = agent.doUpdate(context);
+//        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_TYPE)[0]);
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(null);
+        NetcdfDataset dataset = agent.doUpdate(null);
         if (! new File(outDir).exists()) {
             new File(outDir).mkdirs();
         }

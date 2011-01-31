@@ -12,27 +12,7 @@ import net.ooici.eoi.datasetagent.impl.*;
  * @author cmueller
  */
 public class AgentFactory {
-
-    public enum SourceType {
-
-        SOS,
-        AOML,
-        NC_GRID,
-        USGS,
-        RADS
-    }
-
-    public static IDatasetAgent getDatasetAgent(String source_type) throws IllegalArgumentException {
-        SourceType st;
-        try {
-            st = SourceType.valueOf(source_type.toUpperCase());
-        } catch (IllegalArgumentException ex) {
-            throw new IllegalArgumentException("Invalid source_type = " + source_type.toUpperCase());
-        }
-        return getDatasetAgent(st);
-    }
-
-    public static IDatasetAgent getDatasetAgent(SourceType st) throws IllegalArgumentException {
+    public static IDatasetAgent getDatasetAgent(net.ooici.services.sa.DataSource.EoiDataContext.SourceType st) throws IllegalArgumentException {
         IDatasetAgent agent = null;
         switch (st) {
             case SOS:
@@ -44,10 +24,11 @@ public class AgentFactory {
             case AOML:
                 agent = new AomlAgent();
                 break;
-            case NC_GRID:
-                agent = new NcGridAgent();
+            case NETCDF_S:
+                agent = new NcAgent();
                 break;
-            case RADS:
+            case NETCDF_C:
+                throw new UnsupportedOperationException();
             default:
                 throw new IllegalArgumentException("Invalid source_type = " + st.toString());
         }

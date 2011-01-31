@@ -24,6 +24,8 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 import net.ooici.eoi.datasetagent.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupDupDepthImpl;
 import net.ooici.eoi.datasetagent.VariableParams;
+import net.ooici.services.sa.DataSource.EoiDataContext.RequestType;
+import net.ooici.services.sa.DataSource.EoiDataContext.SourceType;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -47,19 +49,19 @@ public class AomlAgent extends AbstractAsciiAgent {
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
     @Override
-    public String buildRequest(Map<String, String[]> context) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         StringBuilder result = new StringBuilder();
 
-
-        String baseUrl = (context.containsKey(DataSourceRequestKeys.BASE_URL)) ? context.get(DataSourceRequestKeys.BASE_URL)[0] : null;
-        String top = (context.containsKey(DataSourceRequestKeys.TOP)) ? context.get(DataSourceRequestKeys.TOP)[0] : "87.999";
-        String bottom = (context.containsKey(DataSourceRequestKeys.BOTTOM)) ? context.get(DataSourceRequestKeys.BOTTOM)[0] : "-87.999";
-        String left = (context.containsKey(DataSourceRequestKeys.LEFT)) ? context.get(DataSourceRequestKeys.LEFT)[0] : "-180.0";
-        String right = (context.containsKey(DataSourceRequestKeys.RIGHT)) ? context.get(DataSourceRequestKeys.RIGHT)[0] : "180.0";
-        String sTimeString = (context.containsKey(DataSourceRequestKeys.START_TIME)) ? context.get(DataSourceRequestKeys.START_TIME)[0] : null;
-        String eTimeString = (context.containsKey(DataSourceRequestKeys.END_TIME)) ? context.get(DataSourceRequestKeys.END_TIME)[0] : null;
-        String type = (context.containsKey(DataSourceRequestKeys.TYPE)) ? context.get(DataSourceRequestKeys.TYPE)[0] : null;
-        String id = (context.containsKey(DataSourceRequestKeys.STATION_ID)) ? context.get(DataSourceRequestKeys.STATION_ID)[0] : "";
+        String baseUrl = context.getBaseUrl();
+        String top = String.valueOf(context.getTop());
+        String bottom = String.valueOf(context.getBottom());
+        String left = String.valueOf(context.getLeft());
+        String right = String.valueOf(context.getRight());
+        String sTimeString = context.getStartTime();
+        String eTimeString = context.getEndTime();
+        String id = (context.getStationIdCount() != 0) ? context.getStationId(0) : "";
+        //TODO: Replace with the RequestType enum
+        String type = context.getRequestType().name();
 
 
         /** Null-checks */
@@ -84,12 +86,12 @@ public class AomlAgent extends AbstractAsciiAgent {
         Date sTime = null;
         Date eTime = null;
         try {
-            sTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(sTimeString);
+            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
         }
         try {
-            eTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(eTimeString);
+            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
         }
@@ -331,33 +333,28 @@ public class AomlAgent extends AbstractAsciiAgent {
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
     public static void main(String[] args) {
-        Map<String, String[]> context = TEST_CONTEXT;
-        if(false) {//set == true to test xbt
-            TEST_CONTEXT.put(DataSourceRequestKeys.TYPE, new String[]{"xbt"});
-        }
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_TYPE)[0]);
-        NetcdfDataset dataset = agent.doUpdate(context);
-        
-        log.debug(dataset.toString());
-    }
-    private static Map<String, String[]> TEST_CONTEXT = new java.util.HashMap<String, String[]>();
-
-    static {
+        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+        cBldr.setSourceType(SourceType.AOML);
+        cBldr.setBaseUrl("http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?");
+        cBldr.setTop(47.0);
+        cBldr.setBottom(31.0);
+        cBldr.setRight(-60.0);
+        cBldr.setLeft(-82.0);
         /* Request data from one month ago for a length of 10 days.. */
         java.util.GregorianCalendar endTime = new java.util.GregorianCalendar(TimeZone.getTimeZone("UTC"));
         endTime.add(java.util.Calendar.MONTH, -1);
         java.util.GregorianCalendar startTime = (java.util.GregorianCalendar) endTime.clone();
         startTime.add(java.util.Calendar.DAY_OF_MONTH, -10);
 
-        /* Store the example parameters */
-        TEST_CONTEXT.put(DataSourceRequestKeys.SOURCE_TYPE, new String[]{"AOML"});
-        TEST_CONTEXT.put(DataSourceRequestKeys.BASE_URL, new String[]{"http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?"});
-        TEST_CONTEXT.put(DataSourceRequestKeys.LEFT, new String[]{"-82.0"});
-        TEST_CONTEXT.put(DataSourceRequestKeys.RIGHT, new String[]{"-60.0"});
-        TEST_CONTEXT.put(DataSourceRequestKeys.BOTTOM, new String[]{"31.0"});
-        TEST_CONTEXT.put(DataSourceRequestKeys.TOP, new String[]{"47.0"});
-        TEST_CONTEXT.put(DataSourceRequestKeys.START_TIME, new String[]{DataSourceRequestKeys.ISO8601_FORMAT.format(startTime.getTime())});
-        TEST_CONTEXT.put(DataSourceRequestKeys.END_TIME, new String[]{DataSourceRequestKeys.ISO8601_FORMAT.format(endTime.getTime())});
-        TEST_CONTEXT.put(DataSourceRequestKeys.TYPE, new String[]{"ctd"});
+        cBldr.setStartTime(AgentUtils.ISO8601_DATE_FORMAT.format(startTime.getTime()));
+        cBldr.setEndTime(AgentUtils.ISO8601_DATE_FORMAT.format(endTime.getTime()));
+        cBldr.setRequestType(RequestType.CTD);
+
+        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
+        NetcdfDataset dataset = agent.doUpdate(context);
+        
+        log.debug(dataset.toString());
     }
 }

@@ -4,7 +4,6 @@
  */
 package net.ooici.eoi.datasetagent;
 
-import java.util.Map;
 
 import ucar.nc2.dataset.NetcdfDataset;
 
@@ -16,10 +15,10 @@ import ucar.nc2.dataset.NetcdfDataset;
  */
 public interface IDatasetAgent {
 
-    String buildRequest(Map<String, String[]> context);
+    String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context);
     
     Object acquireData(String request);
     
-    NetcdfDataset doUpdate(Map<String, String[]> context);
+    NetcdfDataset doUpdate(net.ooici.services.sa.DataSource.EoiDataContext context);
     
 }

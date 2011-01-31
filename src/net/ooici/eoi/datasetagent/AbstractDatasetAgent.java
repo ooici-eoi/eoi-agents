@@ -20,7 +20,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see net.ooici.agent.abstraction.IDatasetAgent#doUpdate()
      */
     @Override
-    public final NetcdfDataset doUpdate(Map<String, String[]> context) {
+    public final NetcdfDataset doUpdate(net.ooici.services.sa.DataSource.EoiDataContext context) {
         /* NOTE: Template method.  Do not reorder */
         NetcdfDataset dataset = null;
         

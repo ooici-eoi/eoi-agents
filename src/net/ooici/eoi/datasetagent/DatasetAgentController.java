@@ -55,11 +55,11 @@ public class DatasetAgentController implements ControlListener {
         /* Start the control thread */
         controlThread.start();
 
-        /* Inform the wrapper of my messaging name */
-        controlThread.sendControlMessage(wrapperName, bindingCallback, controlThread.getMessagingName().toString());
-
         /* Instantiate the processing ExecutorService */
         processService = Executors.newFixedThreadPool(1);
+
+        /* Inform the wrapper of my messaging name */
+        controlThread.sendControlMessage(wrapperName, bindingCallback, controlThread.getMessagingName().toString());
     }
 
     public void controlEvent(ControlEvent evt) {
@@ -108,10 +108,10 @@ public class DatasetAgentController implements ControlListener {
                 String status = "";
                 log.debug("Processing Thread ID: " + threadId);
                 log.debug(threadId + ":: Received context as: " + msg.getContent().getClass().getName());
-                log.debug(threadId + ":: Received context as: " + msg.getContent().getClass().getName());
-                Map<String, String[]> context = convertToStringStringArrayMap(((HashMap<?, ?>) msg.getContent()));
+//                Map<String, String[]> context = convertToStringStringArrayMap(((HashMap<?, ?>) msg.getContent()));
+                net.ooici.services.sa.DataSource.EoiDataContext context = (net.ooici.services.sa.DataSource.EoiDataContext) msg.getContent();
 
-                String source_type = context.get("source_type")[0];
+                net.ooici.services.sa.DataSource.EoiDataContext.SourceType source_type = context.getSourceType();
                 log.debug(threadId + ":: source_type = " + source_type);
 
                 /* Instantiate the appropriate dataset agent based on the source_type */
@@ -135,7 +135,17 @@ public class DatasetAgentController implements ControlListener {
                 }
 
                 /* Perform the update */
-                NetcdfDataset ncds = agent.doUpdate(context);
+                /*TODO: Change doUpdate to return a boolean (or somesuch) and add methods to DAC
+                 * to allow the agent implementation to send the dataset(s) piecemeal.  After the agent
+                 * is finished sending data, the doUpdate method returns and a "finished" message
+                 * can be sent to the ingest service.
+                 * Two methods are required
+                 * - one that accepts a NetcdfDataset, packs it, and sends it
+                 * - one that accepts a Variable, packs it and sends it
+                 * These methods could be made static methods of Unidata2Ooi, thereby negating the need
+                 * to pass through this class...?
+                 */
+                NetcdfDataset ncds = agent.doUpdate(null);
 
                 /* If the resulting ncds is non-null, upload it */
                 if(ncds != null) {
@@ -162,7 +172,8 @@ public class DatasetAgentController implements ControlListener {
 
                         /* Build an IonMessage with the Dataset byte array as content */
 //                    controlThread.sendControlMessage((String)msg.getIonHeaders().get("reply-to"), context.get("callback")[0], bytes);
-                        log.debug("@@@--->>> Sending NetCDF Dataset byte[] message to " + (String) msg.getIonHeaders().get("reply-to") + "  op: " + context.get("callback")[0]);
+                        /* TODO: The context can no longer carry the callback because it is tied to the dataset, not the wrapper - needs to be received some other way */
+//                        log.debug("@@@--->>> Sending NetCDF Dataset byte[] message to " + (String) msg.getIonHeaders().get("reply-to") + "  op: " + context.get("callback")[0]);
 //                    IonMessage msgout = ((ControlProcess) source).createMessage((String) msg.getIonHeaders().get("reply-to"), context.get("callback")[0], bytes);
                         ion.core.messaging.IonMessage msgout = cl.createMessage(procId, toName, "ingest", dataBytes);
 

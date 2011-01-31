@@ -27,7 +27,7 @@ import net.ooici.eoi.datasetagent.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.datasetagent.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
-import net.ooici.eoi.datasetagent.IDatasetAgent;
+import net.ooici.eoi.datasetagent.AgentUtils;
 
 import org.jdom.Document;
 import org.jdom.Element;
@@ -94,18 +94,17 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
     @Override
-    public String buildRequest(Map<String, String[]> parameters) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         LOGGER.debug("");
-        LOGGER.info("Building SOS Request for context [" + parameters.toString().substring(0, 40) + "...]");
+        LOGGER.info("Building SOS Request for context [" + context.toString() + "...]");
         
         StringBuilder result = new StringBuilder();
 
-
-        String baseUrl = parameters.get(DataSourceRequestKeys.BASE_URL)[0];
-        String sTimeString = parameters.get(DataSourceRequestKeys.START_TIME)[0];
-        String eTimeString = parameters.get(DataSourceRequestKeys.END_TIME)[0];
-        String properties[] = parameters.get(DataSourceRequestKeys.PROPERTY);
-        String siteCodes[] = parameters.get(DataSourceRequestKeys.STATION_ID);
+        String baseUrl = context.getBaseUrl();
+        String sTimeString = context.getStartTime();
+        String eTimeString = context.getEndTime();
+        String properties[] = context.getPropertyList().toArray(new String[0]);
+        String siteCodes[] = context.getStationIdList().toArray(new String[0]);
 
 
         /** TODO: null-check here */
@@ -115,12 +114,12 @@ public class UsgsAgent extends AbstractAsciiAgent {
         Date sTime = null;
         Date eTime = null;
         try {
-            sTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(sTimeString);
+            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
         }
         try {
-            eTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(eTimeString);
+            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
         } catch (ParseException e) {
             throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
         }
@@ -481,46 +480,37 @@ public class UsgsAgent extends AbstractAsciiAgent {
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
 
-    
-    /* TODO: */
     public static void main(String[] args) {
-        IDatasetAgent agent = new UsgsAgent();
-        NetcdfDataset dataset = agent.doUpdate(TEST_CONTEXT_STATION_1);
-//        NetcdfDataset dataset = agent.doUpdate(TEST_CONTEXT_STATION_2);
-        if (! new File(outDir).exists()) {
-            new File(outDir).mkdirs();
+        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
+        cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
+        if(false) {//test station
+            cBldr.setStartTime("2010-10-10T00:00:00Z");
+            cBldr.setEndTime("2010-10-12T00:00:00Z");
+            cBldr.addProperty("00010");
+            cBldr.addStationId("01463500");
+        } else {//test glider
+            cBldr.setStartTime("2010-10-10T00:00:00Z");
+            cBldr.setEndTime("2010-10-12T00:00:00Z");
+            cBldr.addProperty("00060");
+            cBldr.addStationId("01463500");
         }
-        String outName = "USGS_" + ++outCount + ".nc";
+
+
+        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+        
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
+        NetcdfDataset dataset = agent.doUpdate(context);
+        String outdir = "output/usgs/";
+        if (! new File(outdir).exists()) {
+            new File(outdir).mkdirs();
+        }
+        String outName = "USGS_Test.nc";
         try {
-            LOGGER.info("Writing NC output to [" + outDir + outName + "]...");
-            ucar.nc2.FileWriter.writeToFile(dataset, outDir + outName);
+            LOGGER.info("Writing NC output to [" + outdir + outName + "]...");
+            ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
         } catch (IOException ex) {
-            LOGGER.warn("Could not write NC to file: " + outDir + outName, ex);
-        }
-        
-    }
-    
-    private static Map<String, String[]> TEST_CONTEXT_STATION_1 = new HashMap<String, String[]>();
-    private static Map<String, String[]> TEST_CONTEXT_STATION_2 = new HashMap<String, String[]>();
-    private static String outDir = "output/usgs/";
-    private static int outCount = 0;
-    
-    /* TODO: */
-    static {
-        TEST_CONTEXT_STATION_1.put("id",         new String[] {"USGS"});
-        TEST_CONTEXT_STATION_1.put("base_url",   new String[] {"http://waterservices.usgs.gov/nwis/iv?"});
-        TEST_CONTEXT_STATION_1.put("start_time", new String[] {"2010-10-10T00:00:00Z"});
-        TEST_CONTEXT_STATION_1.put("end_time",   new String[] {"2010-10-12T00:00:00Z"});
-        TEST_CONTEXT_STATION_1.put("property",   new String[] {"00010"});
-        TEST_CONTEXT_STATION_1.put("stationId",  new String[] {"01463500"});
-        
-        TEST_CONTEXT_STATION_2.put("id",         new String[] {"USGS"});
-        TEST_CONTEXT_STATION_2.put("base_url",   new String[] {"http://waterservices.usgs.gov/nwis/iv?"});
-        TEST_CONTEXT_STATION_2.put("start_time", new String[] {"2010-10-10T00:00:00Z"});
-        TEST_CONTEXT_STATION_2.put("end_time",   new String[] {"2010-10-12T00:00:00Z"});
-        TEST_CONTEXT_STATION_2.put("property",   new String[] {"00060"});
-        TEST_CONTEXT_STATION_2.put("stationId",  new String[] {"01463500"});
-        
-        
+            LOGGER.warn("Could not write NC to file: " + outdir + outName, ex);
+        }   
     }
 }

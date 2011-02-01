@@ -54,7 +54,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * are selected via xpath NULLs are not checked. If an element is not required, missing values will cause NPE
      */
     /** Static Fields */
-    static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(SosAgent.class);
+    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SosAgent.class);
     private static final SimpleDateFormat valueSdf;
     private static final SimpleDateFormat inSdf;
     private static int currentGroupId = -1;
@@ -95,8 +95,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
      */
     @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
-        LOGGER.debug("");
-        LOGGER.info("Building SOS Request for context [" + context.toString() + "...]");
+        log.debug("");
+        log.info("Building Request for context [" + context.toString() + "...]");
         
         StringBuilder result = new StringBuilder();
 
@@ -165,7 +165,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         
 
-        LOGGER.debug("... built request: [" + result + "]");
+        log.debug("... built request: [" + result + "]");
         return result.toString();
     }
 
@@ -174,8 +174,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
      */
     @Override
     protected List<IObservationGroup> parseObs(String asciiData) {
-        LOGGER.debug("");
-        LOGGER.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
+        log.debug("");
+        log.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
         
         IObservationGroup obs = null;
         StringReader srdr = new StringReader(asciiData);
@@ -378,11 +378,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
             }
 
         } catch (JDOMException ex) {
-            LOGGER.error("Error while parsing xml from the given reader", ex);
+            log.error("Error while parsing xml from the given reader", ex);
         } catch (IOException ex) {
-            LOGGER.error("General IO exception.  Please see stack-trace", ex);
+            log.error("General IO exception.  Please see stack-trace", ex);
         } catch (ParseException ex) {
-            LOGGER.error("Could not parse date information from XML result for: " + datetime, ex);
+            log.error("Could not parse date information from XML result for: " + datetime, ex);
         }
 
         return obs;
@@ -400,7 +400,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             }
             result = xp.selectSingleNode(context);
         } catch (JDOMException ex) {
-            LOGGER.debug("Could not select node via XPath query: \"" + path + "\"", ex);
+            log.debug("Could not select node via XPath query: \"" + path + "\"", ex);
         }
         
         
@@ -457,18 +457,18 @@ public class UsgsAgent extends AbstractAsciiAgent {
      */
     @Override
     protected NetcdfDataset obs2Ncds(List<IObservationGroup> observations) {
-        LOGGER.debug("");
-        LOGGER.info("Creating NC Dataset as a 'station' feature type...");
+        log.debug("");
+        log.info("Creating NC Dataset as a 'station' feature type...");
         
         NetcdfDataset ncds = null;
         if (!observations.isEmpty()) {
             ncds = NcdsFactory.buildStation(observations.get(0));
         } else {
-            LOGGER.warn("Unusable argument:  Given observations List is empty");
+            log.warn("Unusable argument:  Given observations List is empty");
         }
         
         if (observations.size() > 1) {
-            LOGGER.warn("Unexpected loss of data: Given List of observations contains more than 1 group which will not be used to produce NCDS output.  Total Observation Groups: " + observations.size());
+            log.warn("Unexpected loss of data: Given List of observations contains more than 1 group which will not be used to produce NCDS output.  Total Observation Groups: " + observations.size());
         }
         
         return ncds;
@@ -484,17 +484,25 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
         cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-        if(false) {//test station
-            cBldr.setStartTime("2010-10-10T00:00:00Z");
-            cBldr.setEndTime("2010-10-12T00:00:00Z");
+//        if(false) {//test discharge
+//            cBldr.setStartTime("2010-10-10T00:00:00Z");
+//            cBldr.setEndTime("2010-10-12T00:00:00Z");
+//            cBldr.addProperty("00010");
+//            cBldr.addStationId("01463500");
+//        } else {//test temp
+//            cBldr.setStartTime("2010-10-10T00:00:00Z");
+//            cBldr.setEndTime("2010-10-12T00:00:00Z");
+//            cBldr.addProperty("00060");
+//            cBldr.addStationId("01463500");
+//        }
+            cBldr.setStartTime("2011-01-29T00:00:00Z");
+            cBldr.setEndTime("2011-01-31T00:00:00Z");
             cBldr.addProperty("00010");
-            cBldr.addStationId("01463500");
-        } else {//test glider
-            cBldr.setStartTime("2010-10-10T00:00:00Z");
-            cBldr.setEndTime("2010-10-12T00:00:00Z");
             cBldr.addProperty("00060");
-            cBldr.addStationId("01463500");
-        }
+            //01184000,01327750,01357500,01389500,01403060,01463500,01578310,01646500,01592500,01668000,01491000,02035000,02041650,01673000,01674500
+            //01362500,01463500,01646500
+            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
+
 
 
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
@@ -507,10 +515,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
         }
         String outName = "USGS_Test.nc";
         try {
-            LOGGER.info("Writing NC output to [" + outdir + outName + "]...");
+            log.info("Writing NC output to [" + outdir + outName + "]...");
             ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
         } catch (IOException ex) {
-            LOGGER.warn("Could not write NC to file: " + outdir + outName, ex);
+            log.warn("Could not write NC to file: " + outdir + outName, ex);
         }   
     }
 }

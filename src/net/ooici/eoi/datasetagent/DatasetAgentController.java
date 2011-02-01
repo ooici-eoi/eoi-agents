@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import ion.core.IonBootstrap;
 import ion.core.PollingProcess;
 import ion.core.messaging.IonMessage;
 import ion.core.messaging.MessagingName;
@@ -17,6 +18,7 @@ import java.util.concurrent.TimeUnit;
 import net.ooici.eoi.proto.Unidata2Ooi;
 import net.ooici.eoi.datasetagent.ControlEvent.ControlEventType;
 import net.ooici.eoi.datasetagent.DatasetAgentController.ControlThread.ControlProcess;
+import ucar.nc2.Variable;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -49,6 +51,8 @@ public class DatasetAgentController implements ControlListener {
     }
 
     public DatasetAgentController(String host, String exchange, String wrapperName, String bindingCallback) {
+        IonBootstrap.bootstrap();
+        
         controlThread = new ControlThread(host, exchange, null, 500, this);
         log.debug("Control ID: " + controlThread.getMessagingName());
 
@@ -100,6 +104,14 @@ public class DatasetAgentController implements ControlListener {
         }
     }
 
+    public void sendNetcdfDataset(NetcdfDataset ncds) {
+
+    }
+
+    public void sendVariable(Variable var) {
+
+    }
+
     public void performUpdate(final Object source, final IonMessage msg) {
         processService.execute(new Runnable() {
 
@@ -145,17 +157,17 @@ public class DatasetAgentController implements ControlListener {
                  * These methods could be made static methods of Unidata2Ooi, thereby negating the need
                  * to pass through this class...?
                  */
-                NetcdfDataset ncds = agent.doUpdate(null);
+                NetcdfDataset ncds = agent.doUpdate(context);
 
                 /* If the resulting ncds is non-null, upload it */
                 if(ncds != null) {
                     /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
-                    byte[] dataBytes;
+                    byte[] dataMessageContent;
                     try {
-                        dataBytes = Unidata2Ooi.ncdfToByteArray(ncds);
+                        dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
                     } catch (IOException ex) {
                         log.error("Error converting NetcdfDataset to OOICI CDM");
-                        dataBytes = null;
+                        dataMessageContent = null;
                     }
 
                     /* Send the resulting bytes to ION */
@@ -175,7 +187,7 @@ public class DatasetAgentController implements ControlListener {
                         /* TODO: The context can no longer carry the callback because it is tied to the dataset, not the wrapper - needs to be received some other way */
 //                        log.debug("@@@--->>> Sending NetCDF Dataset byte[] message to " + (String) msg.getIonHeaders().get("reply-to") + "  op: " + context.get("callback")[0]);
 //                    IonMessage msgout = ((ControlProcess) source).createMessage((String) msg.getIonHeaders().get("reply-to"), context.get("callback")[0], bytes);
-                        ion.core.messaging.IonMessage msgout = cl.createMessage(procId, toName, "ingest", dataBytes);
+                        ion.core.messaging.IonMessage msgout = cl.createMessage(procId, toName, "ingest", dataMessageContent);
 
                         /* Adjust the message headers and send */
                         msgout.getIonHeaders().put("encoding", "ION R1 GPB");

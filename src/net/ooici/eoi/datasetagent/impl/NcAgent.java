@@ -73,7 +73,14 @@ public class NcAgent extends AbstractNcAgent{
 
 
     public static void main(String[] args) {
-        String dataurl = "http://oos.soest.hawaii.edu/thredds/dodsC/hioos/glider/sg139_8/p1390877.nc";
+        /* the ncml mask to use*/
+        /* for NAM */
+        String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"> <variable name=\"time\" shape=\"time\" type=\"double\"> <attribute name=\"standard_name\" value=\"time\" /> </variable> <variable name=\"lat\" shape=\"lat\" type=\"double\"> <attribute name=\"standard_name\" value=\"latitude\" /> <attribute name=\"units\" value=\"degree_north\" /> </variable> <variable name=\"lon\" shape=\"lon\" type=\"double\"> <attribute name=\"standard_name\" value=\"longitude\" /> <attribute name=\"units\" value=\"degree_east\" /> </variable> </netcdf>";
+        String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110131/nam1hr_00z";
+
+        /* for HiOOS Gliders */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"pressure\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"temp\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"conductivity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"salinity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"density\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable></netcdf>";
+//        dataurl = "http://oos.soest.hawaii.edu/thredds/dodsC/hioos/glider/sg139_8/p1390877.nc";
 
         net.ooici.services.sa.DataSource.EoiDataContext context = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder().setDatasetUrl(dataurl).setNcmlMask(ncmlmask).build();
 //
@@ -88,29 +95,10 @@ public class NcAgent extends AbstractNcAgent{
         	if (! new File(outdir).exists()) {
             	new File(outdir).mkdirs();
         	}
-            ucar.nc2.FileWriter.writeToFile(dataset, outdir + dataurl.substring(dataurl.lastIndexOf("/") + 1));
+
+            ucar.nc2.FileWriter.writeToFile(dataset, outdir + dataurl.substring(dataurl.lastIndexOf("/") + 1), false, 0, true);
         } catch (IOException ex) {
             log.warn("Could not write NC to file", ex);
         }
     }
-
-    private static String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>" +
-"<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\">" +
-"<variable name=\"pressure\">" +
-	"<attribute name=\"coordinates\" value=\"time longitude latitude depth\"/>" +
-"</variable>" +
-"<variable name=\"temp\">" +
-	"<attribute name=\"coordinates\" value=\"time longitude latitude depth\"/>" +
-"</variable>" +
-"<variable name=\"conductivity\">" +
-	"<attribute name=\"coordinates\" value=\"time longitude latitude depth\"/>" +
-"</variable>" +
-"<variable name=\"salinity\">" +
-	"<attribute name=\"coordinates\" value=\"time longitude latitude depth\"/>" +
-"</variable>" +
-"<variable name=\"density\">" +
-	"<attribute name=\"coordinates\" value=\"time longitude latitude depth\"/>" +
-"</variable>" +
-"</netcdf>";
-
 }

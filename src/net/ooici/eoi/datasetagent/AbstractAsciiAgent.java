@@ -20,7 +20,7 @@ import ucar.nc2.dataset.NetcdfDataset;
 public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements IAsciiAgent {
 
     /** Static Fields */
-    static final org.slf4j.Logger LOGGER = org.slf4j.LoggerFactory.getLogger(AbstractAsciiAgent.class);
+    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AbstractAsciiAgent.class);
     protected static final SimpleDateFormat outSdf;
     static {
         outSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -35,11 +35,11 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
     @Override
     public Object acquireData(String request) {
         /* ASCII data requests are assumed to be basic HTTP post requests, or references to local files */
-        LOGGER.debug("");
-        LOGGER.info("Acquiring data for request [" + request.substring(0, Math.min(40, request.length())) + "...]");
+        log.debug("");
+        log.info("Acquiring data for request [" + request.substring(0, Math.min(40, request.length())) + "...]");
 
         String data = AgentUtils.getDataString(request);
-        LOGGER.debug("... acquired raw data: [" + data.substring(0, Math.min(1000, data.length())) + "...]");
+        log.debug("... acquired raw data: [" + data.substring(0, Math.min(1000, data.length())) + "...]");
         
         return data;
     }
@@ -74,7 +74,6 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         return ncds;
     }
  
-    /* TODO: Implement acquireData() using utils.getDataString() */
     /* TODO: Can we assume all requests from Ascii agents will be for URLs? */
     
     abstract protected List<IObservationGroup> parseObs(String asciiData);

@@ -53,7 +53,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * are selected via xpath NULLs are not checked. If an element is not required, missing values will cause NPE
      */
     /** Static Fields */
-    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SosAgent.class);
+    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(UsgsAgent.class);
     private static final SimpleDateFormat valueSdf;
     private static final SimpleDateFormat inSdf;
     private static int currentGroupId = -1;
@@ -475,24 +475,22 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
         cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-//        if(false) {//test discharge
-//            cBldr.setStartTime("2010-10-10T00:00:00Z");
-//            cBldr.setEndTime("2010-10-12T00:00:00Z");
-//            cBldr.addProperty("00010");
-//            cBldr.addStationId("01463500");
-//        } else {//test temp
-//            cBldr.setStartTime("2010-10-10T00:00:00Z");
-//            cBldr.setEndTime("2010-10-12T00:00:00Z");
-//            cBldr.addProperty("00060");
-//            cBldr.addStationId("01463500");
-//        }
-            cBldr.setStartTime("2011-01-29T00:00:00Z");
-            cBldr.setEndTime("2011-01-31T00:00:00Z");
+        if(true) {//test discharge
+            cBldr.setStartTime("2010-10-10T00:00:00Z");
+            cBldr.setEndTime("2010-10-12T00:00:00Z");
             cBldr.addProperty("00010");
+            cBldr.addStationId("01463500");
+        } else {//test temp
+            cBldr.setStartTime("2010-10-10T00:00:00Z");
+            cBldr.setEndTime("2010-10-12T00:00:00Z");
             cBldr.addProperty("00060");
-            //01184000,01327750,01357500,01389500,01403060,01463500,01578310,01646500,01592500,01668000,01491000,02035000,02041650,01673000,01674500
-            //01362500,01463500,01646500
-            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
+            cBldr.addStationId("01463500");
+        }
+//            cBldr.setStartTime("2011-01-29T00:00:00Z");
+//            cBldr.setEndTime("2011-01-31T00:00:00Z");
+//            cBldr.addProperty("00010");
+//            cBldr.addProperty("00060");
+//            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
 
 

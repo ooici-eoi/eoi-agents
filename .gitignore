@@ -1,10 +1,14 @@
-# Build and dist directories
 ######################
-build
-dist
+# Compilation directories
+######################
 lib
+build
+docs
+dist
+ivy-report
 output
 
+######################
 # OS generated files #
 ######################
 .DS_Store?

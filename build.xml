@@ -16,18 +16,17 @@
    specific language governing permissions and limitations
    under the License.    
 -->
-<project name="eoi-agents" default="run" xmlns:ivy="antlib:org.apache.ivy.ant" basedir=".">
-    <!-- some variables used -->
-    <property name="lib.dir" value="lib" />
-    <property name="build.dir" value="build" />
-    <property name="src.dir" value="src" />
+<project name="eoi-agents" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant" basedir=".">
+    <!-- import properties -->
+    <property file="build.properties" />
+    
     
     <!-- paths used for compilation and run  -->
     <path id="lib.path.id">
         <fileset dir="${lib.dir}" />
 	</path>
     <path id="run.path.id">
-        <path refid="lib.path.id" />
+        <fileset dir="${lib.dir}" />
         <path location="${build.dir}/" />
     </path>
     
@@ -44,7 +43,7 @@
           target: report-deps              
          ================================= -->
     <target name="report-deps" depends="resolve" description="--> generates a report of dependencies">
-        <ivy:report todir="${build.dir}"/>
+        <ivy:report todir="${ivy-report.dir}"/>
     </target>
 
     <!-- ================================= 
@@ -52,18 +51,15 @@
          ================================= -->
     <target name="compile" depends="resolve" description="--> compile the project">
         <mkdir dir="${build.dir}" />
-        <javac srcdir="${src.dir}" destdir="${build.dir}" classpathref="lib.path.id" />
-        <!-- copy the resources directory -->
-        <mkdir dir="${build.dir}/resources" />
-        <copy todir="${build.dir}/resources">
-        	<fileset dir="${src.dir}/resources"/>
-        </copy>
+        <javac srcdir="${src.dir}" destdir="${build.dir}" >
+        	<classpath refid="lib.path.id" />
+        </javac>
         <!-- copy the log4j.properties file -->
         <copy file="${src.dir}/log4j.properties" todir="${build.dir}" />
     </target>
-
-<!-- ================================= 
-          target: test_sos
+    
+	<!-- ================================= 
+          target: test-all
          ================================= -->
 	<target name="test-all" description="--> runs all tests">
 		<antcall target="test-sos"/>
@@ -71,15 +67,15 @@
 		<antcall target="test-ncagent"/>
 	</target>
 
-<!-- ================================= 
-          target: test_sos
+	<!-- ================================= 
+          target: test-sos
          ================================= -->
     <target name="test-sos" depends="compile" description="--> runs a simple test">
     	<property name="msg" value="Testing SosAgent..."/>
         <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.SosAgent" />
     </target>
     
-<!-- ================================= 
+	<!-- ================================= 
           target: test-usgs
          ================================= -->
     <target name="test-usgs" depends="compile" description="--> runs a simple test">
@@ -87,7 +83,7 @@
         <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.UsgsAgent" />
     </target>
     
-<!-- ================================= 
+	<!-- ================================= 
           target: test-ncagent
          ================================= -->
     <target name="test-ncagent" depends="compile" description="--> runs a simple test">
@@ -98,11 +94,12 @@
     <!-- ================================= 
           target: clean              
          ================================= -->
-    <target name="clean" description="--> clean the project">  
-    	<delete dir="build"/>
-    	<delete dir="lib"/>
-    	<delete dir="dist"/>
-    	<delete dir="output"/>
+    <target name="clean" description="--> clean the project">
+    	<delete dir="${build.dir}" />
+    	<delete dir="${lib.dir}" />
+    	<delete dir="${dist.dir}" />
+    	<delete dir="${docs.dir}" />
+    	<delete dir="${ivy-report.dir}" />
     </target>
 	
     <!-- ================================= 
@@ -110,5 +107,54 @@
          ================================= -->
 	<target name="clean-ivy-cache" description="--> clean the ivy cache">
 		<ivy:cleancache />
+	</target>
+	
+	<!-- ================================= 
+          target: javadoc              
+         ================================= -->
+	<target name="javadoc" depends="" description="Generate Javadoc">
+		<javadoc packagenames="net.*"
+		   sourcepath="${src.dir}"
+			classpathref="run.path.id"
+		   defaultexcludes="yes"
+		   destdir="${docs.dir}"
+		   author="true"
+		   version="true"
+		   use="true"
+		   windowtitle="ION Core">
+			<doctitle><![CDATA[<h1>ION Core</h1>]]></doctitle>
+			<bottom><![CDATA[<i>Copyright &#169; 2010 UC Regents. All Rights Reserved.</i>]]></bottom>
+			<tag name="todo" scope="all" description="To do:"/>
+		</javadoc>
+	</target>
+	
+	<!-- ================================= 
+          target: dist              
+         ================================= -->
+	<target name="dist" depends="clean,compile,javadoc" description="Package Distribution">
+	    <!-- Create the distribution directory -->
+	    <mkdir dir="${dist.dir}" />
+	    <mkdir dir="${dist.dir}/lib"/>
+	    <mkdir dir="${dist.dir}/docs"/>
+
+	    <!-- Create JAR file with library classes, tests and example code -->
+	    <jar jarfile="${dist.dir}/lib/${projname}-full-${version}.jar" basedir="${build.dir}"/>
+
+	    <!-- Create JAR file with all library classes -->
+		<jar jarfile="${dist.dir}/lib/${projname}-${version}.jar" 
+	    	basedir="${build.dir}"
+	    	excludes="ion/example/**"
+		/>
+
+	    <!-- Create ZIP file with the javadoc -->
+		<zip destfile="${dist.dir}/docs/${projname}-${version}-javadoc.zip"
+			basedir="${docs.dir}"
+		/>		
+
+		<!-- Create ZIP file for the entire directory -->
+		<zip destfile="${dist.dir}/${projname}-archive.zip"
+			basedir="."
+			excludes="${dist.dir}/${projname}-archive.zip,${build}/**,.git/**"
+		/>		
 	</target>
 </project>

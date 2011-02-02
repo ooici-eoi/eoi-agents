@@ -4,16 +4,18 @@
  */
 package net.ooici.eoi.datasetagent;
 
-import ucar.nc2.dataset.NetcdfDataset;
+import java.util.List;
+import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 
 /**
  * TODO Add class comments
- * 
+ *
+ * @author cmueller
  * @author tlarocque
  * @version 1.0
  */
 public interface IAsciiAgent extends IDatasetAgent {
 
-    NetcdfDataset buildDataset(String asciiData);
+    String[] processDataset(List<IObservationGroup> obsList);
     
 }

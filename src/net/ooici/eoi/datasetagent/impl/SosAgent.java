@@ -36,18 +36,19 @@ import ucar.nc2.dataset.NetcdfDataset;
  * @author tlarocque
  * @version 1.0
  */
-public class SosAgent extends AbstractAsciiAgent{
-    
+public class SosAgent extends AbstractAsciiAgent {
+
     /** Static Fields */
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SosAgent.class);
     private static long beginTime = Long.MAX_VALUE;
     private static long endTime = Long.MIN_VALUE;
     protected static final SimpleDateFormat sdf;
+
     static {
         sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
-    
+
     /* (non-Javadoc)
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
@@ -55,7 +56,7 @@ public class SosAgent extends AbstractAsciiAgent{
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         log.debug("");
         log.info("Building SOS Request for context [" + context.toString() + "]");
-        
+
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
@@ -69,7 +70,7 @@ public class SosAgent extends AbstractAsciiAgent{
         String property = context.getProperty(0);
         String stnId = context.getStationId(0);
 
-        
+
         /** TODO: null-check here */
         /** Configure the date-time parameter (if avail) */
         String eventTime = null;
@@ -123,7 +124,7 @@ public class SosAgent extends AbstractAsciiAgent{
         result.append("&responseformat=").append("text/csv");
 
 
-        
+
         log.debug("... built request: [" + result + "]");
         return result.toString();
     }
@@ -135,7 +136,7 @@ public class SosAgent extends AbstractAsciiAgent{
     protected List<IObservationGroup> parseObs(String asciiData) {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
-        
+
         IObservationGroup obs = null;
         StringReader srdr = new StringReader(asciiData);
         try {
@@ -146,12 +147,12 @@ public class SosAgent extends AbstractAsciiAgent{
             }
         }
 
-        
+
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         obsList.add(obs);
         return obsList;
     }
-    
+
     /**
      * Parses the String data from the given reader into a list of observation groups.
      * <em>Note:</em><br />
@@ -303,39 +304,24 @@ public class SosAgent extends AbstractAsciiAgent{
         return obs;
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.AbstractAsciiAgent#obs2Ncds(java.util.List)
-     */
-    @Override
-    protected NetcdfDataset obs2Ncds(List<IObservationGroup> observations) {
-        log.debug("");
-        log.info("Creating NC Dataset as a 'station' feature type...");
-        
-        NetcdfDataset ncds = null;
-        if (!observations.isEmpty()) {
-            ncds = NcdsFactory.buildStation(observations.get(0));
-        } else {
-            log.warn("Unusable argument:  Given observations List is empty");
+    public String[] processDataset(List<IObservationGroup> obsList) {
+        List<String> ret = new ArrayList<String>();
+        for (IObservationGroup obs : obsList) {
+            NetcdfDataset ncds = obs2Ncds(obs);
+            /* Send this via the send dataset method of DAC */
+            ret.add(this.sendNetcdfDataset(ncds, "ingest"));
         }
-        
-        if (observations.size() > 1) {
-            log.warn("Unexpected loss of data: Given List of observations contains more than 1 group which will not be used to produce NCDS output.  Total Observation Groups: " + observations.size());
-        }
-        
-        return ncds;
+        return ret.toArray(new String[0]);
     }
 
-    
-    
     /*****************************************************************************************************************/
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
- 
     public static void main(String[] args) {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        if(false) {//test station
+        if (false) {//test station
             cBldr.setStartTime("2008-08-01T00:00:00Z");
             cBldr.setEndTime("2008-08-02T00:00:00Z");
             cBldr.addProperty("sea_water_temperature");
@@ -348,19 +334,30 @@ public class SosAgent extends AbstractAsciiAgent{
         }
 
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
-        
+
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        NetcdfDataset dataset = agent.doUpdate(context);
-        String outdir = "output/sos/";
-        if (! new File(outdir).exists()) {
-            new File(outdir).mkdirs();
+        agent.setTesting(true);
+        
+        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+        connInfo.put("exchange", "eoitest");
+        connInfo.put("service", "eoi_ingest");
+        connInfo.put("server", "macpro");
+        connInfo.put("topic", "magnet.topic");
+        String[] result = agent.doUpdate(context, connInfo);
+        log.debug("Response:");
+        for(String s : result) {
+            log.debug(s);
         }
-        String outName = "SOS_Test.nc";
-        try {
-            log.info("Writing NC output to [" + outdir + outName + "]...");
-            ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
-        } catch (IOException ex) {
-            log.warn("Could not write NC to file: " + outdir + outName, ex);
-        }   
+//        String outdir = "output/sos/";
+//        if (!new File(outdir).exists()) {
+//            new File(outdir).mkdirs();
+//        }
+//        String outName = "SOS_Test.nc";
+//        try {
+//            log.info("Writing NC output to [" + outdir + outName + "]...");
+//            ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
+//        } catch (IOException ex) {
+//            log.warn("Could not write NC to file: " + outdir + outName, ex);
+//        }
     }
 }

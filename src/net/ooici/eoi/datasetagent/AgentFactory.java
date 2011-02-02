@@ -28,7 +28,8 @@ public class AgentFactory {
                 agent = new NcAgent();
                 break;
             case NETCDF_C:
-                throw new UnsupportedOperationException();
+                agent = new NcGridAgent();
+                break;
             default:
                 throw new IllegalArgumentException("Invalid source_type = " + st.toString());
         }

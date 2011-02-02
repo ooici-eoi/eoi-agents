@@ -11,7 +11,6 @@ import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.ooici.core.container.Container;
-import net.ooici.core.link.Link.CASRef;
 import net.ooici.core.type.Type;
 import net.ooici.data.cdm.Cdmdataset;
 import net.ooici.cdm.syntactic.Cdmarray;
@@ -19,7 +18,6 @@ import net.ooici.cdm.syntactic.Cdmattribute;
 import net.ooici.cdm.syntactic.Cdmdimension;
 import net.ooici.cdm.syntactic.Cdmgroup;
 import net.ooici.cdm.syntactic.Cdmvariable;
-import ion.core.utils.SHA1;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
@@ -42,6 +40,23 @@ public class Unidata2Ooi {
         packDataset(dataset);
         Container.Structure struct = structBldr.build();
 
+        return struct.toByteArray();
+    }
+
+    public static byte[] varToByteArray(Variable var) throws IOException {
+        /* Initialize the Structure Builder */
+        structBldr = Container.Structure.newBuilder();
+
+        /* Process the Unidata Variable */
+        Cdmvariable.Variable ooiVar = getOoiVariable(var);
+        Type.GPBType gpbType = ProtoUtils.getGPBType(ooiVar.getClass());
+        ByteString byteString = ooiVar.toByteString();
+        ooiVar = null;
+        byte[] key = ProtoUtils.getObjectKey(byteString, gpbType);
+        addElementToStructure(false, key, gpbType, byteString);
+
+        /* Build the Structure object */
+        Container.Structure struct = structBldr.build();
         return struct.toByteArray();
     }
 

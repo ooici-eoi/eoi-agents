@@ -4,16 +4,15 @@
  */
 package net.ooici.eoi.datasetagent;
 
-import ucar.nc2.dataset.NetcdfDataset;
-
 /**
  * TODO Add class comments
- * 
+ *
+ * @author cmueller
  * @author tlarocque
  * @version 1.0
  */
 public interface INcAgent extends IDatasetAgent {
 
-    NetcdfDataset buildDataset(NetcdfDataset ncds);
+    String[] processDataset(ucar.nc2.dataset.NetcdfDataset ncds);
     
 }

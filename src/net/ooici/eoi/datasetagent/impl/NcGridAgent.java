@@ -61,7 +61,7 @@ public class NcGridAgent extends AbstractNcAgent {
     }
 
     public Object acquireData(String request) {
-        if(request.startsWith("ftp://")) {
+        if (request.startsWith("ftp://")) {
             /* Pull the file and temporarilly store it locally */
             /* Change "request" to the location of the local file */
         }
@@ -74,7 +74,6 @@ public class NcGridAgent extends AbstractNcAgent {
         }
         return ncds;
     }
-    
     private static final List<String> fixedVarAtts = new ArrayList<String>();
 
     static {
@@ -86,7 +85,7 @@ public class NcGridAgent extends AbstractNcAgent {
     private String LAT_NAME = LAT, LON_NAME = LON, LEVEL_NAME = LEVEL, TIME_NAME = TIME;
     private String levelType = "";
 
-    public NetcdfDataset buildDataset(NetcdfDataset ncds) {
+    public String[] processDataset(NetcdfDataset ncds) {
         NetcdfDataset ncdsRet = null;
         try {
             ncdsRet = NcdsFactory.getNcdsFromTemplate(NcdsTemplate.GRID);
@@ -288,7 +287,9 @@ public class NcGridAgent extends AbstractNcAgent {
             }
         }
 
-        return ncdsRet;
+        String response = this.sendNetcdfDataset(ncdsRet, "ingest");
+
+        return new String[]{response};
     }
 
     private Variable makeVariable(NetcdfDataset nc, Variable vFrom, String vName) {
@@ -350,14 +351,14 @@ public class NcGridAgent extends AbstractNcAgent {
         Latitude reading {~bytes = 59364000}... in 86427 milliseconds
         Longitude reading {~bytes = 59364000}... in 90022 milliseconds
         opendap.dap.DAP2Exception: Method failed:HTTP/1.1 403 Forbidden
-        salinity reading {~bytes = 1959012000}... net.ooici.eoi.datasetagent.impl.NcGridAgent.buildDataset(){287} - Error creating NetcdfDataset
+        salinity reading {~bytes = 1959012000}... net.ooici.eoi.datasetagent.impl.NcGridAgent.processDataset(){287} - Error creating NetcdfDataset
         java.io.IOException: Method failed:HTTP/1.1 403 Forbidden
         at ucar.nc2.dods.DODSNetcdfFile.readData(DODSNetcdfFile.java:1330)
         at ucar.nc2.Variable.reallyRead(Variable.java:846)
         at ucar.nc2.Variable._read(Variable.java:832)
         at ucar.nc2.Variable.read(Variable.java:644)
-        at net.ooici.eoi.datasetagent.impl.NcGridAgent.buildDataset(NcGridAgent.java:268)
-        at net.ooici.eoi.datasetagent.AbstractNcAgent.buildDataset(AbstractNcAgent.java:33)
+        at net.ooici.eoi.datasetagent.impl.NcGridAgent.processDataset(NcGridAgent.java:268)
+        at net.ooici.eoi.datasetagent.AbstractNcAgent.processDataset(AbstractNcAgent.java:33)
         at net.ooici.eoi.datasetagent.AbstractDatasetAgent.doUpdate(AbstractDatasetAgent.java:29)
         at net.ooici.eoi.datasetagent.impl.NcGridAgent.main(NcGridAgent.java:347)
         net.ooici.eoi.datasetagent.impl.NcGridAgent.main(){353} - Writing NC output to [output/ncgrid/nc_grid.nc]...
@@ -369,8 +370,8 @@ public class NcGridAgent extends AbstractNcAgent {
         at ucar.nc2.Variable.reallyRead(Variable.java:846)
         at ucar.nc2.Variable._read(Variable.java:832)
         at ucar.nc2.Variable.read(Variable.java:644)
-        at net.ooici.eoi.datasetagent.impl.NcGridAgent.buildDataset(NcGridAgent.java:268)
-        at net.ooici.eoi.datasetagent.AbstractNcAgent.buildDataset(AbstractNcAgent.java:33)
+        at net.ooici.eoi.datasetagent.impl.NcGridAgent.processDataset(NcGridAgent.java:268)
+        at net.ooici.eoi.datasetagent.AbstractNcAgent.processDataset(AbstractNcAgent.java:33)
         at net.ooici.eoi.datasetagent.AbstractDatasetAgent.doUpdate(AbstractDatasetAgent.java:29)
         at net.ooici.eoi.datasetagent.impl.NcGridAgent.main(NcGridAgent.java:347)
          *
@@ -379,20 +380,37 @@ public class NcGridAgent extends AbstractNcAgent {
 //        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.START_TIME, new String[]{"2011-01-26T00:00:00Z"});
 //        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[]{"2011-01-26T00:00:00Z"});
 
-        Map<String, String[]> context = TEST_CONTEXT_GRID;
-//        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.get(DataSourceRequestKeys.SOURCE_TYPE)[0]);
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(null);
-        NetcdfDataset dataset = agent.doUpdate(null);
-        if (! new File(outDir).exists()) {
-            new File(outDir).mkdirs();
+//        Map<String, String[]> context = TEST_CONTEXT_GRID;
+        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.NETCDF_C);
+        cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/thredds/dodsC/hfradar_usegc_6km");
+        cBldr.setStartTime("2011-01-26T00:00:00Z");
+        cBldr.setEndTime("2011-01-26T20:00:00Z");
+        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
+        agent.setTesting(true);
+
+        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+        connInfo.put("exchange", "eoitest");
+        connInfo.put("service", "eoi_ingest");
+        connInfo.put("server", "macpro");
+        connInfo.put("topic", "magnet.topic");
+        String[] result = agent.doUpdate(context, connInfo);
+        log.debug("Response:");
+        for (String s : result) {
+            log.debug(s);
         }
-        String outName = "nc_grid.nc";
-        try {
-            log.info("Writing NC output to [" + outDir + outName + "]...");
-            ucar.nc2.FileWriter.writeToFile(dataset, outDir + outName);
-        } catch (IOException ex) {
-            log.warn("Could not write NC to file: " + outDir + outName, ex);
-        }
+//        if (!new File(outDir).exists()) {
+//            new File(outDir).mkdirs();
+//        }
+//        String outName = "nc_grid.nc";
+//        try {
+//            log.info("Writing NC output to [" + outDir + outName + "]...");
+//            ucar.nc2.FileWriter.writeToFile(dataset, outDir + outName);
+//        } catch (IOException ex) {
+//            log.warn("Could not write NC to file: " + outDir + outName, ex);
+//        }
     }
     private static Map<String, String[]> TEST_CONTEXT_GRID = new HashMap<String, String[]>();
     private static String outDir = "output/ncgrid/";

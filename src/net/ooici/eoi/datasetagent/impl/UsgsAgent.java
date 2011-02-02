@@ -4,7 +4,6 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -452,28 +451,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return result;
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.AbstractAsciiAgent#obs2Ncds(java.util.List)
-     */
-    @Override
-    protected NetcdfDataset obs2Ncds(List<IObservationGroup> observations) {
-        log.debug("");
-        log.info("Creating NC Dataset as a 'station' feature type...");
-        
-        NetcdfDataset ncds = null;
-        if (!observations.isEmpty()) {
-            ncds = NcdsFactory.buildStation(observations.get(0));
-        } else {
-            log.warn("Unusable argument:  Given observations List is empty");
+    public String[] processDataset(List<IObservationGroup> obsList) {
+        List<String> ret = new ArrayList<String>();
+        for(IObservationGroup obs : obsList) {
+            NetcdfDataset ncds = obs2Ncds(obs);
+            /* Send this via the send dataset method of DAC */
+            ret.add(this.sendNetcdfDataset(ncds, "ingest"));
         }
-        
-        if (observations.size() > 1) {
-            log.warn("Unexpected loss of data: Given List of observations contains more than 1 group which will not be used to produce NCDS output.  Total Observation Groups: " + observations.size());
-        }
-        
-        return ncds;
+        return ret.toArray(new String[0]);
     }
-
     
     
     /*****************************************************************************************************************/
@@ -508,17 +494,28 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
         
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        NetcdfDataset dataset = agent.doUpdate(context);
-        String outdir = "output/usgs/";
-        if (! new File(outdir).exists()) {
-            new File(outdir).mkdirs();
+        agent.setTesting(true);
+        
+        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+        connInfo.put("exchange", "eoitest");
+        connInfo.put("service", "eoi_ingest");
+        connInfo.put("server", "macpro");
+        connInfo.put("topic", "magnet.topic");
+        String[] result = agent.doUpdate(context, connInfo);
+        log.debug("Response:");
+        for(String s : result) {
+            log.debug(s);
         }
-        String outName = "USGS_Test.nc";
-        try {
-            log.info("Writing NC output to [" + outdir + outName + "]...");
-            ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
-        } catch (IOException ex) {
-            log.warn("Could not write NC to file: " + outdir + outName, ex);
-        }   
+//        String outdir = "output/usgs/";
+//        if (! new File(outdir).exists()) {
+//            new File(outdir).mkdirs();
+//        }
+//        String outName = "USGS_Test.nc";
+//        try {
+//            log.info("Writing NC output to [" + outdir + outName + "]...");
+//            ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
+//        } catch (IOException ex) {
+//            log.warn("Could not write NC to file: " + outdir + outName, ex);
+//        }
     }
 }

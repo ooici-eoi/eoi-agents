@@ -51,8 +51,12 @@ public class DatasetAgentController implements ControlListener {
     }
 
     public DatasetAgentController(String host, String exchange, String wrapperName, String bindingCallback) {
-        IonBootstrap.bootstrap();
-        
+        try {
+            IonBootstrap.bootstrap();
+        } catch (Exception ex) {
+            log.error("Error bootstrapping", ex);
+        }
+
         controlThread = new ControlThread(host, exchange, null, 500, this);
         log.debug("Control ID: " + controlThread.getMessagingName());
 
@@ -105,11 +109,9 @@ public class DatasetAgentController implements ControlListener {
     }
 
     public void sendNetcdfDataset(NetcdfDataset ncds) {
-
     }
 
     public void sendVariable(Variable var) {
-
     }
 
     public void performUpdate(final Object source, final IonMessage msg) {
@@ -134,8 +136,8 @@ public class DatasetAgentController implements ControlListener {
                     IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
                     reply.getIonHeaders().putAll(msg.getIonHeaders());
                     reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
-                    reply.getIonHeaders().put("reply-to", ((ControlProcess)source).getMessagingName().toString());
-                    reply.getIonHeaders().put("sender", ((ControlProcess)source).getMessagingName().toString());
+                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
@@ -157,70 +159,80 @@ public class DatasetAgentController implements ControlListener {
                  * These methods could be made static methods of Unidata2Ooi, thereby negating the need
                  * to pass through this class...?
                  */
-                NetcdfDataset ncds = agent.doUpdate(context);
+                java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+                connInfo.put("exchange", "eoitest");
+                connInfo.put("service", "eoi_ingest");
+                connInfo.put("server", "macpro");
+                connInfo.put("topic", "magnet.topic");
 
-                /* If the resulting ncds is non-null, upload it */
-                if(ncds != null) {
-                    /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
-                    byte[] dataMessageContent;
-                    try {
-                        dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
-                    } catch (IOException ex) {
-                        log.error("Error converting NetcdfDataset to OOICI CDM");
-                        dataMessageContent = null;
-                    }
+                /*
+                 * Perform the update - this can result in multiple messages being sent to the ingest service
+                 * The reply should be the ooi resource id
+                 */
+                String[] ooiDsId = agent.doUpdate(context, connInfo);
+                
+                IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId);
+                reply.getIonHeaders().putAll(msg.getIonHeaders());
+                reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+                reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+                reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+                reply.getIonHeaders().put("status", "OK");
+                reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+                reply.getIonHeaders().put("response", "ION SUCCESS");
 
-                    /* Send the resulting bytes to ION */
-                    ion.core.messaging.MsgBrokerClient cl = null;
-                    String ooiDsId = null;
-                    try {
-                        ion.core.messaging.MessagingName toName = new ion.core.messaging.MessagingName("eoitest", "eoi_ingest");
-                        cl = new ion.core.messaging.MsgBrokerClient("macpro", com.rabbitmq.client.AMQP.PROTOCOL.PORT, "magnet.topic");
-                        ion.core.messaging.MessagingName procId = ion.core.messaging.MessagingName.generateUniqueName();
-                        cl.attach();
-                        String queue = cl.declareQueue(null);
-                        cl.bindQueue(queue, procId, null);
-                        cl.attachConsumer(queue);
+                log.debug(printMessage("**Reply Message to Wrapper**", reply));
 
-                        /* Build an IonMessage with the Dataset byte array as content */
-//                    controlThread.sendControlMessage((String)msg.getIonHeaders().get("reply-to"), context.get("callback")[0], bytes);
-                        /* TODO: The context can no longer carry the callback because it is tied to the dataset, not the wrapper - needs to be received some other way */
-//                        log.debug("@@@--->>> Sending NetCDF Dataset byte[] message to " + (String) msg.getIonHeaders().get("reply-to") + "  op: " + context.get("callback")[0]);
-//                    IonMessage msgout = ((ControlProcess) source).createMessage((String) msg.getIonHeaders().get("reply-to"), context.get("callback")[0], bytes);
-                        ion.core.messaging.IonMessage msgout = cl.createMessage(procId, toName, "ingest", dataMessageContent);
+                ((ControlProcess) source).send(reply);
 
-                        /* Adjust the message headers and send */
-                        msgout.getIonHeaders().put("encoding", "ION R1 GPB");
+//                /* If the resulting ncds is non-null, upload it */
+//                if(ncds != null) {
+//                    /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
+//                    byte[] dataMessageContent;
+//                    try {
+//                        dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
+//                    } catch (IOException ex) {
+//                        log.error("Error converting NetcdfDataset to OOICI CDM");
+//                        dataMessageContent = null;
+//                    }
+//
+//                    /* Send the resulting bytes to ION */
+//                    ion.core.messaging.MsgBrokerClient cl = null;
+//                    String ooiDsId = null;
+//                    try {
+//                        ion.core.messaging.MessagingName toName = new ion.core.messaging.MessagingName("eoitest", "eoi_ingest");
+//                        cl = new ion.core.messaging.MsgBrokerClient("macpro", com.rabbitmq.client.AMQP.PROTOCOL.PORT, "magnet.topic");
+//                        ion.core.messaging.MessagingName procId = ion.core.messaging.MessagingName.generateUniqueName();
+//                        cl.attach();
+//                        String queue = cl.declareQueue(null);
+//                        cl.bindQueue(queue, procId, null);
+//                        cl.attachConsumer(queue);
+//
+//                        /* Build an IonMessage with the Dataset byte array as content */
+////                    controlThread.sendControlMessage((String)msg.getIonHeaders().get("reply-to"), context.get("callback")[0], bytes);
+//                        /* TODO: The context can no longer carry the callback because it is tied to the dataset, not the wrapper - needs to be received some other way */
+////                        log.debug("@@@--->>> Sending NetCDF Dataset byte[] message to " + (String) msg.getIonHeaders().get("reply-to") + "  op: " + context.get("callback")[0]);
+////                    IonMessage msgout = ((ControlProcess) source).createMessage((String) msg.getIonHeaders().get("reply-to"), context.get("callback")[0], bytes);
+//                        ion.core.messaging.IonMessage msgout = cl.createMessage(procId, toName, "ingest", dataMessageContent);
+//
+//                        /* Adjust the message headers and send */
+//                        msgout.getIonHeaders().put("encoding", "ION R1 GPB");
+//
+//                        log.debug(printMessage("**Data Message to eoi_ingest**", msgout));
+//
+//
+//                        /* Send data to eoi_ingest service */
+//                        log.debug("@@@--->>> Sending NetCDF Dataset byte[] message to \"eoitest.eoi_ingest\" op: \"ingest\"");
+//                        cl.sendMessage(msgout);
+//                        IonMessage msgin = cl.consumeMessage(queue);
+//                        log.debug(ooiDsId = msgin.getContent().toString());
+//
+//                    } finally {
+//                        if (cl != null) {
+//                            cl.detach();
+//                        }
+//                    }
 
-                        log.debug(printMessage("**Data Message to eoi_ingest**", msgout));
-
-
-                        /* Send data to eoi_ingest service */
-                        log.debug("@@@--->>> Sending NetCDF Dataset byte[] message to \"eoitest.eoi_ingest\" op: \"ingest\"");
-                        cl.sendMessage(msgout);
-                        IonMessage msgin = cl.consumeMessage(queue);
-                        log.debug(ooiDsId = msgin.getContent().toString());
-
-                    } finally {
-                        if (cl != null) {
-                            cl.detach();
-                        }
-                    }
-
-                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId);
-                    reply.getIonHeaders().putAll(msg.getIonHeaders());
-                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
-                    reply.getIonHeaders().put("reply-to", ((ControlProcess)source).getMessagingName().toString());
-                    reply.getIonHeaders().put("sender", ((ControlProcess)source).getMessagingName().toString());
-                    reply.getIonHeaders().put("status", "OK");
-                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
-                    reply.getIonHeaders().put("response", "ION SUCCESS");
-
-                    log.debug(printMessage("**Reply Message to Wrapper**", reply));
-
-                    ((ControlProcess) source).send(reply);
-                }
-
+//                }
             }
         });
     }

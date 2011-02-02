@@ -11,21 +11,24 @@ import java.util.TimeZone;
  * building query Strings, such as, through their buildUrl() methods
  *  
  * @author tlarocque
+ * @deprecated Use {@link net.ooici.services.sa.DataSource.EoiDataContext } instead
  */
+@Deprecated
 public final class DataSourceRequestKeys {
 
-	/**
-	 * Privatized constructor to prevent instantiation
-	 */
-	private DataSourceRequestKeys() {
-		/* NO-OP */
-	}
+    /**
+     * Privatized constructor to prevent instantiation
+     */
+    private DataSourceRequestKeys() {
+        /* NO-OP */
+    }
 
 
-	/**
-	 * SimpleDateFormat used for parsing incoming values mapped to START_TIME and END_TIME. This date format complies to the ISO 8601
-	 * International Standard Representation of Dates and Times (http://www.w3.org/TR/NOTE-datetime)
-	 */
+    /**
+     * SimpleDateFormat used for parsing incoming values mapped to START_TIME and END_TIME. This date format complies to the ISO 8601
+     * International Standard Representation of Dates and Times (http://www.w3.org/TR/NOTE-datetime)
+     * @deprecated Use {@link net.ooici.eoi.datasetagent.AgentUtils.ISO8601_DATE_FORMAT } instead
+     */
     @Deprecated
 	public static final DateFormat ISO8601_FORMAT;
 	/**

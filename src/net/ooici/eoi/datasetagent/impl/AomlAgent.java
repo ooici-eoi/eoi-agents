@@ -21,7 +21,6 @@ import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
-import net.ooici.eoi.datasetagent.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupDupDepthImpl;
 import net.ooici.eoi.datasetagent.VariableParams;
 import net.ooici.services.sa.DataSource.EoiDataContext.RequestType;
@@ -36,12 +35,10 @@ public class AomlAgent extends AbstractAsciiAgent {
 
     /** Static Fields */
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(AomlAgent.class);
-    private static long beginTime = Long.MAX_VALUE;
-    private static long endTime = Long.MIN_VALUE;
     protected static final SimpleDateFormat sdf;
 
     static {
-        sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+        sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
@@ -315,18 +312,13 @@ public class AomlAgent extends AbstractAsciiAgent {
         return ogList;
     }
 
-    @Override
-    protected NetcdfDataset obs2Ncds(List<IObservationGroup> observations) {
-        List<NetcdfDataset> datasets = new ArrayList<NetcdfDataset>();
-        for(IObservationGroup og : observations) {
-            if(og.getDepths().length > 1) {
-                datasets.add(NcdsFactory.buildStationProfile(og));
-            } else {
-                datasets.add(NcdsFactory.buildStation(og));
-            }
+    public String[] processDataset(List<IObservationGroup> obsList) {
+        List<String> ret = new ArrayList<String>();
+        for (IObservationGroup obs : obsList) {
+            NetcdfDataset ncds = obs2Ncds(obs);
+            ret.add(this.sendNetcdfDataset(ncds, "ingest"));
         }
-        
-        return datasets.get(0);
+        return ret.toArray(new String[0]);
     }
 
     /*****************************************************************************************************************/
@@ -353,8 +345,17 @@ public class AomlAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        NetcdfDataset dataset = agent.doUpdate(context);
-        
-        log.debug(dataset.toString());
+        agent.setTesting(true);
+
+        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+        connInfo.put("exchange", "eoitest");
+        connInfo.put("service", "eoi_ingest");
+        connInfo.put("server", "macpro");
+        connInfo.put("topic", "magnet.topic");
+        String[] result = agent.doUpdate(context, connInfo);
+        log.debug("Response:");
+        for (String s : result) {
+            log.debug(s);
+        }
     }
 }

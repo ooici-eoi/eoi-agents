@@ -26,7 +26,7 @@
         <fileset dir="${lib.dir}" />
 	</path>
     <path id="run.path.id">
-        <fileset dir="${lib.dir}" />
+    	<path refid="lib.path.id" />
         <path location="${build.dir}/" />
     </path>
     

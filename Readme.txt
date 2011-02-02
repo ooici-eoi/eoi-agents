@@ -1,68 +1,66 @@
 ==================================================
 Ocean Observatories Initiative Cyberinfrastructure
 Integrated Observatory Network (ION)
-eoi - External Observatory Integration Modules
+eoi-agents - External Observatory Integration DatasetAgent Implementation
 ==================================================
 
-Get eoi with
+Introduction
+============
+**** Need blurb ****
+
+
+Source
+======
+Obtain the eoi-agents project by running:
 ::
-	git clone git@amoeba.ucsd.edu:eoi.git
-	cd eoi
+	git clone git@github.com:ooici-eoi/eoi-agents
+
+NOTE: Unless otherwise noted - all commands should be run from the "eoi-agents" directory
+::
+	cd eoi-agents
 
 
 Dependencies
 ============
+Dependencies are managed using Apache Ivy.  If you haven't installed Ivy, please refer to the "Installing Ivy" section below.
 
-eoi requires the following projects:
-	lcaarch - git@amoeba.ucsd.edu:lcaarch.git
-	ioncore-java - git@amoeba.ucsd.edu:ioncore-java.git
-	ooi-netcdf-java - git@amoeba.ucsd.edu:ooi-netcdf-java.git (WARNING - large repository)
-	
-****These dependencies should be obtained and compiled prior to continuing****
-
-
-Usage
-=====
-
-Start an empty Python Capability Container shell (see lcaarch/Readme.txt for more information):
-(from lcaarch/ root directory)
-
-You can of course swap out the host with your own or leave the -h out to use localhost
-The sysname needs to be set to "cmueller" - this will be fixed...
+To resolve (process and download) dependencies run:
 ::
-	bin/start-cc -h amoeba.ucsd.edu -a sysname=cmueller
+	ant resolve
 
-At the prompt, start the iosptest script:
-><>
-	from ion.play import iospservice
-	iospservice.main(locals())
-	
-Open a new terminal and navigate to the eoi directory:
-(all subsequent steps assume you are in the eoi/ root dir)
 
-Use ant to test the iosp (use "ant -p" to see a list of tasks):
+Build.xml
+========
+All tasks are performed with ant, and are run with:
 ::
-	ant fullTest
+	ant <target>
 
-	
+The ant targets for this project are:
 
-**************************
-IVY Instructions
-**************************
-Notes:
-- the contents of "ion-libs" and the associated line in ivysettings.xml are temporary - they will be replaced when the libraries are available on the package server
-- zz is because the ooi-netcdf-full lib has conflicting dependencies - will fix after decision on dependency management
+clean            --> Clean the project
+clean-ivy-cache  --> Clean the ivy cache
+compile          --> Compile the project
+deep-clean       --> Cleans both this directory and the ivy cache
+dist             --> Package Distribution
+javadoc          --> Generate Javadoc
+report-deps      --> Generates a report of dependencies
+resolve          --> Retreive dependencies with ivy
+test-all         --> Runs all tests
+test-ncagent     --> Runs a canned netcdf test
+test-sos         --> Runs a canned sos test
+test-usgs        --> Runs a canned usgs test
 
-Ivy Installation:
-- install ivy
-	1. download source from:  svn co https://svn.apache.org/repos/asf/ant/ivy/core/trunk ivy
-	2. from ivy directory, run "ant jar"
-	3. from ivy directory, run "sudo cp build/artifact/jars/ivy.jar /usr/share/ant/lib/ivy.jar"
-	**IF that copy doesn't work:
-		- put the ivy.jar file (from "ivy/build/artifact/jars/") in /usr/share/ant/java/ant-1.8.1/lib/
-			- full install instructions: http://ant.apache.org/ivy/history/2.2.0-rc1/install.html
-				- you can find where ant is installed this way: http://stackoverflow.com/questions/4823367/where-is-ant-installed-on-mac-os-x-snow-leopard-by-default
-	4. Check that ivy is installed by running "ant" from the ivy/src/example/hello-ivy directory – if it doesn't bomb, it's installed correctly
 
-From eoi-agents-ivy:
-- run "ant test-all" --> calls the "resolve" and "compile" targets
+Ivy Installation
+================
+**Full install instructions: http://ant.apache.org/ivy/history/2.2.0-rc1/install.html
+
+1. Download Apache Ivy (OOICI hosted) from: http://ooici.net/packages/ivy.jar
+
+2. Copy/move the ivy.jar to the "lib" directory of your ant installation:
+	Mac OSX: usually - /usr/share/ant/lib/
+	Linux/Windows: wherever you have ant installed (check "%ANT_HOME%" if you're not sure)
+
+3. To verify the installation run (from eoi-agents directory):
+::
+	ant test-all 

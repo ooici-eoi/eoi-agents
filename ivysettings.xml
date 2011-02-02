@@ -31,7 +31,10 @@
             <!-- Msgpack repository - see: the "Java" section of this page: https://github.com/msgpack/msgpack-rpc -->
             <ibiblio name="msgpack_repo" m2compatible="true" root="http://msgpack.org/maven2/"
                 pattern="[organisation]/[artifact]/[revision]/[artifact]-[revision].[ext]"/>
-                
+            <!-- OOICI Package Server -->
+            <!-- <ibiblio name="ooici_repo" root="http://ooici.net/packages/"
+            	pattern="[artifact]-[revision].[ext]" /> -->
+            
             <!--
             Add additional public repositories here.
             eg == java.net repo, containing useful java apis ==

@@ -115,6 +115,14 @@
 	</target>
 	
 	<!-- ================================= 
+          target: deep-clean
+         ================================= -->
+    <target name="deep-clean" description="--> cleans both this directory and the ivy cache">
+    	<antcall target="clean" />
+    	<antcall target="clean-ivy-cache" />
+	</target>
+	
+	<!-- ================================= 
           target: javadoc              
          ================================= -->
 	<target name="javadoc" depends="" description="Generate Javadoc">

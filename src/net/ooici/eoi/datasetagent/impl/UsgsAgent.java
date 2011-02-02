@@ -467,6 +467,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
     /*****************************************************************************************************************/
 
     public static void main(String[] args) {
+        try {
+            ion.core.IonBootstrap.bootstrap();
+        } catch (Exception ex) {
+            log.error("Error bootstrapping", ex);
+        }
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
         cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");

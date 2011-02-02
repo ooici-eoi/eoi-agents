@@ -5,7 +5,6 @@
 package net.ooici.eoi.datasetagent.impl;
 
 import java.io.BufferedReader;
-import java.io.File;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -23,7 +22,6 @@ import java.util.TimeZone;
 import net.ooici.Pair;
 import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
-import net.ooici.eoi.datasetagent.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.datasetagent.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
@@ -318,6 +316,11 @@ public class SosAgent extends AbstractAsciiAgent {
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
     public static void main(String[] args) {
+        try {
+            ion.core.IonBootstrap.bootstrap();
+        } catch (Exception ex) {
+            log.error("Error bootstrapping", ex);
+        }
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");

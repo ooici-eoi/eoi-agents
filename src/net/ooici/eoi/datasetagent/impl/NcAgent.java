@@ -69,6 +69,11 @@ public class NcAgent extends AbstractNcAgent {
     }
 
     public static void main(String[] args) {
+        try {
+            ion.core.IonBootstrap.bootstrap();
+        } catch (Exception ex) {
+            log.error("Error bootstrapping", ex);
+        }
         /* the ncml mask to use*/
         /* for NAM - WARNING!!  This is a HUGE file... not really supported properly yet... */
         String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"> <variable name=\"time\" shape=\"time\" type=\"double\"> <attribute name=\"standard_name\" value=\"time\" /> </variable> <variable name=\"lat\" shape=\"lat\" type=\"double\"> <attribute name=\"standard_name\" value=\"latitude\" /> <attribute name=\"units\" value=\"degree_north\" /> </variable> <variable name=\"lon\" shape=\"lon\" type=\"double\"> <attribute name=\"standard_name\" value=\"longitude\" /> <attribute name=\"units\" value=\"degree_east\" /> </variable> </netcdf>";

@@ -325,6 +325,11 @@ public class AomlAgent extends AbstractAsciiAgent {
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
     public static void main(String[] args) {
+        try {
+            ion.core.IonBootstrap.bootstrap();
+        } catch (Exception ex) {
+            log.error("Error bootstrapping", ex);
+        }
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(SourceType.AOML);
         cBldr.setBaseUrl("http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?");

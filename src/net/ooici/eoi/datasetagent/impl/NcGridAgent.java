@@ -321,6 +321,11 @@ public class NcGridAgent extends AbstractNcAgent {
     }
 
     public static void main(String[] args) {
+        try {
+            ion.core.IonBootstrap.bootstrap();
+        } catch (Exception ex) {
+            log.error("Error bootstrapping", ex);
+        }
         TEST_CONTEXT_GRID.put(DataSourceRequestKeys.SOURCE_TYPE, new String[]{"NC_GRID"});
 //        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.BASE_URL, new String[] {"input/grid.nc"});
 //        //yyyy-MM-dd'T'HH:mm:ss'Z'

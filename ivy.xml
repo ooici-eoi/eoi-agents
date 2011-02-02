@@ -6,17 +6,18 @@
     </configurations>
     <dependencies>
         <!-- Public dependencies -->
-        <dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" conf="" />
-        <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.6.1" conf="" />
-        <dependency org="jaxen" name="jaxen" rev="1.1.1" conf="" transitive="false"/>
-        <dependency org="org.msgpack" name="msgpack" rev="0.3" conf=""/>
-        <dependency org="com.rabbitmq" name="amqp-client" rev="1.8.1" conf="" />
-        <dependency org="colt" name="colt" rev="1.2.0" conf="" />
+        <dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" conf="*->*,!sources,!javadoc" />
+        <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.6.1" conf="*->*,!sources,!javadoc" />
+        <dependency org="jaxen" name="jaxen" rev="1.1.1" conf="*->*,!sources,!javadoc" transitive="false"/>
+        <dependency org="org.msgpack" name="msgpack" rev="0.3" conf="*->*,!sources,!javadoc"/>
+        <dependency org="com.rabbitmq" name="amqp-client" rev="1.8.1" conf="*->*,!sources,!javadoc" />
+        <dependency org="colt" name="colt" rev="1.2.0" conf="*->*,!sources,!javadoc" />
         <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1"/>
         <dependency org="com.google.protobuf" name="protobuf-java" rev="2.3.0"/>
+        <dependency org="junit" name="junit" rev="4.8.2" conf="*->*,!sources,!javadoc"/>
         <!-- ION project dependencies -->
-        <dependency name="ion_proto" rev="0.3.0" conf="" />
-        <dependency name="ioncore-full" rev="0.1.0" conf="" />
-        <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="" />
+        <dependency name="ion_proto" rev="0.3.1" conf="*->*,!sources,!javadoc" />
+        <dependency name="ioncore-java" rev="0.2.0" conf="*->*,!sources,!javadoc" />
+        <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />
     </dependencies>
 </ivy-module>

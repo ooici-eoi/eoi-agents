@@ -1,21 +1,3 @@
-<!--
-   Licensed to the Apache Software Foundation (ASF) under one
-   or more contributor license agreements.  See the NOTICE file
-   distributed with this work for additional information
-   regarding copyright ownership.  The ASF licenses this file
-   to you under the Apache License, Version 2.0 (the
-   "License"); you may not use this file except in compliance
-   with the License.  You may obtain a copy of the License at
-
-     http://www.apache.org/licenses/LICENSE-2.0
-
-   Unless required by applicable law or agreed to in writing,
-   software distributed under the License is distributed on an
-   "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
-   KIND, either express or implied.  See the License for the
-   specific language governing permissions and limitations
-   under the License.    
--->
 <project name="eoi-agents" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant" basedir=".">
     <!-- import properties -->
     <property file="build.properties" />
@@ -35,21 +17,21 @@
           NOTE: may want this to depends="clean" because when a dependency is removed,
           the jar(s) are not removed from the 'lib' directory after re-running 'ant resolve'
          ================================= -->
-    <target name="resolve" description="--> retreive dependencies with ivy">
+    <target name="resolve" description="--> Retreive dependencies with ivy">
         <ivy:retrieve/>
     </target>    
     
     <!-- ================================= 
           target: report-deps              
          ================================= -->
-    <target name="report-deps" depends="resolve" description="--> generates a report of dependencies">
+    <target name="report-deps" depends="resolve" description="--> Generates a report of dependencies">
         <ivy:report todir="${ivy-report.dir}"/>
     </target>
 
     <!-- ================================= 
           target: compile
          ================================= -->
-    <target name="compile" depends="resolve" description="--> compile the project">
+    <target name="compile" depends="resolve" description="--> Compile the project">
         <mkdir dir="${build.dir}" />
         <javac srcdir="${src.dir}" destdir="${build.dir}" >
         	<classpath refid="lib.path.id" />
@@ -66,7 +48,7 @@
 	<!-- ================================= 
           target: test-all
          ================================= -->
-	<target name="test-all" description="--> runs all tests">
+	<target name="test-all" description="--> Runs all tests">
 		<antcall target="test-sos"/>
 		<antcall target="test-usgs"/>
 		<antcall target="test-ncagent"/>
@@ -75,7 +57,7 @@
 	<!-- ================================= 
           target: test-sos
          ================================= -->
-    <target name="test-sos" depends="compile" description="--> runs a simple test">
+    <target name="test-sos" depends="compile" description="--> Runs a canned sos test">
     	<property name="msg" value="Testing SosAgent..."/>
         <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.SosAgent" />
     </target>
@@ -83,7 +65,7 @@
 	<!-- ================================= 
           target: test-usgs
          ================================= -->
-    <target name="test-usgs" depends="compile" description="--> runs a simple test">
+    <target name="test-usgs" depends="compile" description="--> Runs a canned usgs test">
     	<property name="msg" value="Testing UsgsAgent..."/>
         <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.UsgsAgent" />
     </target>
@@ -91,7 +73,7 @@
 	<!-- ================================= 
           target: test-ncagent
          ================================= -->
-    <target name="test-ncagent" depends="compile" description="--> runs a simple test">
+    <target name="test-ncagent" depends="compile" description="--> Runs a canned netcdf test">
     	<property name="msg" value="Testing NcAgent..."/>
         <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.NcAgent" />
     </target>
@@ -99,7 +81,7 @@
     <!-- ================================= 
           target: clean              
          ================================= -->
-    <target name="clean" description="--> clean the project">
+    <target name="clean" description="--> Clean the project">
     	<delete dir="${build.dir}" />
     	<delete dir="${lib.dir}" />
     	<delete dir="${dist.dir}" />
@@ -110,14 +92,14 @@
     <!-- ================================= 
           target: clean-ivy-cache              
          ================================= -->
-	<target name="clean-ivy-cache" description="--> clean the ivy cache">
+	<target name="clean-ivy-cache" description="--> Clean the ivy cache">
 		<ivy:cleancache />
 	</target>
 	
 	<!-- ================================= 
           target: deep-clean
          ================================= -->
-    <target name="deep-clean" description="--> cleans both this directory and the ivy cache">
+    <target name="deep-clean" description="--> Cleans both this directory and the ivy cache">
     	<antcall target="clean" />
     	<antcall target="clean-ivy-cache" />
 	</target>
@@ -125,7 +107,7 @@
 	<!-- ================================= 
           target: javadoc              
          ================================= -->
-	<target name="javadoc" depends="" description="Generate Javadoc">
+	<target name="javadoc" depends="" description="--> Generate Javadoc">
 		<javadoc packagenames="net.*"
 		   sourcepath="${src.dir}"
 			classpathref="run.path.id"
@@ -144,7 +126,7 @@
 	<!-- ================================= 
           target: dist              
          ================================= -->
-	<target name="dist" depends="clean,compile,javadoc" description="Package Distribution">
+	<target name="dist" depends="clean,compile,javadoc" description="--> Package Distribution">
 	    <!-- Create the distribution directory -->
 	    <mkdir dir="${dist.dir}" />
 	    <mkdir dir="${dist.dir}/lib"/>

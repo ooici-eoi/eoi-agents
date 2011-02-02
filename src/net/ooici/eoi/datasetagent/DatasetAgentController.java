@@ -4,18 +4,17 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import com.google.protobuf.InvalidProtocolBufferException;
 import ion.core.IonBootstrap;
 import ion.core.PollingProcess;
 import ion.core.messaging.IonMessage;
 import ion.core.messaging.MessagingName;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
-import net.ooici.eoi.proto.Unidata2Ooi;
 import net.ooici.eoi.datasetagent.ControlEvent.ControlEventType;
 import net.ooici.eoi.datasetagent.DatasetAgentController.ControlThread.ControlProcess;
 import ucar.nc2.Variable;
@@ -123,7 +122,23 @@ public class DatasetAgentController implements ControlListener {
                 log.debug("Processing Thread ID: " + threadId);
                 log.debug(threadId + ":: Received context as: " + msg.getContent().getClass().getName());
 //                Map<String, String[]> context = convertToStringStringArrayMap(((HashMap<?, ?>) msg.getContent()));
-                net.ooici.services.sa.DataSource.EoiDataContext context = (net.ooici.services.sa.DataSource.EoiDataContext) msg.getContent();
+               net.ooici.services.sa.DataSource.EoiDataContext context = null;
+               try {
+                   context = net.ooici.services.sa.DataSource.EoiDataContext.parseFrom((byte[]) msg.getContent());
+               } catch (InvalidProtocolBufferException ex) {
+                   IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
+                   reply.getIonHeaders().putAll(msg.getIonHeaders());
+                   reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+                   reply.getIonHeaders().put("reply-to", ((ControlProcess)source).getMessagingName().toString());
+                   reply.getIonHeaders().put("sender", ((ControlProcess)source).getMessagingName().toString());
+                   reply.getIonHeaders().put("status", "ERROR");
+                   reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+                   reply.getIonHeaders().put("response", "ION ERROR");
+
+                   log.debug(printMessage("**Reply Message to Wrapper**", reply));
+
+                   ((ControlProcess) source).send(reply);
+               }
 
                 net.ooici.services.sa.DataSource.EoiDataContext.SourceType source_type = context.getSourceType();
                 log.debug(threadId + ":: source_type = " + source_type);

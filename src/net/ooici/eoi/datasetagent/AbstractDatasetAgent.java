@@ -65,6 +65,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     protected abstract String[] processDataset(Object data);
 
     protected String sendNetcdfDataset(ucar.nc2.dataset.NetcdfDataset ncds, String op) {
+        return sendNetcdfDataset(ncds, op, true);
+    }
+    protected String sendNetcdfDataset(ucar.nc2.dataset.NetcdfDataset ncds, String op, boolean includeData) {
         assert ncds != null;
 
         String ret = null;
@@ -72,7 +75,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
         byte[] dataMessageContent;
         try {
-            dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
+            dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, includeData);
 
             if (!testing) {
                 IonMessage dataMessage = cl.createMessage(fromName, toName, op, dataMessageContent);

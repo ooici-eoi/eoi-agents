@@ -36,8 +36,12 @@ public class Unidata2Ooi {
     private static Container.Structure.Builder structBldr;
 
     public static byte[] ncdfToByteArray(NetcdfDataset dataset) throws IOException {
+        return ncdfToByteArray(dataset, true);
+    }
+
+    public static byte[] ncdfToByteArray(NetcdfDataset dataset, boolean includeData) throws IOException {
         structBldr = Container.Structure.newBuilder();
-        packDataset(dataset);
+        packDataset(dataset, includeData);
         Container.Structure struct = structBldr.build();
 
         return struct.toByteArray();
@@ -61,6 +65,9 @@ public class Unidata2Ooi {
     }
 
     public static void packDataset(NetcdfDataset ncds) throws java.io.IOException {
+        packDataset(ncds, true);
+    }
+    public static void packDataset(NetcdfDataset ncds, boolean includeData) throws java.io.IOException {
         Type.GPBType gpbType;
         ByteString byteString;
         byte[] key;
@@ -80,7 +87,7 @@ public class Unidata2Ooi {
 
         /* Add all of the Variables to the structure */
         for (Variable ncVar : ncds.getVariables()) {
-            Cdmvariable.Variable ooiVar = getOoiVariable(ncVar);
+            Cdmvariable.Variable ooiVar = getOoiVariable(ncVar, includeData);
             gpbType = ProtoUtils.getGPBType(ooiVar.getClass());
             byteString = ooiVar.toByteString();
             ooiVar = null;
@@ -188,6 +195,10 @@ public class Unidata2Ooi {
     }
 
     private static Cdmvariable.Variable getOoiVariable(Variable ncVar) throws java.io.IOException {
+        return getOoiVariable(ncVar, true);
+    }
+
+    private static Cdmvariable.Variable getOoiVariable(Variable ncVar, boolean includeData) throws java.io.IOException {
 
         DataType dt = ncVar.getDataType();
         Cdmvariable.Variable.Builder varBldr = Cdmvariable.Variable.newBuilder().setName(ncVar.getName()).setDataType(AgentUtils.getOoiDataType(dt));
@@ -224,77 +235,85 @@ public class Unidata2Ooi {
             ooiBABldr.addBounds(bnds);
 //            addElementToStructure(true, SHA1.getSHA1Hash(bnds.toByteArray()), getGPBType(bnds.getClass()), bnds.toByteString());
         }
-        switch (dt) {
-            case BYTE:
-            case SHORT:
-            case INT:
-                Cdmarray.int32Array.Builder i32Bldr = Cdmarray.int32Array.newBuilder();
-                Array ints = ncVar.read();
-                IndexIterator iter = ints.getIndexIterator();
-                while (iter.hasNext()) {
-                    i32Bldr.addValue(iter.getIntNext());
-                }
+        if (includeData) {
+            switch (dt) {
+                case BYTE:
+                case SHORT:
+                case INT:
+                    Cdmarray.int32Array.Builder i32Bldr = Cdmarray.int32Array.newBuilder();
+                    Array ints = ncVar.read();
+                    IndexIterator iter = ints.getIndexIterator();
+                    while (iter.hasNext()) {
+                        i32Bldr.addValue(iter.getIntNext());
+                    }
 
-                Cdmarray.int32Array i32 = i32Bldr.build();
-                gpbType = ProtoUtils.getGPBType(i32.getClass());
-                byteString = i32.toByteString();
-                i32 = null;
-                break;
-            case LONG:
-                Cdmarray.int64Array.Builder i64Bldr = Cdmarray.int64Array.newBuilder();
-                long[] lngs = (long[]) ncVar.read().get1DJavaArray(long.class);
-                for (long l : lngs) {
-                    i64Bldr.addValue(l);
-                }
+                    Cdmarray.int32Array i32 = i32Bldr.build();
+                    gpbType = ProtoUtils.getGPBType(i32.getClass());
+                    byteString = i32.toByteString();
+                    i32 = null;
+                    break;
+                case LONG:
+                    Cdmarray.int64Array.Builder i64Bldr = Cdmarray.int64Array.newBuilder();
+                    long[] lngs = (long[]) ncVar.read().get1DJavaArray(long.class);
+                    for (long l : lngs) {
+                        i64Bldr.addValue(l);
+                    }
 
-                Cdmarray.int64Array i64 = i64Bldr.build();
-                gpbType = ProtoUtils.getGPBType(i64.getClass());
-                byteString = i64.toByteString();
-                i64 = null;
-                break;
-            case FLOAT:
-                Cdmarray.f32Array.Builder f32Bldr = Cdmarray.f32Array.newBuilder();
-                float[] flts = (float[]) ncVar.read().get1DJavaArray(float.class);
-                for (float f : flts) {
-                    f32Bldr.addValue(f);
-                }
+                    Cdmarray.int64Array i64 = i64Bldr.build();
+                    gpbType = ProtoUtils.getGPBType(i64.getClass());
+                    byteString = i64.toByteString();
+                    i64 = null;
+                    break;
+                case FLOAT:
+                    Cdmarray.f32Array.Builder f32Bldr = Cdmarray.f32Array.newBuilder();
+                    float[] flts = (float[]) ncVar.read().get1DJavaArray(float.class);
+                    for (float f : flts) {
+                        f32Bldr.addValue(f);
+                    }
 
-                Cdmarray.f32Array f32 = f32Bldr.build();
-                gpbType = ProtoUtils.getGPBType(f32.getClass());
-                byteString = f32.toByteString();
-                f32 = null;
-                break;
-            case DOUBLE:
-                Cdmarray.f64Array.Builder f64Bldr = Cdmarray.f64Array.newBuilder();
-                double[] dbls = (double[]) ncVar.read().get1DJavaArray(double.class);
-                for (double d : dbls) {
-                    f64Bldr.addValue(d);
-                }
+                    Cdmarray.f32Array f32 = f32Bldr.build();
+                    gpbType = ProtoUtils.getGPBType(f32.getClass());
+                    byteString = f32.toByteString();
+                    f32 = null;
+                    break;
+                case DOUBLE:
+                    Cdmarray.f64Array.Builder f64Bldr = Cdmarray.f64Array.newBuilder();
+                    double[] dbls = (double[]) ncVar.read().get1DJavaArray(double.class);
+                    for (double d : dbls) {
+                        f64Bldr.addValue(d);
+                    }
 
-                Cdmarray.f64Array f64 = f64Bldr.build();
-                gpbType = ProtoUtils.getGPBType(f64.getClass());
-                byteString = f64.toByteString();
-                f64 = null;
-                break;
-            /* TODO: Implement other datatypes */
+                    Cdmarray.f64Array f64 = f64Bldr.build();
+                    gpbType = ProtoUtils.getGPBType(f64.getClass());
+                    byteString = f64.toByteString();
+                    f64 = null;
+                    break;
+                /* TODO: Implement other datatypes */
 
-            default:
-                byteString = null;
-                gpbType = null;
-        }
-        if (byteString != null && gpbType != null) {
+                default:
+                    byteString = null;
+                    gpbType = null;
+            }
+            if (byteString != null && gpbType != null) {
+                key = ProtoUtils.getObjectKey(byteString, gpbType);
+                ooiBABldr.setNdarray(ProtoUtils.getLink(true, key, gpbType));
+                addElementToStructure(true, key, gpbType, byteString);
+            }
+        } else {
+            /*TODO: Remove this once Ndarray is no longer required */
+            Cdmarray.int32Array i32 = Cdmarray.int32Array.newBuilder().addValue(0).build();
+            gpbType = ProtoUtils.getGPBType(i32.getClass());
+            byteString = i32.toByteString();
             key = ProtoUtils.getObjectKey(byteString, gpbType);
             ooiBABldr.setNdarray(ProtoUtils.getLink(true, key, gpbType));
-            addElementToStructure(true, key, gpbType, byteString);
-
-            Cdmvariable.BoundedArray bndArr = ooiBABldr.build();
-            gpbType = ProtoUtils.getGPBType(bndArr.getClass());
-            byteString = bndArr.toByteString();
-            bndArr = null;
-            key = ProtoUtils.getObjectKey(byteString, gpbType);
-            varBldr.addContent(ProtoUtils.getLink(false, key, gpbType));
-            addElementToStructure(false, key, gpbType, byteString);
         }
+        Cdmvariable.BoundedArray bndArr = ooiBABldr.build();
+        gpbType = ProtoUtils.getGPBType(bndArr.getClass());
+        byteString = bndArr.toByteString();
+        bndArr = null;
+        key = ProtoUtils.getObjectKey(byteString, gpbType);
+        varBldr.addContent(ProtoUtils.getLink(false, key, gpbType));
+        addElementToStructure(false, key, gpbType, byteString);
 
         return varBldr.build();
     }

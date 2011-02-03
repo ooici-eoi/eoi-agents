@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import ion.core.IonBootstrap;
 import ion.core.PollingProcess;
@@ -15,6 +16,7 @@ import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import net.ooici.core.container.Container;
 import net.ooici.eoi.datasetagent.ControlEvent.ControlEventType;
 import net.ooici.eoi.datasetagent.DatasetAgentController.ControlThread.ControlProcess;
 import ucar.nc2.Variable;
@@ -117,35 +119,80 @@ public class DatasetAgentController implements ControlListener {
         processService.execute(new Runnable() {
 
             public void run() {
-                long threadId = Thread.currentThread().getId();
+                String threadId = Thread.currentThread().getName();
                 String status = "";
                 log.debug("Processing Thread ID: " + threadId);
-                log.debug(threadId + ":: Received context as: " + msg.getContent().getClass().getName());
 //                Map<String, String[]> context = convertToStringStringArrayMap(((HashMap<?, ?>) msg.getContent()));
-               net.ooici.services.sa.DataSource.EoiDataContext context = null;
-               try {
-                   context = net.ooici.services.sa.DataSource.EoiDataContext.parseFrom((byte[]) msg.getContent());
-               } catch (InvalidProtocolBufferException ex) {
-                   IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
-                   reply.getIonHeaders().putAll(msg.getIonHeaders());
-                   reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
-                   reply.getIonHeaders().put("reply-to", ((ControlProcess)source).getMessagingName().toString());
-                   reply.getIonHeaders().put("sender", ((ControlProcess)source).getMessagingName().toString());
-                   reply.getIonHeaders().put("status", "ERROR");
-                   reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
-                   reply.getIonHeaders().put("response", "ION ERROR");
+                net.ooici.services.sa.DataSource.EoiDataContext context = null;
+                try {
+                    net.ooici.core.container.Container.Structure struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
+                    HashMap<ByteString, Container.StructureElement> elementMap = new HashMap<ByteString, Container.StructureElement>();
+                    for (Container.StructureElement se : struct.getItemsList()) {
+                        elementMap.put(se.getKey(), se);
+                    }
+                    log.debug(elementMap.entrySet().iterator().next().getValue().toString());
+//                    net.ooici.core.message.IonMessage.IonMsg ionmsg = net.ooici.core.message.IonMessage.IonMsg.parseFrom(struct.getHead());
+//                    log.debug("IonMsg:\n" + ionmsg);
+//
+//                    net.ooici.core.link.Link.CASRef link = ionmsg.getMessageObject();
+//                    Container.StructureElement elm = elementMap.get(link.toByteString());
 
-                   log.debug(printMessage("**Reply Message to Wrapper**", reply));
+                    context = net.ooici.services.sa.DataSource.EoiDataContext.parseFrom(elementMap.entrySet().iterator().next().getValue().getValue());
+                    log.debug("ProcThread:" + threadId + ":: Received context as:\n{\n" + context.toString() + "}\n");
+//                    if (log.isDebugEnabled()) {
+//                        log.debug("Checking localized context...");
+//                        StringBuilder sb = new StringBuilder("Dataset Context:\n{\n");
+//                        sb.append("\tbaseURL=").append(context.getBaseUrl()).append("\n");
+//                        sb.append("\ttop=").append(String.valueOf(context.getTop())).append("\n");
+//                        sb.append("\tbottom=").append(String.valueOf(context.getBottom())).append("\n");
+//                        sb.append("\tleft=").append(String.valueOf(context.getLeft())).append("\n");
+//                        sb.append("\tright=").append(String.valueOf(context.getRight())).append("\n");
+//                        sb.append("\tsTimeString=").append(context.getStartTime()).append("\n");
+//                        sb.append("\teTimeString=").append(context.getEndTime()).append("\n");
+//                        sb.append("\tpropertyList{").append("\n");
+//                        if (context.getPropertyCount() > 0) {
+//                            for (String s : context.getPropertyList()) {
+//                                sb.append("\t\t").append(s).append("\n");
+//                            }
+//                        } else {
+//                            sb.append("\t\t***NONE***\n");
+//                        }
+//                        sb.append("\t}\n");
+//                        sb.append("\tstationIdList{").append("\n");
+//                        if (context.getStationIdCount() > 0) {
+//                            for (String s : context.getPropertyList()) {
+//                                sb.append("\t\t").append(s).append("\n");
+//                            }
+//                        } else {
+//                            sb.append("\t\t***NONE***\n");
+//                        }
+//                        sb.append("\t}\n");
+//                        sb.append("}");
+//                    }
 
-                   ((ControlProcess) source).send(reply);
-               }
+                } catch (InvalidProtocolBufferException ex) {
+                    log.error("ProcThread:" + threadId + ":: Received bad context ");
+                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
+                    reply.getIonHeaders().putAll(msg.getIonHeaders());
+                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+                    reply.getIonHeaders().put("status", "ERROR");
+                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+                    reply.getIonHeaders().put("response", "ION ERROR");
+
+                    log.debug(printMessage("**Reply Message to Wrapper**", reply));
+
+                    ((ControlProcess) source).send(reply);
+                }
 
                 net.ooici.services.sa.DataSource.EoiDataContext.SourceType source_type = context.getSourceType();
-                log.debug(threadId + ":: source_type = " + source_type);
+                log.debug("ProcThread:" + threadId + ":: source_type = " + source_type);
 
                 /* Instantiate the appropriate dataset agent based on the source_type */
                 IDatasetAgent agent;
                 try {
+                    log.debug("ProcThread:" + threadId + ":: Generating DatasetAgent instance...");
                     agent = AgentFactory.getDatasetAgent(source_type);
                 } catch (IllegalArgumentException ex) {
                     IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
@@ -174,6 +221,7 @@ public class DatasetAgentController implements ControlListener {
                  * These methods could be made static methods of Unidata2Ooi, thereby negating the need
                  * to pass through this class...?
                  */
+                log.debug("ProcThread:" + threadId + ":: Bulid connInfo");
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
                 connInfo.put("exchange", "eoitest");
                 connInfo.put("service", "eoi_ingest");
@@ -184,8 +232,10 @@ public class DatasetAgentController implements ControlListener {
                  * Perform the update - this can result in multiple messages being sent to the ingest service
                  * The reply should be the ooi resource id
                  */
+                log.debug("ProcThread:" + threadId + ":: Perform update");
                 String[] ooiDsId = agent.doUpdate(context, connInfo);
-                
+
+                log.debug("ProcThread:" + threadId + ":: Update complete - send reply to wrapper");
                 IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId);
                 reply.getIonHeaders().putAll(msg.getIonHeaders());
                 reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());

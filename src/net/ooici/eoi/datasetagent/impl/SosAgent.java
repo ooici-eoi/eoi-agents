@@ -53,10 +53,11 @@ public class SosAgent extends AbstractAsciiAgent {
     @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         log.debug("");
-        log.info("Building SOS Request for context [" + context.toString() + "]");
+        log.info("Building SOS Request for context:\n{\n" + context.toString() + "}\n");
 
         StringBuilder result = new StringBuilder();
 
+        log.debug("Localizing context...");
         String baseUrl = context.getBaseUrl();
         String top = String.valueOf(context.getTop());
         String bottom = String.valueOf(context.getBottom());
@@ -64,13 +65,14 @@ public class SosAgent extends AbstractAsciiAgent {
         String right = String.valueOf(context.getRight());
         String sTimeString = context.getStartTime();
         String eTimeString = context.getEndTime();
-
-        String property = context.getProperty(0);
-        String stnId = context.getStationId(0);
+        /* TODO: make these iterative */
+        String property = context.getPropertyList().get(0);
+        String stnId = context.getStationIdList().get(0);
 
 
         /** TODO: null-check here */
         /** Configure the date-time parameter (if avail) */
+        log.debug("Configuring date-time");
         String eventTime = null;
         if (null != sTimeString && null != eTimeString && !sTimeString.isEmpty() && !eTimeString.isEmpty()) {
             Date sTime = null;

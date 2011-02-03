@@ -7,6 +7,7 @@ docs
 dist
 ivy-report
 output
+MANIFEST.MF
 
 ######################
 # OS generated files #

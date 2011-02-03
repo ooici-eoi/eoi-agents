@@ -7,7 +7,7 @@
     <path id="lib.path.id">
         <fileset dir="${lib.dir}" />
 	</path>
-    <path id="run.path.id">
+    <path id="runtime.classpath">
     	<path refid="lib.path.id" />
         <path location="${build.dir}/" />
     </path>
@@ -59,7 +59,7 @@
          ================================= -->
     <target name="test-sos" depends="compile" description="--> Runs a canned sos test">
     	<property name="msg" value="Testing SosAgent..."/>
-        <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.SosAgent" />
+        <java classpathref="runtime.classpath" classname="net.ooici.eoi.datasetagent.impl.SosAgent" />
     </target>
     
 	<!-- ================================= 
@@ -67,7 +67,7 @@
          ================================= -->
     <target name="test-usgs" depends="compile" description="--> Runs a canned usgs test">
     	<property name="msg" value="Testing UsgsAgent..."/>
-        <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.UsgsAgent" />
+        <java classpathref="runtime.classpath" classname="net.ooici.eoi.datasetagent.impl.UsgsAgent" />
     </target>
     
 	<!-- ================================= 
@@ -75,7 +75,7 @@
          ================================= -->
     <target name="test-ncagent" depends="compile" description="--> Runs a canned netcdf test">
     	<property name="msg" value="Testing NcAgent..."/>
-        <java classpathref="run.path.id" classname="net.ooici.eoi.datasetagent.impl.NcAgent" />
+        <java classpathref="runtime.classpath" classname="net.ooici.eoi.datasetagent.impl.NcAgent" />
     </target>
 
     <!-- ================================= 
@@ -110,7 +110,7 @@
 	<target name="javadoc" depends="" description="--> Generate Javadoc">
 		<javadoc packagenames="net.*"
 		   sourcepath="${src.dir}"
-			classpathref="run.path.id"
+			classpathref="runtime.classpath"
 		   defaultexcludes="yes"
 		   destdir="${docs.dir}"
 		   author="true"
@@ -132,14 +132,40 @@
 	    <mkdir dir="${dist.dir}/lib"/>
 	    <mkdir dir="${dist.dir}/docs"/>
 
+		<!-- Convert project class path to string property -->
+  		<pathconvert property="manifest.classpath" pathsep=" ">
+		<path refid="runtime.classpath"/>
+			<mapper>
+   				<chainedmapper>
+     				<flattenmapper/>
+     				<globmapper from="*.jar" to="lib/*.jar"/>
+  				</chainedmapper>
+  			</mapper>
+		</pathconvert>
+
+		<tstamp/><!-- needed for TODAY -->
+		<!-- Create the manifest.mf file -->
+		<manifest file="MANIFEST.MF">
+			<!--
+			<attribute name="Built-By" value="${manifest.built.by}"/>
+			<attribute name="Created-By" value="${manifest.created.by}"/>
+			-->
+			<attribute name="Main-Class" value="${runtime.main.class}"/>
+			<attribute name="Implementation-Version" value="${version}"/>   
+			<attribute name="Built-Date" value="${TODAY}"/>
+			<attribute name="Class-Path" value="${manifest.classpath}" />
+		</manifest>
+
 	    <!-- Create JAR file with library classes, tests and example code -->
-	    <jar jarfile="${dist.dir}/lib/${projname}-full-${version}.jar" basedir="${build.dir}"/>
+	    <jar jarfile="${dist.dir}/lib/${projname}-full-${version}.jar"
+	    	basedir="${build.dir}"
+	    	manifest="MANIFEST.MF" />
 
 	    <!-- Create JAR file with all library classes -->
 		<jar jarfile="${dist.dir}/lib/${projname}-${version}.jar" 
 	    	basedir="${build.dir}"
-	    	excludes="ion/example/**"
-		/>
+	    	excludes="ion/example/**" 
+	    	manifest="MANIFEST.MF" />
 
 	    <!-- Create ZIP file with the javadoc -->
 		<zip destfile="${dist.dir}/docs/${projname}-${version}-javadoc.zip"

@@ -211,15 +211,8 @@ public class DatasetAgentController implements ControlListener {
                 }
 
                 /* Perform the update */
-                /*TODO: Change doUpdate to return a boolean (or somesuch) and add methods to DAC
-                 * to allow the agent implementation to send the dataset(s) piecemeal.  After the agent
-                 * is finished sending data, the doUpdate method returns and a "finished" message
-                 * can be sent to the ingest service.
-                 * Two methods are required
-                 * - one that accepts a NetcdfDataset, packs it, and sends it
-                 * - one that accepts a Variable, packs it and sends it
-                 * These methods could be made static methods of Unidata2Ooi, thereby negating the need
-                 * to pass through this class...?
+                /* TODO: Make the connection information default to the conn-info for the DAC...will
+                 * be replaced by a proto object containing this information.
                  */
                 log.debug("ProcThread:" + threadId + ":: Bulid connInfo");
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();

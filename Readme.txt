@@ -45,21 +45,31 @@ All tasks are performed with ant, and are run with:
 Tasks can be viewed with the following command:
 ::
 	ant -p
-	
-The ant targets for this project are:
 
-clean            --> Clean the project
-clean-ivy-cache  --> Clean the ivy cache
-compile          --> Compile the project
-deep-clean       --> Cleans both this directory and the ivy cache
-dist             --> Package Distribution
-javadoc          --> Generate Javadoc
-report-deps      --> Generates a report of dependencies
-resolve          --> Retreive dependencies with ivy
-test-all         --> Runs all tests
-test-ncagent     --> Runs a canned netcdf test
-test-sos         --> Runs a canned sos test
-test-usgs        --> Runs a canned usgs test
+Main targets:
+
+ clean            --> Clean the project
+ clean-ivy-cache  --> Clean the ivy cache
+ compile          --> Compile the project
+ deep-clean       --> Cleans both this directory and the ivy cache
+ dist             --> Package Distribution
+ javadoc          --> Generate Javadoc
+ report-deps      --> Generates a report of dependencies
+ resolve          --> Retreive dependencies with ivy
+ test-all         --> Runs all tests
+ test-ncagent     --> Runs a canned netcdf test
+ test-sos         --> Runs a canned sos test
+ test-usgs        --> Runs a canned usgs test
+Default target: dist
+
+
+IDE Setup
+=========
+1. Run: ant resolve
+2. Make a "existing source" (or similar) project in your IDE of choice and select the src directory of the project.
+3. Put all of the jar files in the "lib" directory on the project classpath in your IDE.
+** Note - when you "ant clean" the lib directory is wiped out.  If you discover your project not compiling, make sure
+there's a lib directory!
 
 
 **********************************

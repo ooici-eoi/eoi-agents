@@ -31,11 +31,11 @@ public class DatasetAgentController implements ControlListener {
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DatasetAgentController.class);
     private final ControlThread controlThread;
     private final ExecutorService processService;
+    private static String host = "";
+    private static String exchange = "";
+    private static String wrapperName = "";
 
     public static void main(String[] args) {
-        String host = "";
-        String exchange = "";
-        String wrapperName = "";
         String bindingCallback = "";
         if (args.length == 4) {
             try {
@@ -177,6 +177,7 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
                     reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
                     reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+                    reply.getIonHeaders().put("encoding", "json");
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
@@ -200,6 +201,7 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
                     reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
                     reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+                    reply.getIonHeaders().put("encoding", "json");
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
@@ -218,7 +220,7 @@ public class DatasetAgentController implements ControlListener {
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
                 connInfo.put("exchange", "eoitest");
                 connInfo.put("service", "eoi_ingest");
-                connInfo.put("server", "macpro");
+                connInfo.put("server", host);
                 connInfo.put("topic", "magnet.topic");
 
                 /*
@@ -229,11 +231,12 @@ public class DatasetAgentController implements ControlListener {
                 String[] ooiDsId = agent.doUpdate(context, connInfo);
 
                 log.debug("ProcThread:" + threadId + ":: Update complete - send reply to wrapper");
-                IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId);
+                IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId[0]);
                 reply.getIonHeaders().putAll(msg.getIonHeaders());
                 reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
                 reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
                 reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+                reply.getIonHeaders().put("encoding", "json");
                 reply.getIonHeaders().put("status", "OK");
                 reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                 reply.getIonHeaders().put("response", "ION SUCCESS");

@@ -124,7 +124,11 @@ public class TestIOSP {
             }
             if (writeLocalDataset) {
                 /* Write the NetcdfDataset to a local file - for direct comparison to the original */
+                new java.io.File("output").mkdir();
+                System.out.println("Writing to local file");
                 ucar.nc2.FileWriter.writeToFile(ncd, "output/" + dsName.replace("ooici:", "") + "_sermess.nc");
+                System.out.println("Done!!");
+                System.out.println("********************************");
             }
         } finally {
             if (ncd != null) {

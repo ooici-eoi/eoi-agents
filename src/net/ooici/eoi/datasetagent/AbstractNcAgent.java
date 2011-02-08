@@ -19,7 +19,7 @@ public abstract class AbstractNcAgent extends AbstractDatasetAgent implements IN
      * @see net.ooici.agent.abstraction.AbstractDatasetAgent#processDataset(java.lang.Object)
      */
     @Override
-    protected final String[] processDataset(Object data) {
+    protected final String[] _processDataset(Object data) {
         if (!(data instanceof NetcdfDataset)) {
             throw new IllegalArgumentException(new StringBuilder("Supplied data must an instance of ")
                                                .append(NetcdfDataset.class.getName())

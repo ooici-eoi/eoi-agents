@@ -4,7 +4,6 @@
  */
 package net.ooici.eoi.datasetagent;
 
-import java.util.List;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 
 /**
@@ -16,6 +15,6 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup;
  */
 public interface IAsciiAgent extends IDatasetAgent {
 
-    String[] processDataset(List<IObservationGroup> obsList);
+    String[] processDataset(IObservationGroup... obsList);
     
 }

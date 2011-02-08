@@ -55,14 +55,14 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         Object data = acquireData(request);
 //        dataset = processDataset(data);
 //        return dataset;
-        String[] result = processDataset(data);
+        String[] result = _processDataset(data);
 
         closeMsgBrokerClient();
 
         return result;
     }
 
-    protected abstract String[] processDataset(Object data);
+    protected abstract String[] _processDataset(Object data);
 
     protected String sendNetcdfDataset(ucar.nc2.dataset.NetcdfDataset ncds, String op) {
         return sendNetcdfDataset(ncds, op, true);

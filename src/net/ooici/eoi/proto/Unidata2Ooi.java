@@ -127,7 +127,7 @@ public class Unidata2Ooi {
     }
 
     private static void addElementToStructure(boolean isLeaf, byte[] key, Type.GPBType gpbType, ByteString value) {
-        structBldr.addItems(ProtoUtils.getStructureElement(isLeaf, value, gpbType, value));
+        structBldr.addItems(ProtoUtils.getStructureElement(isLeaf, key, gpbType, value));
     }
 
     private static Cdmdimension.Dimension getOoiDimension(Dimension ncDim) {

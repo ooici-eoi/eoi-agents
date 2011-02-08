@@ -26,6 +26,7 @@ import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.datasetagent.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import net.ooici.eoi.datasetagent.NcdsFactory;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -137,19 +138,16 @@ public class SosAgent extends AbstractAsciiAgent {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
 
-        IObservationGroup obs = null;
+        List<IObservationGroup> obsList = null;
         StringReader srdr = new StringReader(asciiData);
         try {
-            obs = parseObservations(srdr);
+            obsList = parseObservations(srdr);
         } finally {
             if (srdr != null) {
                 srdr.close();
             }
         }
 
-
-        List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
-        obsList.add(obs);
         return obsList;
     }
 
@@ -160,7 +158,8 @@ public class SosAgent extends AbstractAsciiAgent {
      * @param rdr
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
-    public static IObservationGroup parseObservations(Reader rdr) {
+    public static List<IObservationGroup> parseObservations(Reader rdr) {
+        List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         IObservationGroup obs = null;
         BufferedReader csvReader = null;
         try {
@@ -194,8 +193,12 @@ public class SosAgent extends AbstractAsciiAgent {
             int obsId = 0;
             while ((line = csvReader.readLine()) != null) {
                 tokens = line.split(",");
-                if (obs == null || (lat != (tla = Float.valueOf(tokens[2]))) || (lon != (tlo = Float.valueOf(tokens[3])))/*|| !stnId.equals(tokens[0]) || !snsId.equals(tokens[1]) || (lat != (tla = Float.valueOf(tokens[2]))) || (lon != (tlo = Float.valueOf(tokens[3])))*/) {
-
+                tla = Float.valueOf(tokens[2]);
+                tlo = Float.valueOf(tokens[3]);
+                if (obs == null || (lat != tla) || (lon != tlo)/*|| !stnId.equals(tokens[0]) || !snsId.equals(tokens[1]) || (lat != (tla = Float.valueOf(tokens[2]))) || (lon != (tlo = Float.valueOf(tokens[3])))*/) {
+                    if (obs != null) {
+                        obsList.add(obs);
+                    }
                     /* New group of observations */
                     stnId = tokens[0];
 //                    snsId = tokens[1];
@@ -241,6 +244,10 @@ public class SosAgent extends AbstractAsciiAgent {
                     }
                     obs.addObservation(time, depth, val, dc.getValue());
                 }
+            }
+            /* Add the last obs group */
+            if (obs != null) {
+                obsList.add(obs);
             }
         } catch (MalformedURLException ex) {
             log.error("Given URL cannot be parsed:  + url", ex);
@@ -297,20 +304,21 @@ public class SosAgent extends AbstractAsciiAgent {
 
 
         /* Add each attribute */
-        obs.addAttributes(globalAttributes);
+        for (IObservationGroup o : obsList) {
+            o.addAttributes(globalAttributes);
+        }
 
-
-
-        return obs;
+        return obsList;
     }
 
-    public String[] processDataset(List<IObservationGroup> obsList) {
+    public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
-        for (IObservationGroup obs : obsList) {
-            NetcdfDataset ncds = obs2Ncds(obs);
-            /* Send this via the send dataset method of DAC */
-            ret.add(this.sendNetcdfDataset(ncds, "ingest"));
-        }
+        
+        NetcdfDataset ncds = obs2Ncds(obsList);
+
+        /* Send this via the send dataset method of DAC */
+        ret.add(this.sendNetcdfDataset(ncds, "ingest"));
+
         return ret.toArray(new String[0]);
     }
 
@@ -326,7 +334,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        if (false) {//test station
+        if (true) {//test station
             cBldr.setStartTime("2008-08-01T00:00:00Z");
             cBldr.setEndTime("2008-08-02T00:00:00Z");
             cBldr.addProperty("sea_water_temperature");
@@ -342,7 +350,7 @@ public class SosAgent extends AbstractAsciiAgent {
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setTesting(true);
-        
+
         java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
         connInfo.put("exchange", "eoitest");
         connInfo.put("service", "eoi_ingest");
@@ -350,7 +358,7 @@ public class SosAgent extends AbstractAsciiAgent {
         connInfo.put("topic", "magnet.topic");
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");
-        for(String s : result) {
+        for (String s : result) {
             log.debug(s);
         }
 //        String outdir = "output/sos/";

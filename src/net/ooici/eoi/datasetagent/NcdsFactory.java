@@ -47,7 +47,7 @@ public class NcdsFactory {
         STATION_PROFILE("stationProfile.ncml"),
         STATION_PROFILE_MULTI("stationProfileMulti.ncml"),
         TRAJECTORY("trajectory.ncml"),
-        TRAJECTORY_MULTI("trajectoryMulti.ncml");
+        TRAJECTORY_PROFILE("trajectoryProfile.ncml");
 
         String resourceName = null;
 
@@ -85,6 +85,7 @@ public class NcdsFactory {
             IObservationGroup.DataType tdt = obsGroup.getTimeDataType();
             ncds.findDimension("time").setLength(times.length);
             Variable tvar = ncds.findVariable("time");
+            tvar.resetShape();
             tvar.setDataType(getNcDataType(tdt));
             tvar.setCachedData(getNcArray(times, tdt));
 
@@ -137,9 +138,9 @@ public class NcdsFactory {
         return ncds;
     }
 
-    public static NetcdfDataset buildStationMulti(List<IObservationGroup> obsGroups) {
-        if (obsGroups.size() == 1) {
-            return buildStation(obsGroups.get(0));
+    public static NetcdfDataset buildStationMulti(IObservationGroup[] obsGroups) {
+        if (obsGroups.length == 1) {
+            return buildStation(obsGroups[0]);
         }
         throw new UnsupportedOperationException();
     }
@@ -220,29 +221,20 @@ public class NcdsFactory {
         return ncds;
     }
 
-    public static NetcdfDataset buildStationProfileMulti(List<IObservationGroup> obsGroups) {
-        if (obsGroups.size() == 1) {
-            return buildStationProfile(obsGroups.get(0));
+    public static NetcdfDataset buildStationProfileMulti(IObservationGroup[] obsGroups) {
+        if (obsGroups.length == 1) {
+            return buildStationProfile(obsGroups[0]);
         }
         throw new UnsupportedOperationException();
     }
 
-    public static NetcdfDataset buildTrajectory(List<IObservationGroup> obsGroups) {
-//        IObservationGroup.DataType tdt = IObservationGroup.DataType.values()[0];
-//        IObservationGroup.DataType lldt = IObservationGroup.DataType.values()[0];
-//        IObservationGroup.DataType ddt = IObservationGroup.DataType.values()[0];
-//        for(IObservationGroup og : obsGroups) {
-//            tdt = (og.getTimeDataType().compareTo(tdt) > 0) ? og.getTimeDataType() : tdt;
-//            lldt = (og.getLatLonDataType().compareTo(lldt) > 0) ? og.getLatLonDataType() : lldt;
-//            ddt = (og.getDepthDataType().compareTo(ddt) > 0) ? og.getDepthDataType() : ddt;
-//        }
-
+    public static NetcdfDataset buildTrajectory(IObservationGroup[] obsGroups) {
         NetcdfDataset ncds = null;
         try {
             /* Instantiate an empty NetcdfDataset object from the template ncml */
             ncds = getNcdsFromTemplate(NcdsTemplate.TRAJECTORY);
 
-            int nobs = obsGroups.size();
+            int nobs = obsGroups.length;
             List<Number> allDepths = new ArrayList<Number>();
             List<VariableParams> allDn = new ArrayList<VariableParams>();
             int nt = nobs;
@@ -264,8 +256,8 @@ public class NcdsFactory {
             /* Do the trajectory ID */
 
             /* Do the times */
-            Number[] times = obsGroups.get(0).getTimes();
-            IObservationGroup.DataType tdt = obsGroups.get(0).getTimeDataType();
+            Number[] times = obsGroups[0].getTimes();
+            IObservationGroup.DataType tdt = obsGroups[0].getTimeDataType();
             DataType ncdtTime = getNcDataType(tdt);
             ncds.findDimension("time").setLength(nt);
             Array tarr = Array.factory(ncdtTime, new int[]{nt});
@@ -275,7 +267,7 @@ public class NcdsFactory {
             tvar.setCachedData(tarr);
 
             /* Do the lats */
-            IObservationGroup.DataType lldt = obsGroups.get(0).getLatLonDataType();
+            IObservationGroup.DataType lldt = obsGroups[0].getLatLonDataType();
             DataType ncdtLl = getNcDataType(lldt);
             Array laarr = Array.factory(ncdtLl, new int[]{nt});
             IndexIterator laii = laarr.getIndexIterator();
@@ -297,7 +289,7 @@ public class NcdsFactory {
             Number time;
             Number depth = allDepths.get(0);
             for (int obs = 0; obs < nobs; obs++) {
-                og = obsGroups.get(obs);
+                og = obsGroups[obs];
                 time = og.getTimes()[0];
                 putArrayData(tii, ncdtTime, time);
                 putArrayData(loii, ncdtLl, og.getLon());
@@ -345,6 +337,10 @@ public class NcdsFactory {
         }
 
         return ncds;
+    }
+
+    public static NetcdfDataset buildTrajectoryProfile(IObservationGroup[] obsGroups) {
+        throw new UnsupportedOperationException();
     }
 
     private static DataType getNcDataType(IObservationGroup.DataType obsDT) {

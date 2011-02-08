@@ -44,7 +44,7 @@ import ucar.nc2.dataset.NetcdfDataset;
  * @version 1.0
  */
 public class UsgsAgent extends AbstractAsciiAgent {
-    
+
     /**
      * NOTE: this Object uses classes from org.jdom.* The JDOM library is included as a transitive dependency from
      * ooi-netcdf-full-4.2.4.jar. Should the JDOM jar be included explicitly??
@@ -57,8 +57,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
     private static final SimpleDateFormat valueSdf;
     private static final SimpleDateFormat inSdf;
     private static int currentGroupId = -1;
-    
-
     /** XPATH queries */
     public static final String XPATH_ELEMENT_TIME_SERIES = ".//ns1:timeSeries";
     public static final String XPATH_ELEMENT_SITE_CODE = "./ns1:sourceInfo/ns1:siteCode";
@@ -73,14 +71,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
     public static final String XPATH_ELEMENT_VARIABLE_NaN_VALUE = "./ns1:variable/ns1:noDataValue";
     public static final String XPATH_ATTRIBUTE_QUALIFIERS = "./@qualifiers";
     public static final String XPATH_ATTRIBUTE_DATETIME = "./@dateTime";
-
-
-
     /** Maths */
     public static final double CONVERT_FT_TO_M = 0.3048;
     public static final double CONVERT_FT3_TO_M3 = Math.pow(CONVERT_FT_TO_M, 3);
-    
-    
+
     /** Static Initializer */
     static {
         valueSdf = new SimpleDateFormat("yyyy-MM-dd'T'HHmmss.sssZ");
@@ -88,7 +82,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         inSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss");
         inSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
-    
+
     /* (non-Javadoc)
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
@@ -96,7 +90,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         log.debug("");
         log.info("Building Request for context [" + context.toString() + "...]");
-        
+
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
@@ -107,8 +101,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
 
         /** TODO: null-check here */
-        
-        
         /** Configure the date-time parameter */
         Date sTime = null;
         Date eTime = null;
@@ -139,9 +131,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
         if (propertiesString.length() > 0) {
             propertiesString.deleteCharAt(propertiesString.length() - 1);
         }
-        
-        
-        
+
+
+
         /** Build the list of sites (siteCSV)*/
         StringBuilder siteCSV = new StringBuilder();
         for (String siteCode : siteCodes) {
@@ -152,9 +144,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
         if (siteCSV.length() > 0) {
             siteCSV.deleteCharAt(siteCSV.length() - 1);
         }
-        
-        
-        
+
+
+
         /** Build the query URL */
         result.append(baseUrl);
         result.append("&sites=").append(siteCSV);
@@ -162,7 +154,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         result.append("&startDT=").append(sTimeString);
         result.append("&endDT=").append(eTimeString);
 
-        
+
 
         log.debug("... built request: [" + result + "]");
         return result.toString();
@@ -174,24 +166,21 @@ public class UsgsAgent extends AbstractAsciiAgent {
     @Override
     protected List<IObservationGroup> parseObs(String asciiData) {
         log.debug("");
-        log.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
-        
-        IObservationGroup obs = null;
+        log.info("Parsing observations from data [" + asciiData.substring(0, Math.min(asciiData.length(), 40)) + "...]");
+
+        List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         StringReader srdr = new StringReader(asciiData);
         try {
-            obs = parseObservations(srdr);
+            obsList.add(parseObservations(srdr));
         } finally {
             if (srdr != null) {
                 srdr.close();
             }
         }
 
-        
-        List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
-        obsList.add(obs);
         return obsList;
     }
-    
+
     /**
      * Parses the String data from the given reader into a list of observation groups.
      * <em>Note:</em><br />
@@ -207,61 +196,58 @@ public class UsgsAgent extends AbstractAsciiAgent {
         String datetime = "[no date information]"; /* datetime defined here (outside try) for error reporting */
 
         try {
-            doc =  builder.build(rdr);
-            
+            doc = builder.build(rdr);
+
             /** Grab Global Attributes (to be copied into each observation group */
             Namespace ns1 = Namespace.getNamespace("ns1", "http://www.cuahsi.org/waterML/1.1/");
 //          Namespace ns2 = Namespace.getNamespace("ns2", "http://waterservices.usgs.gov/WaterML-1.1.xsd");
 //          Namespace xsi = Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema");
-            
-            
+
+
             Element root = doc.getRootElement();
             Element queryInfo = root.getChild("queryInfo", ns1);
             Map<String, String> globalAttributes = new HashMap<String, String>();
-            
-            
+
+
             /* Extract the Global Attributes */
             /* title */
             String queryUrl = xpathSafeSelectValue(queryInfo, ".//ns2:queryURL", null);
             globalAttributes.put("title", "USGS rivers data timeseries.  Requested from \"" + queryUrl + "\"");
-            
+
             /* history */
             globalAttributes.put("history", "Converted from WaterML1.1 to OOI CDM compliant NC by " + UsgsAgent.class.getName());
-            
+
             /* references */
-            globalAttributes.put("references", new StringBuilder().append("[")
-                                                                  .append("http://waterservices.usgs.gov/")
-                                                                  .append("]")
-                                                                  .toString());
-            
+            globalAttributes.put("references", new StringBuilder().append("[").append("http://waterservices.usgs.gov/").append("]").toString());
+
             /* utc_start_time */
             Date tempDate = new Date(0);
             String beginDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:beginDateTime", null);
-            
+
             tempDate = inSdf.parse(beginDate);
             String beginDateISO = outSdf.format(tempDate);
             globalAttributes.put("utc_start_time", beginDateISO);
-            
-            
+
+
             /* utc_end_time */
             tempDate = new Date(0);
             String endDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:endDateTime", null);
-            
-            
+
+
             tempDate = inSdf.parse(endDate);
             String endDateISO = outSdf.format(tempDate);
             globalAttributes.put("utc_end_time", endDateISO);
-            
-            
+
+
             /* conventions */
             globalAttributes.put("Conventions", "CF-1.5");
-            
-            
+
+
 
             /** Get a list of provided time series */
             List<?> timeseriesList = XPath.selectNodes(doc, XPATH_ELEMENT_TIME_SERIES);
 
-            
+
 
             /** Build an observation group for each unique sitecode */
             Object nextTimeseries = null;
@@ -347,32 +333,28 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     // og.addObservation(time, dpth, qualifier, new VariableParams(name, DataType.FLOAT));
 
                 }
-                
-                
+
+
                 /** Grab attributes */
                 Map<String, String> tsAttributes = new TreeMap<String, String>();
-                
+
 
                 /* Extract timeseries-specific attributes */
-                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName",  "[n/a]");
-                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network",  "[n/a]");
-                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode",  "[n/a]");
-                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode",  "[n/a]");
-                tsAttributes.put("institution", new StringBuilder().append(sitename)
-                                                                   .append(" (network:").append(network)
-                                                                   .append("; agencyCode:").append(agency)
-                                                                   .append("; siteCode:").append(sCode)
-                                                                   .append(";)").toString());
-                
-                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription",  "[n/a]");
+                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName", "[n/a]");
+                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network", "[n/a]");
+                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode", "[n/a]");
+                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode", "[n/a]");
+                tsAttributes.put("institution", new StringBuilder().append(sitename).append(" (network:").append(network).append("; agencyCode:").append(agency).append("; siteCode:").append(sCode).append(";)").toString());
+
+                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription", "[n/a]");
                 tsAttributes.put("source", method);
-                
-                
-                
+
+
+
                 /** Add global and timeseries attributes */
                 obs.addAttributes(globalAttributes);
                 obs.addAttributes(tsAttributes);
-                
+
 
             }
 
@@ -386,9 +368,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         return obs;
     }
-    
+
     private static String xpathSafeSelectValue(Object context, String path, String defaultValue, Namespace... namespaces) {
-        
+
         Object result = null;
         try {
             XPath xp = XPath.newInstance(path);
@@ -401,11 +383,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
         } catch (JDOMException ex) {
             log.debug("Could not select node via XPath query: \"" + path + "\"", ex);
         }
-        
-        
+
+
         return xpathNodeValue(result, defaultValue);
     }
-    
+
     /**
      * <b>Note:</b><br />
      * This method does not support all types of returns from XPath.selectSingleNode().
@@ -419,15 +401,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
     private static String xpathNodeValue(Object node, String defaultValue) {
         /* Overwrite defaultValue if value can be retrieved from node */
         if (node instanceof org.jdom.Attribute) {
-            defaultValue = ((org.jdom.Attribute)node).getValue();
+            defaultValue = ((org.jdom.Attribute) node).getValue();
         } else if (node instanceof org.jdom.Element) {
-            defaultValue = ((org.jdom.Element)node).getText();
+            defaultValue = ((org.jdom.Element) node).getText();
         }
-        
-        
+
+
         return defaultValue;
     }
-    
+
     protected static int getCurrentGroupId() {
         return currentGroupId;
     }
@@ -435,7 +417,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
     protected static int getNextGroupId() {
         return ++currentGroupId;
     }
-    
 
     protected static VariableParams getDataNameForVariableCode(String variableCode) {
         VariableParams result = null;
@@ -451,21 +432,17 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return result;
     }
 
-    public String[] processDataset(List<IObservationGroup> obsList) {
+    public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
-        for(IObservationGroup obs : obsList) {
-            NetcdfDataset ncds = obs2Ncds(obs);
-            /* Send this via the send dataset method of DAC */
-            ret.add(this.sendNetcdfDataset(ncds, "ingest"));
-        }
+        NetcdfDataset ncds = obs2Ncds(obsList);
+        /* Send this via the send dataset method of DAC */
+        ret.add(this.sendNetcdfDataset(ncds, "ingest"));
         return ret.toArray(new String[0]);
     }
-    
-    
+
     /*****************************************************************************************************************/
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
-
     public static void main(String[] args) {
         try {
             ion.core.IonBootstrap.bootstrap();
@@ -475,14 +452,14 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
         cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-        if(true) {//test discharge
-            cBldr.setStartTime("2010-10-10T00:00:00Z");
-            cBldr.setEndTime("2010-10-12T00:00:00Z");
+        if (true) {//test discharge
+            cBldr.setStartTime("2011-1-10T00:00:00Z");
+            cBldr.setEndTime("2011-1-12T00:00:00Z");
             cBldr.addProperty("00010");
             cBldr.addStationId("01463500");
         } else {//test temp
-            cBldr.setStartTime("2010-10-10T00:00:00Z");
-            cBldr.setEndTime("2010-10-12T00:00:00Z");
+            cBldr.setStartTime("2011-1-10T00:00:00Z");
+            cBldr.setEndTime("2011-1-12T00:00:00Z");
             cBldr.addProperty("00060");
             cBldr.addStationId("01463500");
         }
@@ -495,10 +472,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
 
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
-        
+
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setTesting(true);
-        
+
         java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
         connInfo.put("exchange", "eoitest");
         connInfo.put("service", "eoi_ingest");
@@ -506,7 +483,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         connInfo.put("topic", "magnet.topic");
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");
-        for(String s : result) {
+        for (String s : result) {
             log.debug(s);
         }
 //        String outdir = "output/usgs/";

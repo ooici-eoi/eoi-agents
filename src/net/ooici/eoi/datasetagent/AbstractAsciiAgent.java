@@ -6,6 +6,7 @@ package net.ooici.eoi.datasetagent;
 
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.TimeZone;
 
@@ -47,30 +48,77 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
      * @see net.ooici.agent.abstraction.AbstractDatasetAgent#processDataset(java.lang.Object)
      */
     @Override
-    protected final String[] processDataset(Object data) {
+    protected final String[] _processDataset(Object data) {
         if (!(data instanceof String)) {
             throw new IllegalArgumentException(new StringBuilder("Supplied data must an instance of ").append(String.class.getName()).append("; '").append(data.getClass().getName()).append("' type was received").toString());
         }
-        List<IObservationGroup> obs = null;
+        IObservationGroup[] obs = null;
 
-        obs = parseObs((String) data);
+        obs = parseObs((String) data).toArray(new IObservationGroup[0]);
         return processDataset(obs);
     }
 
     /* TODO: Can we assume all requests from Ascii agents will be for URLs? */
     abstract protected List<IObservationGroup> parseObs(String asciiData);
 
+
     /* (non-Javadoc)
      * @see net.ooici.agent.abstraction.AbstractAsciiAgent#obs2Ncds(java.util.List)
      */
-    protected NetcdfDataset obs2Ncds(IObservationGroup observations) {
+    protected NetcdfDataset obs2Ncds(IObservationGroup... obsList) {
         log.debug("Creating NC Dataset...");
-
         NetcdfDataset ncds = null;
-        if (observations.getDepths().length > 1) {
-            ncds = NcdsFactory.buildStationProfile(observations);
+
+        if (obsList.length == 0) {
+            return ncds;
+        }
+        IObservationGroup obs;
+        /* Figure out what type of dataset to generate */
+        if (obsList.length == 1) {
+            obs = obsList[0];
+            /* Only one station - just deal with depth */
+            if (obs.getDepths().length > 1) {
+                ncds = NcdsFactory.buildStationProfile(obs);
+            } else {
+                ncds = NcdsFactory.buildStation(obs);
+            }
         } else {
-            ncds = NcdsFactory.buildStation(observations);
+            /* For SOS - if there is more than 1 observation group, and only 1 station ID, it's a trajectory */
+            boolean isTraj = false;
+            boolean isProfile = false;
+            List<String> ids = new ArrayList<String>();
+            List<Integer> dcs = new ArrayList<Integer>();
+            obs = obsList[0];
+            String sid = obs.getStnid();
+            isProfile = obs.getDepths().length > 1;
+            for (int i = 1; i < obsList.length; i++) {
+                obs = obsList[i];
+                /* Trajectory check */
+                if(!ids.contains(obs.getStnid())) {
+                    ids.add(obs.getStnid());
+                }
+                /* Profile check */
+                if(!dcs.contains(obs.getDepths().length)) {
+                    dcs.add(obs.getDepths().length);
+                }
+            }
+            isTraj = ids.size() == 1;
+            isProfile = dcs.size() > 1;
+
+            if (isTraj) {
+                if(isProfile) {
+                    ncds = NcdsFactory.buildTrajectoryProfile(obsList);
+                } else {
+                    ncds = NcdsFactory.buildTrajectory(obsList);
+                }
+            } else {
+                /* If not a trajectory - it's a multistation */
+                if (isProfile) {
+                    ncds = NcdsFactory.buildStationProfileMulti(obsList);
+                } else {
+                    ncds = NcdsFactory.buildStationMulti(obsList);
+                }
+            }
         }
 
         return ncds;

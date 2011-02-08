@@ -312,7 +312,7 @@ public class AomlAgent extends AbstractAsciiAgent {
         return ogList;
     }
 
-    public String[] processDataset(List<IObservationGroup> obsList) {
+    public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
         for (IObservationGroup obs : obsList) {
             NetcdfDataset ncds = obs2Ncds(obs);

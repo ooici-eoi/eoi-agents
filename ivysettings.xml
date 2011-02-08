@@ -19,6 +19,11 @@
 <ivysettings>
     <!-- for documentation about this file, see
     http://ant.apache.org/ivy/history/trunk/settings.html -->
+    
+    <!-- Set the defaultCacheDir - The default cache location ("~/.ivy2/cache/") is used for all projects
+    but the ${project.name} subdirectory allows separation between projects - so that "ant deep-clean" will not
+    wipe out the libraries for all projects, just the one where "ant deep-clean" was run -->
+    <caches defaultCacheDir="${user.home}/.ivy2/cache/${project.name}" />
     <settings defaultResolver="default"/>
     <resolvers>
         <chain name="public">

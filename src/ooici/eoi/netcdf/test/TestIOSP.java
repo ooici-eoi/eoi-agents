@@ -19,16 +19,17 @@ import ucar.nc2.dataset.NetcdfDataset;
 @Deprecated
 public class TestIOSP {
 
-    private Properties ooiciProps;
-
-    public TestIOSP(String props, String dsName) {
+    public TestIOSP(String dsName) {
 
         try {
-            ooiciProps = new Properties();
-            ooiciProps.load(new java.io.FileInputStream(props));
+            java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+            connInfo.put("exchange", "eoitest");
+            connInfo.put("service", "eoi_ingest");
+            connInfo.put("server", "macpro");
+            connInfo.put("topic", "magnet.topic");
 
             /* Initialize and register the OOICI IOSP */
-            OOICIiosp.init(ooiciProps);
+            OOICIiosp.init(connInfo);
             NetcdfDataset.registerIOProvider(OOICIiosp.class);
 
             System.out.println("<<<<<< " + dsName + " >>>>>>");
@@ -84,31 +85,36 @@ public class TestIOSP {
                     System.out.println("~~~~~~~~~~~~~~~");
                     System.out.println("Sample data values for variable: " + v.getNameAndDimensions());
                     int[] shape = v.getShape();
-                    int[] origin = shape.clone();
-                    java.util.Arrays.fill(origin, 0);
-                    java.util.Arrays.fill(shape, 1);
-                    shape[Math.max(shape.length - 1, 0)] = Math.min(10, shape[shape.length - 1]);
+                    if (shape.length == 0) {
+                        /* Scalar!  Just print the value*/
+                        System.out.print(v.readScalarDouble());
+                    } else {
+                        int[] origin = shape.clone();
+                        java.util.Arrays.fill(origin, 0);
+//                        java.util.Arrays.fill(shape, 1);
+                        shape[Math.max(shape.length - 1, 0)] = Math.min(10, shape[shape.length - 1]);
 
-                    ucar.ma2.Array a = null;
-                    Throwable t = null;
-                    try {
-                        a = v.read(origin, shape);
-                    } catch (ucar.ma2.InvalidRangeException ex) {
-                        t = ex;
-                    } catch (java.lang.ArrayIndexOutOfBoundsException ex) {
-                        t = ex;
-                    }
-                    if (t != null || a == null) {
-                        System.out.println("***Error reading variable!!!***");
-                        t.printStackTrace(System.out);
-                        System.out.println("~~~~~~~~~~~~~~~");
-                        continue;
-                    }
-                    ucar.ma2.IndexIterator ii = a.getIndexIterator();
-                    while (ii.hasNext()) {
-                        System.out.print(ii.getDoubleNext());
-                        if (ii.hasNext()) {
-                            System.out.print(", ");
+                        ucar.ma2.Array a = null;
+                        Throwable t = null;
+                        try {
+                            a = v.read(origin, shape);
+                        } catch (ucar.ma2.InvalidRangeException ex) {
+                            t = ex;
+                        } catch (java.lang.ArrayIndexOutOfBoundsException ex) {
+                            t = ex;
+                        }
+                        if (t != null || a == null) {
+                            System.out.println("***Error reading variable!!!***");
+                            t.printStackTrace(System.out);
+                            System.out.println("~~~~~~~~~~~~~~~");
+                            continue;
+                        }
+                        ucar.ma2.IndexIterator ii = a.getIndexIterator();
+                        while (ii.hasNext()) {
+                            System.out.print(ii.getDoubleNext());
+                            if (ii.hasNext()) {
+                                System.out.print(", ");
+                            }
                         }
                     }
                     System.out.println();
@@ -160,15 +166,8 @@ public class TestIOSP {
     }
 
     public static void main(String[] args) {
-        String props = null, dataset = null;
-        if (args.length < 1) {
-            System.out.println("Not enough args - requires 1 argument:\n\t1 = path to config file (i.e. ooici.properties)\n\toptional argument = dataset name");
-            System.exit(-1);
-        } else if (args.length >= 2) {
-            props = args[0];
-            dataset = args[1];
-        } else {
-            props = args[0];
+        String dataset = null;
+        if (args.length == 0) {
             try {
                 java.io.BufferedReader reader = new java.io.BufferedReader(new java.io.InputStreamReader(System.in));
                 System.out.println("Enter the dataset name, then hit \"enter\":");
@@ -176,9 +175,11 @@ public class TestIOSP {
             } catch (IOException ex) {
                 System.exit(-1);
             }
+        } else {
+            dataset = args[0];
         }
-        if (props != null & dataset != null) {
-            new TestIOSP(props, dataset);
+        if (dataset != null) {
+            new TestIOSP(dataset);
         }
     }
 }

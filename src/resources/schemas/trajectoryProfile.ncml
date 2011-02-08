@@ -2,41 +2,31 @@
 <netcdf xmlns="http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2" >
 <!-- adapted from trajMultidim.ncml -->
   <dimension name="z" length="1" />
-  <dimension name="traj" length="1" />
   <dimension name="time" length="1" />
 
   <attribute name="CF:featureType" value="trajectory" />
   <attribute name="Conventions" value="CF-1.5" />
   <!-- <attribute name="cdm_datatype" value="trajectory" /> -->
   
-  <variable name="lon" shape="traj time" type="float">
+  <variable name="lon" shape="time" type="float">
     <attribute name="long_name" value="longitude" />
     <attribute name="units" value="degrees_east" />
   </variable>
-  <variable name="lat" shape="traj time" type="float">
+  <variable name="lat" shape="time" type="float">
     <attribute name="long_name" value="latitude" />
     <attribute name="units" value="degrees_north" />
-  </variable>
-  <variable name="trajId" shape="traj" type="int">
-    <attribute name="standard_name" value="trajectory_id" />
   </variable>
   <variable name="z" shape="z" type="float">
     <attribute name="long_name" value="height above mean sea level" />
     <attribute name="units" value="km" />
     <attribute name="positive" value="up" />
   </variable>  
-  <variable name="time" shape="traj time" type="int">
+  <variable name="time" shape="time" type="int">
     <attribute name="long_name" value="time" />
     <attribute name="units" value="seconds since 1970-01-01 00:00:00" />
   </variable>
 <!--
-  <variable name="ex_data" shape="traj time" type="float">
-    <attribute name="long_name" value="skin temperature" />
-    <attribute name="units" value="Celsius" />
-    <attribute name="coordinates" value="time lon lat" />
-  </variable>
-
-  <variable name="ex_data3" shape="traj time z" type="float">
+  <variable name="ex_data3" shape="time z" type="float">
     <attribute name="long_name" value="skin color" />
     <attribute name="units" value="db" />
     <attribute name="coordinates" value="time lon lat z" />

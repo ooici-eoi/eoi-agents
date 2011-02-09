@@ -13,6 +13,7 @@ MANIFEST.MF
 # Transient settings sub-directories #
 ######################################
 settings/ivy-cache
+settings/ivy-report
 settings/override-repo
 
 ######################

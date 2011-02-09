@@ -12,9 +12,9 @@ MANIFEST.MF
 ######################################
 # Transient settings sub-directories #
 ######################################
-settings/ivy-cache
-settings/ivy-report
-settings/override-repo
+.settings/ivy-cache
+ivy-report
+.settings/override-repo
 
 ######################
 # OS generated files #

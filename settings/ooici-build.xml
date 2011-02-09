@@ -16,6 +16,7 @@
           the jar(s) are not removed from the 'lib' directory after re-running 'ant resolve'
          ================================= -->
     <target name="resolve" description="--> Retreive dependencies with ivy">
+    	<mkdir dir="${override-repo.dir}" />
         <ivy:retrieve/>
     </target>    
     

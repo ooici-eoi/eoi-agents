@@ -2,6 +2,7 @@
     <!-- import properties -->
     <property file="build.properties" />
     <!-- ivy properties & settings -->
+    <property file="${settings.dir}/ivysettings.properties" />
     <ivy:settings file="${settings.dir}/ivysettings.xml" />
     <!-- ooici properties -->
     <property file="${settings.dir}/ooici.properties" />

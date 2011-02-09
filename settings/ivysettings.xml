@@ -20,13 +20,21 @@
     <!-- for documentation about this file, see
     http://ant.apache.org/ivy/history/trunk/settings.html -->
     
-    <!-- Set the defaultCacheDir - The default cache location ("~/.ivy2/cache/") is used for all projects
-    but the ${project.name} subdirectory allows separation between projects - so that "ant deep-clean" will not
-    wipe out the libraries for all projects, just the one where "ant deep-clean" was run -->
-    <caches defaultCacheDir="${user.home}/.ivy2/cache/${project.name}" />
+    <!-- import ivysettings.properties -->
+    <properties file="${settings.dir}/ivysettings.properties" />
+    
+    <!-- Set the defaultCacheDir - The cache location is local to the project so that "ant deep-clean" will not
+    wipe out the libraries for all projects on the machine, just the one where "ant deep-clean" was run -->
+    <caches defaultCacheDir="${ivy.cache.dir}" />
     <settings defaultResolver="default"/>
     <resolvers>
-        <chain name="public">
+        <chain name="public" returnFirst="true" >
+        	<!-- This is an "overriding" repository - libraries encountered here will take precedence over those from
+        	subsequent repositories.  This mechanism allows testing of new libraries/revisions prior to moving them to the
+        	package server -->
+        	<filesystem name="override-repo" >
+        		<artifact pattern="${override-repo.dir}/[artifact]-[revision].[ext]" />
+        	</filesystem>
             <!-- This is the default maven 2 repository -->
             <ibiblio name="m2repo" m2compatible="true" />
             <!-- Msgpack repository - see: the "Java" section of this page: https://github.com/msgpack/msgpack-rpc -->

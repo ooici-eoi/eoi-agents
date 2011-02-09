@@ -9,6 +9,12 @@ ivy-report
 output
 MANIFEST.MF
 
+######################################
+# Transient settings sub-directories #
+######################################
+settings/ivy-cache
+settings/override-repo
+
 ######################
 # OS generated files #
 ######################

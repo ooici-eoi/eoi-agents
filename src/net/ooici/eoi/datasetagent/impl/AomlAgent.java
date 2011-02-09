@@ -143,7 +143,7 @@ public class AomlAgent extends AbstractAsciiAgent {
     public Object acquireData(String request) {
         /* ASCII data requests are assumed to be basic HTTP post requests, or references to local files */
         log.debug("");
-        log.info("Awaiting reply for request [" + request.substring(0, Math.min(100, request.length())) + "...]");
+        log.info("Awaiting reply for request [" + request + "]");
 
         /* Get the response page which contains the temporary url to the data */
         String tempPage = AgentUtils.getDataString(request);
@@ -155,7 +155,7 @@ public class AomlAgent extends AbstractAsciiAgent {
             return null;
         }
         String dataUrl = match.group();
-        log.info("DataURL [" + dataUrl.substring(0, Math.min(100, dataUrl.length())) + "...]");
+        log.info("DataURL [" + dataUrl + "]");
 
 
         /* Retrieve the actual data */
@@ -333,15 +333,19 @@ public class AomlAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(SourceType.AOML);
         cBldr.setBaseUrl("http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?");
-        cBldr.setTop(47.0);
-        cBldr.setBottom(31.0);
-        cBldr.setRight(-60.0);
-        cBldr.setLeft(-82.0);
+//        cBldr.setTop(47.0);
+//        cBldr.setBottom(31.0);
+//        cBldr.setRight(-60.0);
+//        cBldr.setLeft(-82.0);
+        cBldr.setTop(60.0);
+        cBldr.setBottom(-60.0);
+        cBldr.setRight(179.9);
+        cBldr.setLeft(-179.9);
         /* Request data from one month ago for a length of 10 days.. */
         java.util.GregorianCalendar endTime = new java.util.GregorianCalendar(TimeZone.getTimeZone("UTC"));
         endTime.add(java.util.Calendar.MONTH, -1);
         java.util.GregorianCalendar startTime = (java.util.GregorianCalendar) endTime.clone();
-        startTime.add(java.util.Calendar.DAY_OF_MONTH, -10);
+        startTime.add(java.util.Calendar.DAY_OF_MONTH, -1);
 
         cBldr.setStartTime(AgentUtils.ISO8601_DATE_FORMAT.format(startTime.getTime()));
         cBldr.setEndTime(AgentUtils.ISO8601_DATE_FORMAT.format(endTime.getTime()));

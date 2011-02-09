@@ -36,7 +36,7 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
     public Object acquireData(String request) {
         /* ASCII data requests are assumed to be basic HTTP post requests, or references to local files */
         log.debug("");
-        log.info("Acquiring data for request [" + request.substring(0, Math.min(40, request.length())) + "...]");
+        log.info("Acquiring data for request [" + request + "]");
 
         String data = AgentUtils.getDataString(request);
         log.debug("... acquired raw data: [" + data.substring(0, Math.min(1000, data.length())) + "...]");

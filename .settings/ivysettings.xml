@@ -21,7 +21,7 @@
     http://ant.apache.org/ivy/history/trunk/settings.html -->
     
     <!-- import ivysettings.properties -->
-    <properties file="${settings.dir}/ivysettings.properties" />
+    <properties file="ivysettings.properties" />
     
     <!-- Set the defaultCacheDir - The cache location is local to the project so that "ant deep-clean" will not
     wipe out the libraries for all projects on the machine, just the one where "ant deep-clean" was run -->
@@ -38,8 +38,10 @@
         		<artifact pattern="${override-repo.dir}/[artifact]-[revision].[ext]" />
         	</filesystem>
         	<!-- OOICI Package Server -->
-            <ibiblio name="ooici_repo" root="http://ooici.net/packages/"
-            	pattern="[artifact]-[revision].[ext]" />
+            <url name="ooici_repo" >
+            	<artifact pattern="http://ooici.net/packages/[artifact]-[revision].[ext]" />
+            	<artifact pattern="http://ooici.net/packages/[artifact]_[revision].[ext]" />
+            </url>
             <!-- This is the default maven 2 repository -->
             <ibiblio name="m2repo" m2compatible="true" />
             <!-- Msgpack repository - see: the "Java" section of this page: https://github.com/msgpack/msgpack-rpc -->

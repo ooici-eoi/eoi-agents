@@ -17,7 +17,7 @@
          ================================= -->
     <target name="resolve" description="--> Retreive dependencies with ivy">
     	<mkdir dir="${override-repo.dir}" />
-        <ivy:retrieve/>
+        <ivy:retrieve sync="true"/>
     </target>    
     
     <!-- ================================= 
@@ -77,8 +77,7 @@
           target: javadoc              
          ================================= -->
 	<target name="javadoc" depends="" description="--> Generate Javadoc">
-		<javadoc packagenames="net.*"
-		   sourcepath="${src.dir}"
+		<javadoc sourcepath="${src.dir}"
 			classpathref="runtime.classpath"
 		   defaultexcludes="yes"
 		   destdir="${docs.dir}"
@@ -126,25 +125,25 @@
 		</manifest>
 
 	    <!-- Create JAR file with library classes, tests and example code -->
-	    <jar jarfile="${dist.dir}/lib/${projname}-full-${version}.jar"
+	    <jar jarfile="${dist.dir}/lib/${project.name}-full-${version}.jar"
 	    	basedir="${build.dir}"
 	    	manifest="MANIFEST.MF" />
 
 	    <!-- Create JAR file with all library classes -->
-		<jar jarfile="${dist.dir}/lib/${projname}-${version}.jar" 
+		<jar jarfile="${dist.dir}/lib/${project.name}-${version}.jar" 
 	    	basedir="${build.dir}"
 	    	excludes="ion/example/**" 
 	    	manifest="MANIFEST.MF" />
 
 	    <!-- Create ZIP file with the javadoc -->
-		<zip destfile="${dist.dir}/docs/${projname}-${version}-javadoc.zip"
+		<zip destfile="${dist.dir}/docs/${project.name}-${version}-javadoc.zip"
 			basedir="${docs.dir}"
 		/>		
 
 		<!-- Create ZIP file for the entire directory -->
-		<zip destfile="${dist.dir}/${projname}-archive.zip"
+		<zip destfile="${dist.dir}/${project.name}-archive.zip"
 			basedir="."
-			excludes="${dist.dir}/${projname}-archive.zip,${build}/**,.git/**"
+			excludes="${dist.dir}/${project.name}-archive.zip,${build}/**,.git/**"
 		/>		
 	</target>
 </project>

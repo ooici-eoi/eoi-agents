@@ -16,7 +16,7 @@
         <dependency org="com.google.protobuf" name="protobuf-java" rev="2.3.0" conf="*->*,!sources,!javadoc" />
         <dependency org="junit" name="junit" rev="4.8.2" conf="*->*,!sources,!javadoc"/>
         <!-- ION project dependencies -->
-        <dependency name="ion_proto" rev="0.3.1" conf="*->*,!sources,!javadoc" />
+        <dependency name="ion_proto" rev="0.3.5" conf="*->*,!sources,!javadoc" />
         <dependency name="ioncore-java" rev="0.2.0" conf="*->*,!sources,!javadoc" />
         <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />
     </dependencies>

@@ -47,11 +47,6 @@
             <!-- Msgpack repository - see: the "Java" section of this page: https://github.com/msgpack/msgpack-rpc -->
             <ibiblio name="msgpack_repo" m2compatible="true" root="http://msgpack.org/maven2/"
                 pattern="[organisation]/[artifact]/[revision]/[artifact]-[revision].[ext]"/>
-            	
-            <!-- NOTE: Uncomment the following 3 lines if you want to use local libraries.  make a folder "ion-libs" and put the jar files in that directory -->
-        	<!-- <filesystem name="ion-libs">
-        		<artifact pattern="${basedir}/ion-libs/[artifact]-[revision].[ext]"/>
-        	</filesystem> -->
         	
         	
             <!--

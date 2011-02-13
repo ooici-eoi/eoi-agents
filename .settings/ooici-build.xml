@@ -144,6 +144,9 @@
 		<zip destfile="${dist.dir}/${project.name}-archive.zip"
 			basedir="."
 			excludes="${dist.dir}/${project.name}-archive.zip,${build}/**,.git/**"
-		/>		
+		/>
+		
+		<!-- Remove the MANIFEST.MF file -->
+		<delete file="MANIFEST.MF" />
 	</target>
 </project>

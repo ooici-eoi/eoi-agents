@@ -80,7 +80,8 @@ Ivy Installation*
 1. Download Apache Ivy (OOICI hosted) from: http://ooici.net/packages/ivy.jar
 
 2. Copy/move the ivy.jar to the "lib" directory of your ant installation:
-	Mac OSX: usually - /usr/share/ant/lib/
+	Mac OSX: you can place the .jar in your user ant configuration -->  ~/.ant/lib/
+		or in the root ant installation, usually --> /usr/share/ant/lib/
 	Linux/Windows: wherever you have ant installed (check "%ANT_HOME%" if you're not sure)
 
 3. To verify the installation run (from eoi-agents directory):

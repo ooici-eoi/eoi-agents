@@ -121,7 +121,7 @@ public class Unidata2Ooi {
         byteString = dataset.toByteString();
         dataset = null;
         key = ProtoUtils.getObjectKey(byteString, gpbType);
-        structBldr.setHead(Container.StructureElement.newBuilder().setIsleaf(false).setKey(com.google.protobuf.ByteString.copyFrom(key)).setType(gpbType).setValue(byteString).build());
+        structBldr.addHeads(Container.StructureElement.newBuilder().setIsleaf(false).setKey(com.google.protobuf.ByteString.copyFrom(key)).setType(gpbType).setValue(byteString).build());
 
         /* DONE!! */
     }

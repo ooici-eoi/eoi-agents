@@ -22,7 +22,6 @@ import java.util.TreeMap;
 import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
-import net.ooici.eoi.datasetagent.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.datasetagent.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
@@ -452,14 +451,22 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
         cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-        if (true) {//test discharge
-            cBldr.setStartTime("2011-1-10T00:00:00Z");
-            cBldr.setEndTime("2011-1-12T00:00:00Z");
+        boolean temp = false;
+        boolean disch = false;
+        if (temp) {//test temp
+            cBldr.setStartTime("2011-2-10T00:00:00Z");
+            cBldr.setEndTime("2011-2-11T00:00:00Z");
             cBldr.addProperty("00010");
             cBldr.addStationId("01463500");
-        } else {//test temp
-            cBldr.setStartTime("2011-1-10T00:00:00Z");
-            cBldr.setEndTime("2011-1-12T00:00:00Z");
+        } else if (disch) {//test discharge
+            cBldr.setStartTime("2011-2-10T00:00:00Z");
+            cBldr.setEndTime("2011-2-11T00:00:00Z");
+            cBldr.addProperty("00060");
+            cBldr.addStationId("01463500");
+        } else {
+            cBldr.setStartTime("2011-2-10T00:00:00Z");
+            cBldr.setEndTime("2011-2-11T00:00:00Z");
+            cBldr.addProperty("00010");
             cBldr.addProperty("00060");
             cBldr.addStationId("01463500");
         }
@@ -474,12 +481,12 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setTesting(true);
+//        agent.setTesting(true);
 
         java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
         connInfo.put("exchange", "eoitest");
         connInfo.put("service", "eoi_ingest");
-        connInfo.put("server", "macpro");
+        connInfo.put("server", "localhost");
         connInfo.put("topic", "magnet.topic");
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");

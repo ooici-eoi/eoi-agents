@@ -8,6 +8,7 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import ooici.netcdf.iosp.IospUtils;
 import ooici.netcdf.iosp.OOICIiosp;
 import ucar.nc2.dataset.NetcdfDataset;
 
@@ -22,11 +23,7 @@ public class TestIOSP {
     public TestIOSP(String dsName) {
 
         try {
-            java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
-            connInfo.put("exchange", "eoitest");
-            connInfo.put("service", "eoi_ingest");
-            connInfo.put("server", "macpro");
-            connInfo.put("topic", "magnet.topic");
+            java.util.HashMap<String, String> connInfo = IospUtils.parseProperties(new java.io.File("ooici-conn.properties"));
 
             /* Initialize and register the OOICI IOSP */
             OOICIiosp.init(connInfo);
@@ -53,7 +50,7 @@ public class TestIOSP {
                     printDetails = true,
                     printDump = true,
                     printDataSample = true,
-                    writeLocalDataset = false;
+                    writeLocalDataset = true;
             if (printFTInfo) {
                 /* Find and print featuretype information */
                 System.out.println("********** FeatureType Info **********");

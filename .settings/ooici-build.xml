@@ -66,6 +66,13 @@
 	</target>
 	
 	<!-- ================================= 
+          target: clean-ooici-cache
+         ================================= -->
+	<target name="clean-ooici-cache" description="--> Clean the ivy cache">
+		<delete dir="${ivy.cache.dir}/net.ooici" />
+	</target>
+	
+	<!-- ================================= 
           target: deep-clean
          ================================= -->
     <target name="deep-clean" description="--> Cleans both this directory and the ivy cache">

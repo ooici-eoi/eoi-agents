@@ -36,6 +36,7 @@
         	package server -->
         	<filesystem name="override-repo" >
         		<artifact pattern="${override-repo.dir}/[artifact]-[revision].[ext]" />
+            	<artifact pattern="${override-repo.dir}/[artifact]_[revision].[ext]" />
         	</filesystem>
         	<!-- OOICI Package Server -->
             <url name="ooici_repo" >

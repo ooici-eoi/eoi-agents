@@ -67,6 +67,7 @@ public class Unidata2Ooi {
     public static void packDataset(NetcdfDataset ncds) throws java.io.IOException {
         packDataset(ncds, true);
     }
+
     public static void packDataset(NetcdfDataset ncds, boolean includeData) throws java.io.IOException {
         Type.GPBType gpbType;
         ByteString byteString;
@@ -227,15 +228,15 @@ public class Unidata2Ooi {
             /* We do NOT need to add the dimension to the structure because it's already there...*/
         }
 
-        /* Set the content */
-        Cdmvariable.BoundedArray.Builder ooiBABldr = Cdmvariable.BoundedArray.newBuilder();
-        Cdmvariable.BoundedArray.Bounds bnds;
-        for (int i : ncVar.getShape()) {
-            bnds = Cdmvariable.BoundedArray.Bounds.newBuilder().setOrigin(0).setSize(i).build();
-            ooiBABldr.addBounds(bnds);
-//            addElementToStructure(true, SHA1.getSHA1Hash(bnds.toByteArray()), getGPBType(bnds.getClass()), bnds.toByteString());
-        }
         if (includeData) {
+            /* Set the content */
+            Cdmvariable.BoundedArray.Builder ooiBABldr = Cdmvariable.BoundedArray.newBuilder();
+            Cdmvariable.BoundedArray.Bounds bnds;
+            for (int i : ncVar.getShape()) {
+                bnds = Cdmvariable.BoundedArray.Bounds.newBuilder().setOrigin(0).setSize(i).build();
+                ooiBABldr.addBounds(bnds);
+//            addElementToStructure(true, SHA1.getSHA1Hash(bnds.toByteArray()), getGPBType(bnds.getClass()), bnds.toByteString());
+            }
             switch (dt) {
                 case BYTE:
                 case SHORT:
@@ -299,21 +300,14 @@ public class Unidata2Ooi {
                 ooiBABldr.setNdarray(ProtoUtils.getLink(true, key, gpbType));
                 addElementToStructure(true, key, gpbType, byteString);
             }
-        } else {
-            /*TODO: Remove this once Ndarray is no longer required */
-            Cdmarray.int32Array i32 = Cdmarray.int32Array.newBuilder().addValue(0).build();
-            gpbType = ProtoUtils.getGPBType(i32.getClass());
-            byteString = i32.toByteString();
+            Cdmvariable.BoundedArray bndArr = ooiBABldr.build();
+            gpbType = ProtoUtils.getGPBType(bndArr.getClass());
+            byteString = bndArr.toByteString();
+            bndArr = null;
             key = ProtoUtils.getObjectKey(byteString, gpbType);
-            ooiBABldr.setNdarray(ProtoUtils.getLink(true, key, gpbType));
+            varBldr.addContent(ProtoUtils.getLink(false, key, gpbType));
+            addElementToStructure(false, key, gpbType, byteString);
         }
-        Cdmvariable.BoundedArray bndArr = ooiBABldr.build();
-        gpbType = ProtoUtils.getGPBType(bndArr.getClass());
-        byteString = bndArr.toByteString();
-        bndArr = null;
-        key = ProtoUtils.getObjectKey(byteString, gpbType);
-        varBldr.addContent(ProtoUtils.getLink(false, key, gpbType));
-        addElementToStructure(false, key, gpbType, byteString);
 
         return varBldr.build();
     }

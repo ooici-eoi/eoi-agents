@@ -68,7 +68,7 @@
 	<!-- ================================= 
           target: clean-ooici-cache
          ================================= -->
-	<target name="clean-ooici-cache" description="--> Clean the ivy cache">
+	<target name="clean-ooici-cache" description="--> Clean the ivy cache of the ooici dependencies only">
 		<delete dir="${ivy.cache.dir}/net.ooici" />
 	</target>
 	
@@ -107,6 +107,8 @@
 	    <mkdir dir="${dist.dir}/lib"/>
 	    <mkdir dir="${dist.dir}/docs"/>
 
+		<antcall target="pre-dist" />
+		
 		<!-- Convert project class path to string property -->
   		<pathconvert property="manifest.classpath" pathsep=" ">
 		<path refid="runtime.classpath"/>
@@ -155,5 +157,24 @@
 		
 		<!-- Remove the MANIFEST.MF file -->
 		<delete file="MANIFEST.MF" />
+		
+		<antcall target="post-dist" />
+	</target>
+	
+	<target name="pre-dist" description="--> Called before all actions in the dist target - empty by default, override in build.xml to use" />
+    
+	<target name="post-dist" description="--> Called after all actions in the dist target - empty by default, override in build.xml to use" />
+	
+	<target name="test-all" description="--> Runs JUnit tests for all classes ending in 'Test.java')">
+		<mkdir dir="test-report" />
+		<junit printsummary="yes" haltonfailure="no">
+			<classpath refid="runtime.classpath" />
+		
+  			<batchtest fork="yes">
+    			<fileset dir="${src.dir}">
+      				<include name="**/*Test.java"/>
+				</fileset>
+			</batchtest>
+		</junit>
 	</target>
 </project>

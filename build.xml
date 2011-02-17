@@ -11,9 +11,11 @@
     
     <!--
     	Targets that can be overridden:
-    		- pre-compile:		Called before javac compilation
-      		- post-compile:		Called after javac compilation
-      		- clean-more:		Called at the end of 'clean'
+    		- pre-compile:		Called before javac compilation - empty by default, override in build.xml to use
+      		- post-compile:		Called after javac compilation - empty by default, override in build.xml to use
+      		- pre-dist:			Called before all actions in the dist target - empty by default, override in build.xml to use
+      		- post-dist:		Called after all actions in the dist target - empty by default, override in build.xml to use
+      		- clean-more:		Called at the end of 'clean' - empty by default, override in build.xml to use
     -->
     
     <!-- ================================= 

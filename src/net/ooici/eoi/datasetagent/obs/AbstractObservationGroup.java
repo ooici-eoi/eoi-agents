@@ -10,7 +10,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import net.ooici.Pair;
-import net.ooici.eoi.datasetagent.VariableParams;
+import net.ooici.eoi.netcdf.VariableParams;
 
 
 /**

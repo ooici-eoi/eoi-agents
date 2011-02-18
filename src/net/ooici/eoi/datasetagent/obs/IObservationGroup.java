@@ -3,7 +3,7 @@ package net.ooici.eoi.datasetagent.obs;
 
 import java.util.List;
 import java.util.Map;
-import net.ooici.eoi.datasetagent.VariableParams;
+import net.ooici.eoi.netcdf.VariableParams;
 
 
 /**

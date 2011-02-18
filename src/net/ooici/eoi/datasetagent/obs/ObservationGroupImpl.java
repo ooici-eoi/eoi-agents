@@ -8,7 +8,7 @@ package net.ooici.eoi.datasetagent.obs;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import net.ooici.eoi.datasetagent.VariableParams;
+import net.ooici.eoi.netcdf.VariableParams;
 
 
 /**

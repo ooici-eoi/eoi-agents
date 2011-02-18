@@ -1,4 +1,4 @@
-package net.ooici.eoi.datasetagent;
+package net.ooici.eoi.netcdf;
 
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 

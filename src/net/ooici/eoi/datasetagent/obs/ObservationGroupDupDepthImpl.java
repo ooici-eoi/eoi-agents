@@ -8,7 +8,7 @@ package net.ooici.eoi.datasetagent.obs;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
-import net.ooici.eoi.datasetagent.VariableParams;
+import net.ooici.eoi.netcdf.VariableParams;
 
 /**
  * An IObservationGroup implementation which supports data observations with multiple observations at a given depth.  In effect,

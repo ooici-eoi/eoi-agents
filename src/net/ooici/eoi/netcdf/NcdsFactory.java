@@ -2,7 +2,7 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-package net.ooici.eoi.datasetagent;
+package net.ooici.eoi.netcdf;
 
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;

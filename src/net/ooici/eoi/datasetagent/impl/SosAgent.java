@@ -23,10 +23,10 @@ import net.ooici.Pair;
 import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
-import net.ooici.eoi.datasetagent.VariableParams;
+import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
-import net.ooici.eoi.datasetagent.NcdsFactory;
+import net.ooici.eoi.netcdf.NcdsFactory;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**

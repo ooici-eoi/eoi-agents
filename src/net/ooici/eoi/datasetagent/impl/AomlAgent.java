@@ -22,7 +22,7 @@ import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupDupDepthImpl;
-import net.ooici.eoi.datasetagent.VariableParams;
+import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.services.sa.DataSource.EoiDataContext.RequestType;
 import net.ooici.services.sa.DataSource.EoiDataContext.SourceType;
 import ucar.nc2.dataset.NetcdfDataset;

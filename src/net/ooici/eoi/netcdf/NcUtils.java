@@ -5,6 +5,7 @@
 
 package net.ooici.eoi.netcdf;
 
+import net.ooici.eoi.datasetagent.impl.NcAgent;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -15,6 +16,85 @@ import ucar.nc2.dataset.NetcdfDataset;
 public class NcUtils {
 
     private NcUtils(){}
+
+    /**
+     * Estimates the filesize of the given NetcdfDataset.  Delegates to {@link estimateSize(NetcdfDataset ncd, boolean verbose) } with verbose == true
+     * @param ncd a NetcdfDataset
+     * @return the estimated file size of the NC Dataset in bytes
+     */
+    public static long estimateSize(ucar.nc2.dataset.NetcdfDataset ncd) {
+        return estimateSize(ncd, false);
+    }
+
+    /**
+     * Estimates the filesize of the given NetcdfDataset
+     * @param ncd a NetcdfDataset
+     * @param verbose print information about the variables "name: element_size x num_elements"
+     * @return the estimated file size of the NC Dataset in bytes
+     */
+    public static long estimateSize(ucar.nc2.dataset.NetcdfDataset ncd, boolean verbose) {
+        long size = 0;
+        for (ucar.nc2.Variable v : ncd.getVariables()) {
+            size += estimateSize(v, verbose);
+        }
+        return size;
+    }
+
+    /**
+     * Estimates the size of a Netcdf Variable.  Delegates to {@link estimateSize(Variable v, boolean verbose) } with verbose == true
+     * @param v the Variable to estimate size from
+     * @return the estimated size of the variable in bytes
+     */
+    public static long estimateSize(ucar.nc2.Variable v) {
+        return estimateSize(v, false);
+    }
+    /**
+     * Estimates the size of a Netcdf Variable.
+     * @param v the Variable to estimate size from
+     * @param verbose print information about the variable "name: element_size x num_elements"
+     * @return the estimated size of the variable in bytes
+     */
+    public static long estimateSize(ucar.nc2.Variable v, boolean verbose) {
+        if(verbose) {
+            System.out.println("\t" + v.getName() + ": " + v.getElementSize() + " x " + v.getSize());
+        }
+        return v.getElementSize() * v.getSize();
+    }
+
+    /**
+     * Attempts to determine the feature type of the given NetcdfDataset by analyizing readily available metadata
+     * @param ncd A NetcdfDataset
+     * @return a FeatureType value
+     */
+    public static ucar.nc2.constants.FeatureType determineFeatureType(ucar.nc2.dataset.NetcdfDataset ncd) {
+        /* Check for the feature type using "helper" metadata (cdm_data_type, cdm_datatype, or thredds_data_type attribute) */
+        ucar.nc2.constants.FeatureType ret = ucar.nc2.ft.FeatureDatasetFactoryManager.findFeatureType(ncd);
+        if (ret != null) {
+//            System.out.print("via FDFM.findFeatureType() --> ");
+            return ret;
+        }
+        /* Try to open the dataset through the FactoryManager (more thorough check than above) */
+        java.util.Formatter out = new java.util.Formatter();
+        ucar.nc2.ft.FeatureDataset fds = null;
+        try {
+            fds = ucar.nc2.ft.FeatureDatasetFactoryManager.wrap(ucar.nc2.constants.FeatureType.ANY, ncd, null, out);
+            if (fds != null) {
+//                System.out.print("via FDFM.wrap() --> ");
+                return fds.getFeatureType();
+            }
+        } catch (IllegalStateException ex) {
+        } catch (java.io.IOException ex) {
+        } finally {
+            /** DO NOT close the FeatureDataset - this also closes the underlying ncd (passed) **/
+//            if (fds != null) {
+//                try {
+//                    fds.close();
+//                } catch (java.io.IOException ex) {
+//                }
+//            }
+        }
+        return ret;
+    }
 
     /**
      * Determines if 2 {@link ucar.nc2.NetcdfDataset} objects are equivalent.  This is a "superficial"

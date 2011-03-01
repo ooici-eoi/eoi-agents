@@ -199,7 +199,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @param depth the current decomposition depth
      * @throws InvalidRangeException thrown when one of the ranges within the structure does not match the available data
      */
-    private void decompSendVariable(ucar.nc2.Variable var, ucar.ma2.Section sec, int depth) throws InvalidRangeException, IOException {
+    protected void decompSendVariable(ucar.nc2.Variable var, ucar.ma2.Section sec, int depth) throws InvalidRangeException, IOException {
         /* Setup indenting */
         String indent = "";
         for (int d = 0; d < depth; d++) {

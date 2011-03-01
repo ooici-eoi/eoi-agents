@@ -431,6 +431,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return result;
     }
 
+    @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
         NetcdfDataset ncds = obs2Ncds(obsList);
@@ -451,24 +452,27 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
         cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-        boolean temp = false;
-        boolean disch = false;
-        if (temp) {//test temp
-            cBldr.setStartTime("2011-2-10T00:00:00Z");
-            cBldr.setEndTime("2011-2-11T00:00:00Z");
-            cBldr.addProperty("00010");
-            cBldr.addStationId("01463500");
-        } else if (disch) {//test discharge
-            cBldr.setStartTime("2011-2-10T00:00:00Z");
-            cBldr.setEndTime("2011-2-11T00:00:00Z");
-            cBldr.addProperty("00060");
-            cBldr.addStationId("01463500");
-        } else {
-            cBldr.setStartTime("2011-2-10T00:00:00Z");
-            cBldr.setEndTime("2011-2-11T00:00:00Z");
-            cBldr.addProperty("00010");
-            cBldr.addProperty("00060");
-            cBldr.addStationId("01463500");
+        int switcher = 1;
+        switch (switcher) {
+            case 1://test temp
+                cBldr.setStartTime("2011-2-10T00:00:00Z");
+                cBldr.setEndTime("2011-2-11T00:00:00Z");
+                cBldr.addProperty("00010");
+                cBldr.addStationId("01463500");
+                break;
+            case 2://test discharge
+                cBldr.setStartTime("2011-2-10T00:00:00Z");
+                cBldr.setEndTime("2011-2-11T00:00:00Z");
+                cBldr.addProperty("00060");
+                cBldr.addStationId("01463500");
+                break;
+            case 3://test temp & discharge
+                cBldr.setStartTime("2011-2-10T00:00:00Z");
+                cBldr.setEndTime("2011-2-11T00:00:00Z");
+                cBldr.addProperty("00010");
+                cBldr.addProperty("00060");
+                cBldr.addStationId("01463500");
+                break;
         }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");
 //            cBldr.setEndTime("2011-01-31T00:00:00Z");

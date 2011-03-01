@@ -20,13 +20,11 @@ import java.util.Map;
 import java.util.TimeZone;
 
 import net.ooici.Pair;
-import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
-import net.ooici.eoi.netcdf.NcdsFactory;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -81,12 +79,12 @@ public class SosAgent extends AbstractAsciiAgent {
             try {
                 sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
             } catch (ParseException e) {
-                throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+                throw new IllegalArgumentException("Could not convert DATE string for context start_time:: Unparsable value = " + sTimeString, e);
             }
             try {
                 eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
             } catch (ParseException e) {
-                throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+                throw new IllegalArgumentException("Could not convert DATE string for context end_time:: Unparsable value = " + eTimeString, e);
             }
             DateFormat sosUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
             sosUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
@@ -183,6 +181,9 @@ public class SosAgent extends AbstractAsciiAgent {
                 } else if (tokens[i].equalsIgnoreCase("\"sea_water_salinity (psu)\"")) {
 //                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
                     dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_SALINITY, IObservationGroup.DataType.FLOAT)));
+                } else if (tokens[i].equalsIgnoreCase("\"air_temperature (C)\"")) {
+//                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
+                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
                 }
             }
 
@@ -311,6 +312,7 @@ public class SosAgent extends AbstractAsciiAgent {
         return obsList;
     }
 
+    @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
         
@@ -334,27 +336,40 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        if (true) {//test station
-            cBldr.setStartTime("2008-08-01T00:00:00Z");
-            cBldr.setEndTime("2008-08-02T00:00:00Z");
-            cBldr.addProperty("sea_water_temperature");
-            cBldr.addStationId("41012");
-        } else {//test glider
-            cBldr.setStartTime("2010-07-26T00:00:00Z");
-            cBldr.setEndTime("2010-07-27T00:00:00Z");
-            cBldr.addProperty("salinity");
-            cBldr.addStationId("48900");
+        int switcher = 3;
+        switch(switcher) {
+            case 1: //test station
+                cBldr.setStartTime("2008-08-01T00:00:00Z");
+                cBldr.setEndTime("2008-08-02T00:00:00Z");
+                cBldr.addProperty("sea_water_temperature");
+                cBldr.addStationId("41012");
+                break;
+            case 2: //test glider
+                cBldr.setStartTime("2010-07-26T00:00:00Z");
+                cBldr.setEndTime("2010-07-27T00:00:00Z");
+                cBldr.addProperty("salinity");
+                cBldr.addStationId("48900");
+                break;
+            case 3: //test UOP
+                cBldr.setStartTime("2011-02-23T00:00:00Z");
+                cBldr.setEndTime("2011-02-24T00:00:00Z");
+                cBldr.addProperty("air_temperature");
+                cBldr.addStationId("41NT0");
+                break;
         }
 
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setTesting(true);
+//        agent.setTesting(true);
+
+        /* Set the maximum size for retrieving/sending - default is 5mb */
+//        agent.setMaxSize(50);//super-duper small
 
         java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
         connInfo.put("exchange", "eoitest");
         connInfo.put("service", "eoi_ingest");
-        connInfo.put("server", "macpro");
+        connInfo.put("server", "localhost");
         connInfo.put("topic", "magnet.topic");
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");

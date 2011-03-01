@@ -8,9 +8,17 @@ import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
+import java.text.ParseException;
+import java.util.Date;
+import java.util.logging.Level;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
+import net.ooici.eoi.datasetagent.AgentUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import ucar.ma2.InvalidRangeException;
+import ucar.nc2.constants.AxisType;
+import ucar.nc2.dataset.CoordinateAxis;
+import ucar.nc2.dataset.CoordinateAxis1DTime;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -20,20 +28,29 @@ import ucar.nc2.dataset.NetcdfDataset;
 public class NcAgent extends AbstractNcAgent {
 
     private static final Logger log = LoggerFactory.getLogger(NcAgent.class);
+    private Date sTime = null, eTime = null;
 
-    private String sTime = null, eTime = null;
-
+    @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
         String ncmlTemplate = context.getNcmlMask();
         String ncdsLoc = context.getDatasetUrl();
-        sTime = context.getStartTime();
-        eTime = context.getEndTime();
-        
+        try {
+            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getStartTime());
+        } catch (ParseException ex) {
+            log.error("Error parsing start time - first available time will be used", ex);
+        }
+        try {
+            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getEndTime());
+        } catch (ParseException ex) {
+            log.error("Error parsing end time - last available time will be used", ex);
+        }
+
         String ncmlPath = buildNcmlMask(ncmlTemplate, ncdsLoc);
         log.debug(ncmlPath);
         return ncmlPath;
     }
 
+    @Override
     public Object acquireData(String request) {
         NetcdfDataset ncds = null;
         try {
@@ -47,9 +64,57 @@ public class NcAgent extends AbstractNcAgent {
 
     @Override
     public String[] processDataset(NetcdfDataset ncds) {
+        if (true) {
+            /** TODO: Figure out how to deal with sTime and eTime.
+             * Ideally, we'd find a way to 'remove' the unwanted times from the dataset, but not sure if this is possible
+             * This would allow the 'sendNetcdfDataset' method to stay very generic (since obs requests will already have dealt with time)
+             */
+            int sti = -1, eti = -1;
+            String tdim = "";
+            CoordinateAxis ca = ncds.findCoordinateAxis(AxisType.Time);
+            CoordinateAxis1DTime cat = null;
+            boolean warn = false;
+            Throwable thrown = null;
+            ucar.ma2.Range trng = null;
+            if (ca != null) {
+                if (ca instanceof CoordinateAxis1DTime) {
+                    cat = (CoordinateAxis1DTime) ca;
+                } else {
+                    try {
+                        cat = CoordinateAxis1DTime.factory(ncds, new ucar.nc2.dataset.VariableDS(null, ncds.findVariable(ca.getName()), true), null);
+                    } catch (IOException ex) {
+                        warn = true;
+                        thrown = ex;
+                    }
+                }
+                if (cat != null) {
+                    tdim = cat.getName();
+                    sti = cat.findTimeIndexFromDate(sTime);
+                    eti = cat.findTimeIndexFromDate(eTime);
+                    try {
+                        trng = new ucar.ma2.Range(tdim, sti, eti);
+                    } catch (InvalidRangeException ex) {
+                        warn = true;
+                        thrown = ex;
+                    }
+                } else {
+                    warn = true;
+                }
+            } else {
+                warn = true;
+            }
+            if(warn) {
+                if(thrown != null) {
+                    log.warn("Error determining time axis - full time range will be used", thrown);
+                } else {
+                    log.warn("Error determining time axis - full time range will be used");
+                }
+            }
+            this.addSubRange(trng);
+            System.out.println((trng != null) ? trng.getName() + "=" + trng.toString() : "no trng");
+        }
 
         String response = this.sendNetcdfDataset(ncds, "ingest");
-
 
         return new String[]{response};
     }
@@ -119,11 +184,12 @@ public class NcAgent extends AbstractNcAgent {
 //        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/output/usgs/USGS_Test.nc";
 //        sTime = "2011-01-29T00:00:00Z";
 //        eTime = "2011-01-31T00:00:00Z";
+
         /* More Local testing */
-//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-//        dataurl = "/Users/cmueller/User_Data/Shared_Datasets/NCOM/ncom_glb_scs_2007050700.nc";
-//        sTime = "2011-01-29T00:00:00Z";
-//        eTime = "2011-01-31T00:00:00Z";
+        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+        dataurl = "/Users/cmueller/User_Data/Shared_Datasets/NCOM/ncom_glb_scs_2007050700.nc";
+        sTime = "2007-05-07T00:00:00Z";
+        eTime = "2007-05-07T03:00:00Z";
 
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setDatasetUrl(dataurl).setNcmlMask(ncmlmask);
@@ -136,7 +202,7 @@ public class NcAgent extends AbstractNcAgent {
 //        agent.setTesting(true);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
-//        agent.setMaxSize(1048576);//1mb
+        agent.setMaxSize(1048576);//1mb
 //        agent.setMaxSize(3000);//pretty small
 //        agent.setMaxSize(1500);//very small
 //        agent.setMaxSize(150);//super small

@@ -22,6 +22,7 @@
   </variable>
   
   <variable name="z" shape="z" type="float">
+    <attribute name="standard_name" value="depth" />
     <attribute name="long_name" value="depth below mean sea level" />
     <attribute name="units" value="m" />
     <attribute name="positive" value="down" />

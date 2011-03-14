@@ -10,22 +10,38 @@
     <attribute name="long_name" value="longitude" />
     <attribute name="standard_name" value="longitude" />
     <attribute name="units" value="degree_east" />
+    <attribute name="_CoordinateAxisType" value="Lon" />
   </variable>
+
   <variable name="lat" shape="" type="float">
     <attribute name="long_name" value="latitude" />
     <attribute name="standard_name" value="latitude" />
     <attribute name="units" value="degree_north" />
+    <attribute name="_CoordinateAxisType" value="Lat" />
   </variable>
 
   <variable name="time" shape="time" type="int">
     <attribute name="long_name" value="time" />
     <attribute name="standard_name" value="time" />
     <attribute name="units" value="seconds since 1970-01-01 00:00:00" />
+    <attribute name="_CoordinateAxisType" value="Time" />
+  </variable>
+
+  <variable name="z" shape="" type="float">
+    <attribute name="standard_name" value="depth" />
+    <attribute name="long_name" value="depth below mean sea level" />
+    <attribute name="units" value="m" />
+    <attribute name="positive" value="down" />
+    <attribute name="missing_value" type="float" value="-9999" />
+    <attribute name="_CoordinateAxisType" value="Height" />
   </variable>
   
   <variable name="stnId" shape="" type="int">
     <attribute name="standard_name" value="station_id" />
   </variable>
+
+<!--  <attribute name="ion_geospatial_vertical_positive" value="down" />-->
+
 <!--
   <variable name="data" shape="time" type="float">
     <attribute name="long_name" value="skin temperature" />

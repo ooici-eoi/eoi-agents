@@ -4,15 +4,18 @@
  */
 package net.ooici.eoi.netcdf;
 
+import java.util.logging.Level;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import net.ooici.NumberComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.Array;
@@ -48,7 +51,6 @@ public class NcdsFactory {
         STATION_PROFILE_MULTI("stationProfileMulti.ncml"),
         TRAJECTORY("trajectory.ncml"),
         TRAJECTORY_PROFILE("trajectoryProfile.ncml");
-
         String resourceName = null;
 
         NcdsTemplate(String resourceName) {
@@ -85,7 +87,7 @@ public class NcdsFactory {
             IObservationGroup.DataType tdt = obsGroup.getTimeDataType();
             ncds.findDimension("time").setLength(times.length);
             Variable tvar = ncds.findVariable("time");
-            tvar.resetShape();
+            tvar.resetDimensions();
             tvar.setDataType(getNcDataType(tdt));
             tvar.setCachedData(getNcArray(times, tdt));
 
@@ -93,19 +95,29 @@ public class NcdsFactory {
             IObservationGroup.DataType lldt = obsGroup.getLatLonDataType();
             DataType ncdtLl = getNcDataType(lldt);
             Variable laVar = ncds.findVariable("lat");
+            laVar.resetDimensions();
             laVar.setDataType(ncdtLl);
             laVar.setCachedData(getNcScalar(obsGroup.getLat(), lldt));
             Variable loVar = ncds.findVariable("lon");
+            loVar.resetDimensions();
             loVar.setDataType(ncdtLl);
             loVar.setCachedData(getNcScalar(obsGroup.getLon(), lldt));
 
             /* Do the depth */
             IObservationGroup.DataType ddt = obsGroup.getDepthDataType();
-            VariableDS zVar = new VariableDS(ncds, null, null, "stnDepth", getNcDataType(ddt), "", "m", "station depth");
-            zVar.addAttribute(new Attribute("positive", "down"));
-            ncds.addVariable(null, zVar);
+            Variable zVar = ncds.findVariable("z");
+            zVar.resetDimensions();
+            zVar.setDataType(getNcDataType(ddt));
             Number depth = obsGroup.getDepths()[0];
-            zVar.setCachedData(getNcScalar(obsGroup.getDepths()[0], ddt));
+            zVar.setCachedData(getNcScalar(depth, lldt));
+            
+//            VariableDS zVar = new VariableDS(ncds, null, null, "z", getNcDataType(ddt), "", "m", "station depth");
+//            zVar.resetDimensions();
+//            zVar.addAttribute(new Attribute(CF.STANDARD_NAME, "depth"));
+//            zVar.addAttribute(new Attribute("positive", "down"));
+//            zVar.addAttribute(new Attribute("_CoordinateAxisType", "Height"));
+//            ncds.addVariable(null, zVar);
+//            zVar.setCachedData(getNcScalar(depth, ddt));
 
             /* Do the data variables */
             for (VariableParams dn : obsGroup.getDataNames()) {
@@ -167,6 +179,7 @@ public class NcdsFactory {
             IObservationGroup.DataType tdt = obsGroup.getTimeDataType();
             ncds.findDimension("time").setLength(times.length);
             Variable tvar = ncds.findVariable("time");
+            tvar.resetDimensions();
             tvar.setDataType(getNcDataType(tdt));
             tvar.setCachedData(getNcArray(times, tdt));
 
@@ -177,14 +190,16 @@ public class NcdsFactory {
             laVar.setDataType(ncdtLl);
             laVar.setCachedData(getNcScalar(obsGroup.getLat(), lldt));
             Variable loVar = ncds.findVariable("lon");
+            loVar.resetDimensions();
             loVar.setDataType(ncdtLl);
             loVar.setCachedData(getNcScalar(obsGroup.getLon(), lldt));
 
-            /* Do the depths */
+            /* Do the allDepths */
             Number[] depths = obsGroup.getDepths();
             ncds.findDimension("z").setLength(depths.length);
             IObservationGroup.DataType ddt = obsGroup.getDepthDataType();
             Variable zVar = ncds.findVariable("z");
+            zVar.resetDimensions();
             zVar.setDataType(getNcDataType(ddt));
             zVar.setCachedData(getNcArray(depths, ddt));
 
@@ -263,6 +278,7 @@ public class NcdsFactory {
             Array tarr = Array.factory(ncdtTime, new int[]{nt});
             IndexIterator tii = tarr.getIndexIterator();
             Variable tvar = ncds.findVariable("time");
+            tvar.resetDimensions();
             tvar.setDataType(getNcDataType(tdt));
             tvar.setCachedData(tarr);
 
@@ -272,6 +288,7 @@ public class NcdsFactory {
             Array laarr = Array.factory(ncdtLl, new int[]{nt});
             IndexIterator laii = laarr.getIndexIterator();
             Variable lavar = ncds.findVariable("lat");
+            lavar.resetDimensions();
             lavar.setDataType(ncdtLl);
             lavar.setCachedData(laarr);
 
@@ -279,6 +296,7 @@ public class NcdsFactory {
             Array loarr = Array.factory(ncdtLl, new int[]{nt});
             IndexIterator loii = loarr.getIndexIterator();
             Variable lovar = ncds.findVariable("lon");
+            lovar.resetDimensions();
             lovar.setDataType(ncdtLl);
             lovar.setCachedData(loarr);
 
@@ -340,7 +358,130 @@ public class NcdsFactory {
     }
 
     public static NetcdfDataset buildTrajectoryProfile(IObservationGroup[] obsGroups) {
-        throw new UnsupportedOperationException();
+        NetcdfDataset ncds = null;
+        try {
+            /* Instantiate an empty NetcdfDataset object from the template ncml */
+            ncds = getNcdsFromTemplate(NcdsTemplate.TRAJECTORY_PROFILE);
+
+            int nobs = obsGroups.length;
+            List<Number> adep = new ArrayList<Number>();
+            List<VariableParams> allDn = new ArrayList<VariableParams>();
+            int nt = nobs;
+            int nd = 0;
+            for (IObservationGroup og : obsGroups) {
+                nd = Math.max(nd, og.getDepths().length);
+                for (Number d : og.getDepths()) {
+                    if (!adep.contains(d)) {
+                        adep.add(d);
+                    }
+                }
+                for (VariableParams dn : og.getDataNames()) {
+                    if (!allDn.contains(dn)) {
+                        allDn.add(dn);
+                    }
+                }
+            }
+            Collections.sort(adep, new NumberComparator());
+            Number[] allDepths = adep.toArray(new Number[0]);
+            nd = allDepths.length;
+            
+            /* Do the trajectory ID */
+
+            /* Do the times */
+            Number[] times = obsGroups[0].getTimes();
+            IObservationGroup.DataType tdt = obsGroups[0].getTimeDataType();
+            DataType ncdtTime = getNcDataType(tdt);
+            ncds.findDimension("time").setLength(nt);
+            Array tarr = Array.factory(ncdtTime, new int[]{nt});
+            IndexIterator tii = tarr.getIndexIterator();
+            Variable tvar = ncds.findVariable("time");
+            tvar.resetDimensions();
+            tvar.setDataType(getNcDataType(tdt));
+            tvar.setCachedData(tarr);
+
+            /* Do the lats */
+            IObservationGroup.DataType lldt = obsGroups[0].getLatLonDataType();
+            DataType ncdtLl = getNcDataType(lldt);
+            Array laarr = Array.factory(ncdtLl, new int[]{nt});
+            IndexIterator laii = laarr.getIndexIterator();
+            Variable lavar = ncds.findVariable("lat");
+            lavar.resetDimensions();
+            lavar.setDataType(ncdtLl);
+            lavar.setCachedData(laarr);
+
+            /* Do the lons */
+            Array loarr = Array.factory(ncdtLl, new int[]{nt});
+            IndexIterator loii = loarr.getIndexIterator();
+            Variable lovar = ncds.findVariable("lon");
+            lovar.resetDimensions();
+            lovar.setDataType(ncdtLl);
+            lovar.setCachedData(loarr);
+
+            /* Do the allDepths */
+            ncds.findDimension("z").setLength(allDepths.length);
+            IObservationGroup.DataType ddt = obsGroups[0].getDepthDataType();
+            Variable zVar = ncds.findVariable("z");
+            zVar.resetDimensions();
+            zVar.setDataType(getNcDataType(ddt));
+            zVar.setCachedData(getNcArray(allDepths, ddt));
+
+            /* Iterate over the observation groups and fill the data */
+            Map<String, String> allAttributes = new HashMap<String, String>();
+            IObservationGroup og;
+            HashMap<String, IndexIterator> darrs = new HashMap<String, IndexIterator>();
+            Number time;
+            Number[] depths;
+            for (int obs = 0; obs < nobs; obs++) {
+                og = obsGroups[obs];
+                time = og.getTimes()[0];
+                depths = og.getDepths();
+                putArrayData(tii, ncdtTime, time);
+                putArrayData(loii, ncdtLl, og.getLon());
+                putArrayData(laii, ncdtLl, og.getLat());
+
+                for (VariableParams dn : allDn) {
+                    if (og.getDataNames().contains(dn)) {
+                        DataType ncdtData = getNcDataType(dn.getDataType());
+                        VariableDS dvar = (VariableDS) ncds.findVariable(dn.getShortName());
+                        if (dvar == null) {
+                            dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "time z", dn.getUnits(), dn.getDescription());
+                            dvar.addAttribute(new Attribute(CF.COORDINATES, "time lon lat z"));
+//                            dvar.addAttribute(new Attribute("missing_value", missingData));
+                            dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                            Array darr = Array.factory(ncdtData, new int[]{nt, nd});
+                            dvar.setCachedData(darr);
+
+                            darrs.put(dn.getStandardName(), darr.getIndexIterator());
+                            ncds.addVariable(null, dvar);
+                        }
+                        for (int di = 0; di < depths.length; di++) {
+                            putArrayData(darrs.get(dn.getStandardName()), ncdtData, og.getData(dn, time, depths[di]));
+                        }
+
+                    } else {
+                        /*
+                         * station doesn't have this variable - don't believe
+                         * this can even happen...
+                         *
+                         * NOTE: This would indicate a problem with the above processing where the data-name list
+                         * has been modified prior to contains-checking
+                         */
+                    }
+                }
+            }
+
+            /* Add global attributes */
+            for (String key : allAttributes.keySet()) {
+                ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
+            }
+        } catch (IOException ex) {
+            log.error("Error building trajectoryProfile NetcdfDataset", ex);
+        } finally {
+            if (ncds != null) {
+                ncds.finish();
+            }
+        }
+        return ncds;
     }
 
     private static DataType getNcDataType(IObservationGroup.DataType obsDT) {

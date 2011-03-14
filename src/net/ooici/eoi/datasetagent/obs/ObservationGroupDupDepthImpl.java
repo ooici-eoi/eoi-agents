@@ -18,8 +18,6 @@ import net.ooici.eoi.netcdf.VariableParams;
  */
 public class ObservationGroupDupDepthImpl extends AbstractObservationGroup {
 
-	private List<Number> times = new ArrayList<Number>();
-	private List<Number> depths = new ArrayList<Number>();
 	private HashMap<VariableParams, HashMap<TimeDepthPair, Number[]>> obsMap =
 		new HashMap<VariableParams, HashMap<TimeDepthPair, Number[]>>();
 
@@ -63,26 +61,12 @@ public class ObservationGroupDupDepthImpl extends AbstractObservationGroup {
 		obsMap.get(dataName).put(cp, cnum);
 	}
 
+    @Override
 	public int getNumObs() {
 		return obsMap.get(obsMap.keySet().iterator().next()).size();
 	}
 
-	public Number[] getTimes() {
-        return times.toArray(new Number[times.size()]);
-    }
-    
-    public <T> T[] getTimes(T[] array) {
-        return times.toArray(array);
-    }
-
-    public Number[] getDepths() {
-        return depths.toArray(new Number[depths.size()]);
-    }
-    
-    public <T> T[] getDepths(T[] array) {
-        return depths.toArray(array);
-    }
-
+    @Override
 	public Number getData(VariableParams dataName, Number time, Number depth) {
 		return getData(dataName, time, depth, Float.NaN);
 	}
@@ -91,6 +75,7 @@ public class ObservationGroupDupDepthImpl extends AbstractObservationGroup {
 		return getData(dataName, time, depth, Float.NaN, getAverage);
 	}
 
+    @Override
 	public Number getData(VariableParams dataName, Number time, Number depth, Number missingVal) {
 		return getData(dataName, time, depth, missingVal, true);
 	}
@@ -116,6 +101,7 @@ public class ObservationGroupDupDepthImpl extends AbstractObservationGroup {
 		return (ret == Double.NaN) ? (missingVal) : (ret);
 	}
 
+    @Override
 	public List<VariableParams> getDataNames() {
 		List<VariableParams> ret = new ArrayList<VariableParams>();
 		for (VariableParams p : obsMap.keySet()) {

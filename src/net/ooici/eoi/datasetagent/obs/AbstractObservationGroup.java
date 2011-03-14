@@ -6,8 +6,12 @@
 package net.ooici.eoi.datasetagent.obs;
 
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import net.ooici.NumberComparator;
 
 import net.ooici.Pair;
 import net.ooici.eoi.netcdf.VariableParams;
@@ -21,6 +25,8 @@ import net.ooici.eoi.netcdf.VariableParams;
  */
 public abstract class AbstractObservationGroup implements IObservationGroup {
 
+    private static NumberComparator<Number> numComp = new NumberComparator<Number>();
+
 	/** Instance Fields */
 	protected String stnid;
 	protected int id;
@@ -30,6 +36,8 @@ public abstract class AbstractObservationGroup implements IObservationGroup {
 	protected DataType latLonDataType = null;
 	protected DataType timeDataType = null;
 	protected DataType depthDataType = null;
+    protected List<Number> times = new ArrayList<Number>();
+	protected List<Number> depths = new ArrayList<Number>();
 	
 
 	/**
@@ -53,22 +61,49 @@ public abstract class AbstractObservationGroup implements IObservationGroup {
 		attributes = new HashMap<String, String>();
 	}
 
+    @Override
 	public String getStnid() {
 		return stnid;
 	}
 
+    @Override
 	public int getId() {
 		return id;
 	}
 
+    @Override
 	public Number getLat() {
 		return lat;
 	}
 
+    @Override
 	public Number getLon() {
 		return lon;
 	}
+
+    @Override
+	public Number[] getTimes() {
+		return getTimes(new Number[times.size()]);
+	}
 	
+    @Override
+	public <T> T[] getTimes(T[] array) {
+        Collections.sort(times, numComp);
+	    return times.toArray(array);
+	}
+
+    @Override
+	public Number[] getDepths() {
+	    return getDepths(new Number[depths.size()]);
+	}
+	
+    @Override
+	public <T> T[] getDepths(T[] array) {
+        Collections.sort(depths, numComp);
+	    return depths.toArray(array);
+	}
+
+    @Override
 	public final void addObservation(Number time, Number depth, Number data, VariableParams dataAttribs) {
         /** Lazy-initialize the datatypes */
         if (null == timeDataType) {
@@ -97,14 +132,17 @@ public abstract class AbstractObservationGroup implements IObservationGroup {
 	
 	protected abstract void _addObservation(Number time, Number depth, Number data, VariableParams dataAttribs);
 
+    @Override
 	public String addAttribute(String name, String value) {
 		return attributes.put(name, value);
 	}
 	
+    @Override
 	public String getAttribute(String name) {
 		return attributes.get(name);
 	}
 	
+    @Override
 	public void addAttributes(Map<? extends String, ? extends String> values) {
 		attributes.putAll(values);
 	}

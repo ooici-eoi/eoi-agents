@@ -173,4 +173,11 @@ public class AgentUtils {
 		ISO8601_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
 		ISO8601_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
+
+    public static String getStackTraceString(Throwable throwable) {
+		final java.io.Writer result = new java.io.StringWriter();
+		final java.io.PrintWriter printWriter = new java.io.PrintWriter(result);
+		throwable.printStackTrace(printWriter);
+		return result.toString();
+	}
 }

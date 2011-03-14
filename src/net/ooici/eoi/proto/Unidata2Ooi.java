@@ -50,6 +50,9 @@ public class Unidata2Ooi {
             packDataset(dataset, includeData);
         }
         Container.Structure struct = structBldr.build();
+//        ion.core.utils.StructureManager sm = ion.core.utils.StructureManager.Factory(struct);
+//        System.out.println(">>>>Struct<<<<");
+//        System.out.println(sm.toString());
 
         return struct.toByteArray();
     }
@@ -170,6 +173,9 @@ public class Unidata2Ooi {
 //        return getOoiVariable(ncVar, section, true);
 //    }
     private static GPBWrapper<Cdmvariable.Variable> getOoiVariable(Variable ncVar, Section section, boolean includeData) throws java.io.IOException {
+        /* If section is null, section is all available data */
+        section = (section == null) ? ncVar.getShapeAsSection() : section;
+
         DataType dt = ncVar.getDataType();
         Cdmvariable.Variable.Builder varBldr = Cdmvariable.Variable.newBuilder().setName(ncVar.getName()).setDataType(AgentUtils.getOoiDataType(dt));
 
@@ -187,7 +193,7 @@ public class Unidata2Ooi {
             varBldr.addShape(dimWrap.getCASRef());
         }
 
-        Cdmvariable.BoundedArray bndArr;
+        Cdmvariable.BoundedArray bndArr = null;
         if (includeData) {
             /* Set the content */
             /* Build the array and the bounded array*/
@@ -195,14 +201,12 @@ public class Unidata2Ooi {
             if (arrWrap != null) {
                 ProtoUtils.addStructureElementToStructureBuilder(structBldr, arrWrap.getStructureElement());
                 bndArr = getBoundedArray(section, arrWrap.getCASRef());
-            } else {
-                bndArr = getBoundedArray(section, null);
             }
-
         } else {
-            /* Build the bounded array for the shape of the entire variable, but without an ndarray reference */
-            bndArr = getBoundedArray(ncVar.getShapeAsSection(), null);
+            /* TODO: Ask David if this is right --> Build the bounded array for the section, but without an ndarray reference */
+            bndArr = getBoundedArray(section, null);
         }
+
         GPBWrapper<Cdmvariable.BoundedArray> baWrap = GPBWrapper.Factory(bndArr);
         ProtoUtils.addStructureElementToStructureBuilder(structBldr, baWrap.getStructureElement());
         varBldr.addContent(baWrap.getCASRef());
@@ -212,7 +216,7 @@ public class Unidata2Ooi {
 
     public static Cdmvariable.BoundedArray getBoundedArray(ucar.ma2.Section section, CASRef arrRef) {
         /* No section == empty BA */
-        if(section == null) {
+        if (section == null) {
             return Cdmvariable.BoundedArray.newBuilder().build();
         }
 
@@ -221,7 +225,7 @@ public class Unidata2Ooi {
 
     public static Cdmvariable.BoundedArray getBoundedArray(List<ucar.ma2.Range> ranges, CASRef arrRef) {
         /* No ranges == empty BA */
-        if(ranges == null) {
+        if (ranges == null) {
             return Cdmvariable.BoundedArray.newBuilder().build();
         }
 
@@ -276,14 +280,14 @@ public class Unidata2Ooi {
             case FLOAT:
                 Cdmarray.f32Array.Builder f32Bldr = Cdmarray.f32Array.newBuilder();
                 while (arrIter.hasNext()) {
-                    f32Bldr.addValue(arrIter.getLongNext());
+                    f32Bldr.addValue(arrIter.getFloatNext());
                 }
                 arrWrap = GPBWrapper.Factory(f32Bldr.build());
                 break;
             case DOUBLE:
                 Cdmarray.f64Array.Builder f64Bldr = Cdmarray.f64Array.newBuilder();
                 while (arrIter.hasNext()) {
-                    f64Bldr.addValue(arrIter.getLongNext());
+                    f64Bldr.addValue(arrIter.getDoubleNext());
                 }
                 arrWrap = GPBWrapper.Factory(f64Bldr.build());
                 break;

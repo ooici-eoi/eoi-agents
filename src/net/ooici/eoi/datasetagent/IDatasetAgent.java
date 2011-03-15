@@ -29,4 +29,6 @@ public interface IDatasetAgent {
     void setTesting(boolean isTest);
 
     void setMaxSize(long maxSize);
+
+    void setDecompDivisor(int decompDivisor);
 }

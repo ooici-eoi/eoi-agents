@@ -90,8 +90,6 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
             List<String> ids = new ArrayList<String>();
             List<Integer> dcs = new ArrayList<Integer>();
             obs = obsList[0];
-            String sid = obs.getStnid();
-            isProfile = obs.getDepths().length > 1;
             for (int i = 1; i < obsList.length; i++) {
                 obs = obsList[i];
                 /* Trajectory check */

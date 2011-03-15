@@ -10,7 +10,6 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.Date;
-import java.util.logging.Level;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import org.slf4j.Logger;
@@ -38,11 +37,13 @@ public class NcAgent extends AbstractNcAgent {
             sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getStartTime());
         } catch (ParseException ex) {
             log.error("Error parsing start time - first available time will be used", ex);
+            sTime = null;
         }
         try {
             eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getEndTime());
         } catch (ParseException ex) {
             log.error("Error parsing end time - last available time will be used", ex);
+            eTime = null;
         }
 
         String ncmlPath = buildNcmlMask(ncmlTemplate, ncdsLoc);
@@ -64,7 +65,7 @@ public class NcAgent extends AbstractNcAgent {
 
     @Override
     public String[] processDataset(NetcdfDataset ncds) {
-        if (true) {
+        if (sTime != null & eTime != null) {
             /** TODO: Figure out how to deal with sTime and eTime.
              * Ideally, we'd find a way to 'remove' the unwanted times from the dataset, but not sure if this is possible
              * This would allow the 'sendNetcdfDataset' method to stay very generic (since obs requests will already have dealt with time)
@@ -103,15 +104,15 @@ public class NcAgent extends AbstractNcAgent {
             } else {
                 warn = true;
             }
-            if(warn) {
-                if(thrown != null) {
+            if (warn) {
+                if (thrown != null) {
                     log.warn("Error determining time axis - full time range will be used", thrown);
                 } else {
                     log.warn("Error determining time axis - full time range will be used");
                 }
             }
             this.addSubRange(trng);
-            System.out.println((trng != null) ? trng.getName() + "=" + trng.toString() : "no trng");
+//            System.out.println((trng != null) ? trng.getName() + "=" + trng.toString() : "no trng");
         }
 
         String response = this.sendNetcdfDataset(ncds, "ingest");
@@ -149,11 +150,12 @@ public class NcAgent extends AbstractNcAgent {
             log.error("Error bootstrapping", ex);
         }
         /* the ncml mask to use*/
-        /* for NAM - WARNING!!  This is a HUGE file... not really supported properly yet... */
+        /* for NAM - WARNING!!  This is a HUGE file... not fully supported on the ingest side yet... */
         String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"> <variable name=\"time\"> <attribute name=\"standard_name\" value=\"time\" /> </variable> <variable name=\"lat\"> <attribute name=\"standard_name\" value=\"latitude\" /> <attribute name=\"units\" value=\"degree_north\" /> </variable> <variable name=\"lon\"> <attribute name=\"standard_name\" value=\"longitude\" /> <attribute name=\"units\" value=\"degree_east\" /> </variable> </netcdf>";
-        String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110226/nam1hr_00z";
+        String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z";
         String sTime = "";
         String eTime = "";
+        long maxSize = -1;
 
         /* for HiOOS Gliders */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"pressure\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"temp\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"conductivity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"salinity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"density\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable></netcdf>";
@@ -178,6 +180,7 @@ public class NcAgent extends AbstractNcAgent {
 //        dataurl = "http://thredds1.pfeg.noaa.gov/thredds/dodsC/satellite/GR/ssta/1day";
 //        sTime = "2011-02-01T00:00:00Z";
 //        eTime = "2011-02-02T00:00:00Z";
+//        maxSize = 33554432;//for pfeg ==> all geospatial (1 time) = 32mb
 
         /* Local testing */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
@@ -186,26 +189,34 @@ public class NcAgent extends AbstractNcAgent {
 //        eTime = "2011-01-31T00:00:00Z";
 
         /* More Local testing */
-        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-        dataurl = "/Users/cmueller/User_Data/Shared_Datasets/NCOM/ncom_glb_scs_2007050700.nc";
-        sTime = "2007-05-07T00:00:00Z";
-        eTime = "2007-05-07T03:00:00Z";
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+//        dataurl = "/Users/cmueller/User_Data/Shared_Datasets/NCOM/ncom_glb_scs_2007050700.nc";
+//        sTime = "2007-05-07T00:00:00Z";
+//        eTime = "2007-05-08T00:00:00Z";
+
+        /* Rutgers ROMS */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+//        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2009_da/his";
 
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.NETCDF_S);
         cBldr.setDatasetUrl(dataurl).setNcmlMask(ncmlmask);
         cBldr.setStartTime(sTime);
         cBldr.setEndTime(eTime);
 
         net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
 
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = new NcAgent();
-//        agent.setTesting(true);
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
+        agent.setTesting(true);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
-        agent.setMaxSize(1048576);//1mb
-//        agent.setMaxSize(3000);//pretty small
+//        agent.setMaxSize(1048576);//1mb
+//        agent.setMaxSize(67874688);//~64mb
+//        agent.setMaxSize(30000);//pretty small
 //        agent.setMaxSize(1500);//very small
 //        agent.setMaxSize(150);//super small
+        
+//        agent.setMaxSize(maxSize);//ds defined
 
         java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
         connInfo.put("exchange", "eoitest");

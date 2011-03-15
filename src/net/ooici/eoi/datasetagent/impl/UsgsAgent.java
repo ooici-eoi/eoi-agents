@@ -26,6 +26,7 @@ import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import ooici.netcdf.iosp.IospUtils;
 
 import org.jdom.Document;
 import org.jdom.Element;
@@ -443,70 +444,120 @@ public class UsgsAgent extends AbstractAsciiAgent {
     /*****************************************************************************************************************/
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         try {
             ion.core.IonBootstrap.bootstrap();
         } catch (Exception ex) {
             log.error("Error bootstrapping", ex);
         }
-        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
-        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
-        cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-        int switcher = 1;
-        switch (switcher) {
-            case 1://test temp
-                cBldr.setStartTime("2011-2-10T00:00:00Z");
-                cBldr.setEndTime("2011-2-11T00:00:00Z");
-                cBldr.addProperty("00010");
-                cBldr.addStationId("01463500");
-                break;
-            case 2://test discharge
-                cBldr.setStartTime("2011-2-10T00:00:00Z");
-                cBldr.setEndTime("2011-2-11T00:00:00Z");
-                cBldr.addProperty("00060");
-                cBldr.addStationId("01463500");
-                break;
-            case 3://test temp & discharge
-                cBldr.setStartTime("2011-2-10T00:00:00Z");
-                cBldr.setEndTime("2011-2-11T00:00:00Z");
-                cBldr.addProperty("00010");
-                cBldr.addProperty("00060");
-                cBldr.addStationId("01463500");
-                break;
-        }
+
+        boolean makeSamples = false;
+        if (makeSamples) {
+            generateRutgersSamples();
+        } else {
+            net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
+            cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
+            int switcher = 2;
+            switch (switcher) {
+                case 1://test temp
+                    cBldr.setStartTime("2011-2-10T00:00:00Z");
+                    cBldr.setEndTime("2011-2-11T00:00:00Z");
+                    cBldr.addProperty("00010");
+                    cBldr.addStationId("01463500");
+                    break;
+                case 2://test discharge
+                    cBldr.setStartTime("2011-2-10T00:00:00Z");
+                    cBldr.setEndTime("2011-2-11T00:00:00Z");
+                    cBldr.addProperty("00060");
+                    cBldr.addStationId("01463500");
+                    break;
+                case 3://test temp & discharge
+                    cBldr.setStartTime("2011-2-10T00:00:00Z");
+                    cBldr.setEndTime("2011-2-11T00:00:00Z");
+                    cBldr.addProperty("00010");
+                    cBldr.addProperty("00060");
+                    cBldr.addStationId("01463500");
+                    break;
+            }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");
 //            cBldr.setEndTime("2011-01-31T00:00:00Z");
 //            cBldr.addProperty("00010");
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
+            doTest(cBldr.build());
+        }
+    }
 
+    private static void generateRutgersSamples() throws IOException {
+        String sTime = "2011-3-01T00:00:00Z", eTime = "2011-3-02T00:00:00Z";
+        String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
+        String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
+        String[] tempIds = new String[]{"01362500", "01463500", "01646500"};
 
-        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+        for (String id : disIds) {
+            net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
+            cBldr.setBaseUrl(baseURL);
+            cBldr.setStartTime(sTime);
+            cBldr.setEndTime(eTime);
+            cBldr.addProperty("00060");
+            cBldr.addStationId(id);
+            String[] res = doTest(cBldr.build());
+            NetcdfDataset dsout = null;
+            try {
+                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
+                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + id + "_disc.nc");
+            } catch (IOException ex) {
+                log.error("Error writing netcdf file", ex);
+            } finally {
+                if(dsout != null) {
+                    dsout.close();
+                }
+            }
+        }
 
+        for (String id : tempIds) {
+            net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
+            cBldr.setBaseUrl(baseURL);
+            cBldr.setStartTime(sTime);
+            cBldr.setEndTime(eTime);
+            cBldr.addProperty("00010");
+            cBldr.addStationId(id);
+            String[] res = doTest(cBldr.build());
+            NetcdfDataset dsout = null;
+            try {
+                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
+                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + id + "_temp.nc");
+            } catch (IOException ex) {
+                log.error("Error writing netcdf file", ex);
+            } finally {
+                if(dsout != null) {
+                    dsout.close();
+                }
+            }
+        }
+
+        System.out.println("******FINISHED******");
+    }
+
+    private static String[] doTest(net.ooici.services.sa.DataSource.EoiDataContext context) throws IOException {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
 //        agent.setTesting(true);
 
-        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
-        connInfo.put("exchange", "eoitest");
-        connInfo.put("service", "eoi_ingest");
-        connInfo.put("server", "localhost");
-        connInfo.put("topic", "magnet.topic");
+        java.util.HashMap<String, String> connInfo = IospUtils.parseProperties(new java.io.File(System.getProperty("user.dir") + "/ooici-conn.properties"));
+//        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+//        connInfo.put("exchange", "eoitest");
+//        connInfo.put("service", "eoi_ingest");
+//        connInfo.put("server", "localhost");
+//        connInfo.put("topic", "magnet.topic");
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");
         for (String s : result) {
             log.debug(s);
         }
-//        String outdir = "output/usgs/";
-//        if (! new File(outdir).exists()) {
-//            new File(outdir).mkdirs();
-//        }
-//        String outName = "USGS_Test.nc";
-//        try {
-//            log.info("Writing NC output to [" + outdir + outName + "]...");
-//            ucar.nc2.FileWriter.writeToFile(dataset, outdir + outName);
-//        } catch (IOException ex) {
-//            log.warn("Could not write NC to file: " + outdir + outName, ex);
-//        }
+        return result;
     }
 }

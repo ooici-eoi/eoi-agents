@@ -336,7 +336,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        int switcher = 3;
+        int switcher = 2;
         switch(switcher) {
             case 1: //test station
                 cBldr.setStartTime("2008-08-01T00:00:00Z");

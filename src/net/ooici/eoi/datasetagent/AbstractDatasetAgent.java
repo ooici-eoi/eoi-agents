@@ -5,15 +5,22 @@
 package net.ooici.eoi.datasetagent;
 
 import ion.core.messaging.IonMessage;
+import ion.core.utils.GPBWrapper;
+import ion.core.utils.ProtoUtils;
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.Map.Entry;
+import net.ooici.cdm.syntactic.Cdmvariable;
+import net.ooici.core.message.IonMessage.IonMsg;
+import net.ooici.core.message.IonMessage.ResponseCodes;
+import net.ooici.eoi.netcdf.AttributeFactory;
 import net.ooici.eoi.netcdf.NcUtils;
 import net.ooici.eoi.proto.Unidata2Ooi;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
+import ucar.nc2.constants.FeatureType;
+import ucar.nc2.dataset.NetcdfDataset;
 
 /**
  * TODO Add class comments
@@ -36,12 +43,17 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      */
     private long maxSize = 5242880;//Default is 5 MB
     /**
+     * This is the value used to divide the dimension length when decomposing within a given dimension.
+     */
+    private int decompDivisor = 2;//Default is to divide by 2
+    /**
      * HashMap of Ranges (keyed by name) that will be applied to the appropriate dimensions
      */
     private HashMap<String, Range> subRanges = new HashMap<String, Range>();
     private ion.core.messaging.MsgBrokerClient cl = null;
     private ion.core.messaging.MessagingName toName = null;
     private ion.core.messaging.MessagingName fromName = null;
+    private String ingest_op = "ingest";
     private String recieverQueue = null;
 
     @Override
@@ -52,6 +64,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     @Override
     public void setMaxSize(long maxSize) {
         this.maxSize = maxSize;
+    }
+
+    @Override
+    public void setDecompDivisor(int decompDivisor) {
+        this.decompDivisor = decompDivisor;
     }
 
     public void addSubRange(Range rng) {
@@ -96,11 +113,18 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     protected String sendNetcdfDataset(ucar.nc2.dataset.NetcdfDataset ncds, String op, boolean includeData) {
         assert ncds != null;
 
+        /* Apply OOICI geospatial-temporal metadata */
+        addOoiciBoundsMetadata(ncds);
+
         String ret = null;
         if (testing) {
             ret = ncds.toString();
             return ret;
         }
+
+        ResponseCodes respCode = ResponseCodes.OK;
+        String respBody = "";
+
         /* Package the dataset */
         /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
         byte[] dataMessageContent;
@@ -111,14 +135,16 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 /* TODO: Deal with subRanges when sending full datasets */
                 /* TODO: Do we even want this option anymore?!?! Should we ALWAYS send the data "by variable"?? */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
-                IonMessage reply = rpcDataMessage(op, dataMessageContent);
+//                sendDataMessage(dataMessageContent);
+                IonMessage reply = rpcDataMessage(dataMessageContent);
                 ret = reply.getContent().toString();
             } else {
 
                 /* Send the "empty" dataset */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, false);
-                IonMessage reply = rpcDataMessage(op, dataMessageContent);
-                ret = reply.getContent().toString();
+                sendDataMessage(dataMessageContent);
+//                IonMessage reply = rpcDataMessage(op, dataMessageContent);
+//                ret = reply.getContent().toString();
 
                 /* Send the variables */
                 for (ucar.nc2.Variable v : ncds.getVariables()) {
@@ -128,6 +154,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                         /* Get the section for the complete variable - must create a new instance because the one in the Variable has 'isImmutable==true' */
                         ucar.ma2.Section sec = new ucar.ma2.Section(v.getShapeAsSection());
 
+                        /* Apply any subRanges */
                         for (int i = 0; i < sec.getRanges().size(); i++) {
                             Range r = sec.getRange(i);
                             if (subRanges.containsKey(r.getName())) {
@@ -135,20 +162,30 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                             }
                         }
 
+                        /* Decompose and send variable data */
                         decompSendVariable(v, sec, 0);
                     } catch (Exception ex) {
-                        log.error("Error", ex);
+                        log.error("Error Processing Dataset", ex);
+                        respCode = ResponseCodes.RECEIVER_ERROR;
+                        respBody = AgentUtils.getStackTraceString(ex);
                     }
                 }
             }
 
         } catch (IOException ex) {
             log.error(ret = "Error converting NetcdfDataset to OOICI CDM::******\n" + ncds.toString() + "\n******");
-            dataMessageContent = null;
+            respCode = ResponseCodes.RECEIVER_ERROR;
+            respBody = AgentUtils.getStackTraceString(ex);
+        } finally {
+            /* Send Message to signify the end of the ingest */
+            IonMsg.Builder endMsgBldr = IonMsg.newBuilder();
+            endMsgBldr.setResponseCode(respCode);
+            endMsgBldr.setResponseBody(respBody);
+            GPBWrapper<IonMsg> msgWrap = GPBWrapper.Factory(endMsgBldr.build());
+            log.debug(msgWrap.toString());
         }
+
         return ret;
-
-
     }
 
     /**
@@ -224,7 +261,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                     inrng = sec.getRange(depth);
                     size = sec.computeSize() * esize;
                     if (size > maxSize) {
-                        int end = inrng.first() + (inrng.length() / 2);
+                        int end = inrng.first() + (inrng.length() / decompDivisor);
                         end = (end > inrng.last()) ? inrng.last() : end;
                         sec.replaceRange(depth, new Range(rng.getName(), inrng.first(), end));
                         decompSendVariable(var, sec, depth);
@@ -245,36 +282,109 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 sec.replaceRange(depth, rng);
             }
         } else {
-            if (!testing) {
             log.debug(indent + "--> proc-sec: " + sec.toString());
-                /** TODO: Discuss with David to determine how we're sending the data.
-                 *  NOTE: The bounded array will always reflect the data that is present in it's relation to the whole section
-                 * What's wrapping it?
-                 * - the whole variable with just this section worth of data, keyed with the datasetID
-                 * - the bounded array, keyed with the datasetID and the variable name (theoretically a unique pair for a given dataset)
-                 * - something else??
-                 **/
+            if (!testing) {
+                /* Build the array and the bounded array */
+                ion.core.utils.GPBWrapper arrWrap = Unidata2Ooi.getOoiArray(var, sec);
+                Cdmvariable.BoundedArray bndArr = Unidata2Ooi.getBoundedArray(sec, (arrWrap != null) ? arrWrap.getCASRef() : null);
+                ion.core.utils.GPBWrapper<Cdmvariable.BoundedArray> baWrap = ion.core.utils.GPBWrapper.Factory(bndArr);
+////                log.debug(baWrap.toString());
+////                log.debug(arrWrap.toString());
 
-                /* Build the array and the bounded array*/
-//            ion.core.utils.GPBWrapper arrWrap = Unidata2Ooi.getOoiArray(var, sec);
-//            Cdmvariable.BoundedArray bndArr = Unidata2Ooi.getBoundedArray(sec, (arrWrap != null) ? arrWrap.getCASRef() : null);
-//            ion.core.utils.GPBWrapper<Cdmvariable.BoundedArray> baWrap = ion.core.utils.GPBWrapper.Factory(bndArr);
-//            log.debug(baWrap.toString());
-//            log.debug(arrWrap.toString());
-                // <editor-fold defaultstate="collapsed" desc="TODO: Sending of variable ">
-//                                                net.ooici.core.container.Container.Structure varStruct = Unidata2Ooi.varToStructure(v, sec);
-//                                                log.debug(varStruct);
-//                                                dataMessageContent = Unidata2Ooi.varToByteArray(v, sec);
-//                                                reply = rpcDataMessage(op, dataMessageContent);
-//                                                dataMessageContent = Unidata2Ooi.varToByteArray(v, sec);
-//                                                reply = rpcDataMessage(op, dataMessageContent);
-//                                                ucar.ma2.Array a = v.read(sec);
-//                                                log.debug(a.getSize());
-                // </editor-fold>
+                /* Build the supplement message */
+                net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
+                supMsgBldr.setDatasetId("");
+                supMsgBldr.setVariableName(var.getName());
+                supMsgBldr.setBoundedArray(baWrap.getCASRef());
+                GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
+
+                /* init the struct bldr */
+                net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
+                /* add the supplement wrapper as the head */
+                ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+                /* add the bounded array and ndarray as items */
+                ProtoUtils.addStructureElementToStructureBuilder(sbldr, baWrap.getStructureElement());
+                ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
+
+//                sendDataMessage(sbldr.build().toByteArray());
             }
         }
     }
 
+    protected void addOoiciBoundsMetadata(NetcdfDataset ncds) {
+        FeatureType ft = NcUtils.determineFeatureType(ncds);
+
+        /* Do Time */
+        AttributeFactory.addTimeBoundsMetadata(ncds, subRanges);
+
+        /* Do Lat */
+        AttributeFactory.addLatBoundsMetadata(ncds, ft);
+
+        /* Do Lon */
+        AttributeFactory.addLonBoundsMetadata(ncds, ft);
+
+        /* Do Vert */
+        AttributeFactory.addVertBoundsMetadata(ncds, ft);
+
+    }
+
+//    private double mbToMetersPosDown(double mbPressure) {
+//        /* From:  http://www.4wx.com/wxcalc/formulas/pressureAltitude.php  */
+//        double ft = (1 - (Math.pow(mbPressure / 1013.25, 0.190284))) * 145366.45;
+//        /* Convert feet to meters */
+//        return -ft * 0.3048;
+//    }
+
+    protected IonMessage rpcDataMessage(byte[] dataMessageContent) {
+        IonMessage dataMessage = cl.createMessage(fromName, toName, ingest_op, dataMessageContent);
+        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+        log.debug(printMessage("**NetcdfDataset Message to eoi_ingest**", dataMessage));
+        cl.sendMessage(dataMessage);
+        return cl.consumeMessage(recieverQueue);
+    }
+
+    protected void sendDataMessage(byte[] dataMessageContent) {
+        IonMessage dataMessage = cl.createMessage(fromName, toName, ingest_op, dataMessageContent);
+        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+        log.debug(printMessage("**NetcdfDataset Message to eoi_ingest**", dataMessage));
+        cl.sendMessage(dataMessage);
+    }
+
+    private void initMsgBrokerClient(HashMap<String, String> connectionInfo) {
+        toName = new ion.core.messaging.MessagingName(connectionInfo.get("exchange"), connectionInfo.get("service"));
+        cl = new ion.core.messaging.MsgBrokerClient(connectionInfo.get("server"), com.rabbitmq.client.AMQP.PROTOCOL.PORT, connectionInfo.get("topic"));
+        fromName = ion.core.messaging.MessagingName.generateUniqueName();
+        cl.attach();
+        recieverQueue = cl.declareQueue(null);
+        cl.bindQueue(recieverQueue, fromName, null);
+        cl.attachConsumer(recieverQueue);
+    }
+
+    private void closeMsgBrokerClient() {
+        if (cl != null) {
+            cl.detach();
+            cl = null;
+        }
+    }
+
+    /**
+     * Generates a multi-line string representation of an {@link IonMessage}
+     *
+     * @param title a title (description) for this message.  This text will be at the beginning of the multi-line output string.
+     * @param msg the {@link IonMessage} to represent as a string.
+     * @return a multi-line string representation of the message
+     */
+    public static String printMessage(String title, IonMessage msg) {
+        StringBuilder sb = new StringBuilder("\n" + title + "\n");
+        sb.append("Headers: ").append("\n");
+        java.util.HashMap<String, Object> headers = (java.util.HashMap<String, Object>) msg.getIonHeaders();
+        for (String s : headers.keySet()) {
+            sb.append("\t").append(s).append(" :: ").append(headers.get(s)).append("\n");
+        }
+        sb.append("CONTENT: ").append("\n");
+        sb.append("\t").append(msg.getContent()).append("\n");
+        return sb.toString();
+    }
 //    protected String sendNetcdfVariable(String datasetID, ucar.nc2.Variable var, String op) {
 //        return sendNetcdfVariable(datasetID, var, var.getShapeAsSection(), op);
 //
@@ -315,46 +425,4 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //
 //
 //    }
-    protected IonMessage rpcDataMessage(String op, byte[] dataMessageContent) {
-        IonMessage dataMessage = cl.createMessage(fromName, toName, op, dataMessageContent);
-        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-        log.debug(printMessage("**NetcdfDataset Message to eoi_ingest**", dataMessage));
-        cl.sendMessage(dataMessage);
-        return cl.consumeMessage(recieverQueue);
-    }
-
-    private void initMsgBrokerClient(HashMap<String, String> connectionInfo) {
-        toName = new ion.core.messaging.MessagingName(connectionInfo.get("exchange"), connectionInfo.get("service"));
-        cl = new ion.core.messaging.MsgBrokerClient(connectionInfo.get("server"), com.rabbitmq.client.AMQP.PROTOCOL.PORT, connectionInfo.get("topic"));
-        fromName = ion.core.messaging.MessagingName.generateUniqueName();
-        cl.attach();
-        recieverQueue = cl.declareQueue(null);
-        cl.bindQueue(recieverQueue, fromName, null);
-        cl.attachConsumer(recieverQueue);
-    }
-
-    private void closeMsgBrokerClient() {
-        if (cl != null) {
-            cl.detach();
-        }
-    }
-
-    /**
-     * Generates a multi-line string representation of an {@link IonMessage}
-     *
-     * @param title a title (description) for this message.  This text will be at the beginning of the multi-line output string.
-     * @param msg the {@link IonMessage} to represent as a string.
-     * @return a multi-line string representation of the message
-     */
-    public static String printMessage(String title, IonMessage msg) {
-        StringBuilder sb = new StringBuilder("\t\n" + title + "\n");
-        sb.append("Headers: ").append("\n");
-        java.util.HashMap<String, Object> headers = (java.util.HashMap<String, Object>) msg.getIonHeaders();
-        for (String s : headers.keySet()) {
-            sb.append("\t").append(s).append(" :: ").append(headers.get(s)).append("\n");
-        }
-        sb.append("CONTENT: ").append("\n");
-        sb.append("\t").append(msg.getContent()).append("\n");
-        return sb.toString();
-    }
 }

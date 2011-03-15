@@ -12,7 +12,7 @@ import net.ooici.eoi.datasetagent.impl.*;
  * @author cmueller
  */
 public class AgentFactory {
-    public static IDatasetAgent getDatasetAgent(net.ooici.services.sa.DataSource.EoiDataContext.SourceType st) throws IllegalArgumentException {
+    public static IDatasetAgent getDatasetAgent(net.ooici.services.sa.DataSource.SourceType st) throws IllegalArgumentException {
         IDatasetAgent agent = null;
         switch (st) {
             case SOS:

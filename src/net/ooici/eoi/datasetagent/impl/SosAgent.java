@@ -50,7 +50,7 @@ public class SosAgent extends AbstractAsciiAgent {
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         log.debug("");
         log.info("Building SOS Request for context:\n{\n" + context.toString() + "}\n");
 
@@ -333,8 +333,8 @@ public class SosAgent extends AbstractAsciiAgent {
         } catch (Exception ex) {
             log.error("Error bootstrapping", ex);
         }
-        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
-        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.SOS);
+        net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+        cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
         int switcher = 2;
         switch(switcher) {
@@ -358,7 +358,7 @@ public class SosAgent extends AbstractAsciiAgent {
                 break;
         }
 
-        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+        net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
 //        agent.setTesting(true);

@@ -123,7 +123,7 @@ public class DatasetAgentController implements ControlListener {
                 String status = "";
                 log.debug("Processing Thread ID: " + threadId);
 //                Map<String, String[]> context = convertToStringStringArrayMap(((HashMap<?, ?>) msg.getContent()));
-                net.ooici.services.sa.DataSource.EoiDataContext context = null;
+                net.ooici.services.sa.DataSource.EoiDataContextMessage context = null;
                 try {
                     net.ooici.core.container.Container.Structure struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
                     HashMap<ByteString, Container.StructureElement> elementMap = new HashMap<ByteString, Container.StructureElement>();
@@ -137,7 +137,7 @@ public class DatasetAgentController implements ControlListener {
 //                    net.ooici.core.link.Link.CASRef link = ionmsg.getMessageObject();
 //                    Container.StructureElement elm = elementMap.get(link.toByteString());
 
-                    context = net.ooici.services.sa.DataSource.EoiDataContext.parseFrom(elementMap.entrySet().iterator().next().getValue().getValue());
+                    context = net.ooici.services.sa.DataSource.EoiDataContextMessage.parseFrom(elementMap.entrySet().iterator().next().getValue().getValue());
                     log.debug("ProcThread:" + threadId + ":: Received context as:\n{\n" + context.toString() + "}\n");
 //                    if (log.isDebugEnabled()) {
 //                        log.debug("Checking localized context...");
@@ -187,7 +187,7 @@ public class DatasetAgentController implements ControlListener {
                     ((ControlProcess) source).send(reply);
                 }
 
-                net.ooici.services.sa.DataSource.EoiDataContext.SourceType source_type = context.getSourceType();
+                net.ooici.services.sa.DataSource.SourceType source_type = context.getSourceType();
                 log.debug("ProcThread:" + threadId + ":: source_type = " + source_type);
 
                 /* Instantiate the appropriate dataset agent based on the source_type */

@@ -30,7 +30,7 @@ public class NcAgent extends AbstractNcAgent {
     private Date sTime = null, eTime = null;
 
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         String ncmlTemplate = context.getNcmlMask();
         String ncdsLoc = context.getDatasetUrl();
         try {
@@ -198,13 +198,13 @@ public class NcAgent extends AbstractNcAgent {
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2009_da/his";
 
-        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
-        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.NETCDF_S);
+        net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+        cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_S);
         cBldr.setDatasetUrl(dataurl).setNcmlMask(ncmlmask);
         cBldr.setStartTime(sTime);
         cBldr.setEndTime(eTime);
 
-        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+        net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setTesting(true);

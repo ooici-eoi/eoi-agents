@@ -42,7 +42,7 @@ public class NcGridAgent extends AbstractNcAgent {
     private Date sTime = null;
     private Date eTime = null;
 
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         /* Store the sTime and eTime for later */
         String sTimeString = context.getStartTime();
         String eTimeString = context.getEndTime();
@@ -386,12 +386,12 @@ public class NcGridAgent extends AbstractNcAgent {
 //        TEST_CONTEXT_GRID.put(DataSourceRequestKeys.END_TIME, new String[]{"2011-01-26T00:00:00Z"});
 
 //        Map<String, String[]> context = TEST_CONTEXT_GRID;
-        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
-        cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.NETCDF_C);
+        net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+        cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_C);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/thredds/dodsC/hfradar_usegc_6km");
         cBldr.setStartTime("2011-01-26T00:00:00Z");
         cBldr.setEndTime("2011-01-26T20:00:00Z");
-        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+        net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setTesting(true);

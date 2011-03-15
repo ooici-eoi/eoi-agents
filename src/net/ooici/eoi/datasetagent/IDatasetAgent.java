@@ -20,11 +20,11 @@ public interface IDatasetAgent {
      * @param context
      * @return
      */
-    String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context);
+    String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context);
     
     Object acquireData(String request);
     
-    String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContext context, java.util.HashMap<String, String> connectionInfo);
+    String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage context, java.util.HashMap<String, String> connectionInfo);
 
     void setTesting(boolean isTest);
 

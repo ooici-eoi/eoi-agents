@@ -83,7 +83,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see net.ooici.agent.abstraction.IDatasetAgent#doUpdate()
      */
     @Override
-    public final String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContext context, java.util.HashMap<String, String> connectionInfo) {
+    public final String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage context, java.util.HashMap<String, String> connectionInfo) {
         /* NOTE: Template method.  Do not reorder */
 
         /* If the connectionInfo object is null, assume this is being called from a test */

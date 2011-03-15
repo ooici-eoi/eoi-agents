@@ -87,7 +87,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         log.debug("");
         log.info("Building Request for context [" + context.toString() + "...]");
 
@@ -455,8 +455,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
         if (makeSamples) {
             generateRutgersSamples();
         } else {
-            net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
-            cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
+            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
             int switcher = 2;
             switch (switcher) {
@@ -497,8 +497,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
         String[] tempIds = new String[]{"01362500", "01463500", "01646500"};
 
         for (String id : disIds) {
-            net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
-            cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
+            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
             cBldr.setStartTime(sTime);
             cBldr.setEndTime(eTime);
@@ -519,8 +519,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
         }
 
         for (String id : tempIds) {
-            net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
-            cBldr.setSourceType(net.ooici.services.sa.DataSource.EoiDataContext.SourceType.USGS);
+            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
             cBldr.setStartTime(sTime);
             cBldr.setEndTime(eTime);
@@ -543,7 +543,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         System.out.println("******FINISHED******");
     }
 
-    private static String[] doTest(net.ooici.services.sa.DataSource.EoiDataContext context) throws IOException {
+    private static String[] doTest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) throws IOException {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
 //        agent.setTesting(true);
 

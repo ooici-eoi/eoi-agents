@@ -23,8 +23,8 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupDupDepthImpl;
 import net.ooici.eoi.netcdf.VariableParams;
-import net.ooici.services.sa.DataSource.EoiDataContext.RequestType;
-import net.ooici.services.sa.DataSource.EoiDataContext.SourceType;
+import net.ooici.services.sa.DataSource.RequestType;
+import net.ooici.services.sa.DataSource.SourceType;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -46,7 +46,7 @@ public class AomlAgent extends AbstractAsciiAgent {
      * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
      */
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContext context) {
+    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
@@ -312,6 +312,7 @@ public class AomlAgent extends AbstractAsciiAgent {
         return ogList;
     }
 
+    @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
         for (IObservationGroup obs : obsList) {
@@ -330,7 +331,7 @@ public class AomlAgent extends AbstractAsciiAgent {
         } catch (Exception ex) {
             log.error("Error bootstrapping", ex);
         }
-        net.ooici.services.sa.DataSource.EoiDataContext.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContext.newBuilder();
+        net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(SourceType.AOML);
         cBldr.setBaseUrl("http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?");
 //        cBldr.setTop(47.0);
@@ -351,7 +352,7 @@ public class AomlAgent extends AbstractAsciiAgent {
         cBldr.setEndTime(AgentUtils.ISO8601_DATE_FORMAT.format(endTime.getTime()));
         cBldr.setRequestType(RequestType.CTD);
 
-        net.ooici.services.sa.DataSource.EoiDataContext context = cBldr.build();
+        net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setTesting(true);

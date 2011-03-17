@@ -79,12 +79,14 @@ public class SosAgent extends AbstractAsciiAgent {
             try {
                 sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
             } catch (ParseException e) {
-                throw new IllegalArgumentException("Could not convert DATE string for context start_time:: Unparsable value = " + sTimeString, e);
+                log.error("Error parsing start time - the start time will not be specified", e);
+//                throw new IllegalArgumentException("Could not convert DATE string for context start_time:: Unparsable value = " + sTimeString, e);
             }
             try {
                 eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
             } catch (ParseException e) {
-                throw new IllegalArgumentException("Could not convert DATE string for context end_time:: Unparsable value = " + eTimeString, e);
+                log.error("Error parsing end time - the end time will not be specified", e);
+//                throw new IllegalArgumentException("Could not convert DATE string for context end_time:: Unparsable value = " + eTimeString, e);
             }
             DateFormat sosUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
             sosUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));

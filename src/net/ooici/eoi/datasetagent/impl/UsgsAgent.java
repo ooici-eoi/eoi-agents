@@ -372,23 +372,23 @@ public class UsgsAgent extends AbstractAsciiAgent {
             /* references */
             globalAttributes.put("references", new StringBuilder().append("[").append("http://waterservices.usgs.gov/").append("]").toString());
 
-            /* utc_start_time */
-            Date tempDate = new Date(0);
-            String beginDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:beginDateTime", null);
-
-            tempDate = inSdf.parse(beginDate);
-            String beginDateISO = outSdf.format(tempDate);
-            globalAttributes.put("utc_start_time", beginDateISO);
-
-
-            /* utc_end_time */
-            tempDate = new Date(0);
-            String endDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:endDateTime", null);
-
-
-            tempDate = inSdf.parse(endDate);
-            String endDateISO = outSdf.format(tempDate);
-            globalAttributes.put("utc_end_time", endDateISO);
+//            /* utc_start_time */
+//            Date tempDate = new Date(0);
+//            String beginDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:beginDateTime", null);
+//
+//            tempDate = inSdf.parse(beginDate);
+//            String beginDateISO = outSdf.format(tempDate);
+//            globalAttributes.put("utc_start_time", beginDateISO);
+//
+//
+//            /* utc_end_time */
+//            tempDate = new Date(0);
+//            String endDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:endDateTime", null);
+//
+//
+//            tempDate = inSdf.parse(endDate);
+//            String endDateISO = outSdf.format(tempDate);
+//            globalAttributes.put("utc_end_time", endDateISO);
 
 
             /* conventions */

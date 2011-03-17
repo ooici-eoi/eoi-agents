@@ -116,6 +116,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         /* Apply OOICI geospatial-temporal metadata */
         addOoiciBoundsMetadata(ncds);
 
+        /* "finish" the dataset - applies any changes that have been applied to ensure they appear in the dataset as appropriate */
+        ncds.finish();
+
         String ret = null;
         if (testing) {
             ret = ncds.toString();
@@ -325,7 +328,6 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         /* Do Vert */
         AttributeFactory.addVertBoundsMetadata(ncds, ft);
-
     }
 
 //    private double mbToMetersPosDown(double mbPressure) {

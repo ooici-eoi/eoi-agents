@@ -91,6 +91,109 @@ public class UsgsAgent extends AbstractAsciiAgent {
         log.debug("");
         log.info("Building Request for context [" + context.toString() + "...]");
 
+        String result = "";
+
+        String baseurl = context.getBaseUrl();
+        if (baseurl.endsWith("nwis/iv?")) {
+            result = buildWaterServicesRequest(context);
+        } else if (baseurl.endsWith("NWISQuery/GetDV1?")) {
+            result = buildDailyValuesRequest(context);
+        }
+
+
+//        String baseUrl = context.getBaseUrl();
+//        String sTimeString = context.getStartTime();
+//        String eTimeString = context.getEndTime();
+//        String properties[] = context.getPropertyList().toArray(new String[0]);
+//        String siteCodes[] = context.getStationIdList().toArray(new String[0]);
+
+
+        /** TODO: null-check here */
+        /** Configure the date-time parameter */
+//        Date sTime = null;
+//        Date eTime = null;
+//        DateFormat usgsUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+//        if (isDailyQuery) {
+//            usgsUrlSdf = new SimpleDateFormat("yyyy-MM-dd");
+//        }
+//        usgsUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+//        try {
+//            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
+//            sTimeString = usgsUrlSdf.format(sTime);
+//        } catch (ParseException e) {
+//            log.error("Error parsing start time - the start time will not be specified", e);
+//            sTimeString = null;
+////            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+//        }
+//
+//        if (sTimeString == null) {
+//            sTimeString =
+//        }
+//
+//        try {
+//            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
+//            eTimeString = usgsUrlSdf.format(eTime);
+//        } catch (ParseException e) {
+//            eTimeString = null;
+//            log.error("Error parsing end time - the end time will not be specified", e);
+////            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        }
+//
+//
+//        if (isDailyQuery) {
+//            // http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?SiteNum=01463500&ParameterCode=00060&StatisticCode=00003&StartDate=2003-01-01
+//            // http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?SiteNum=01463500&ParameterCode=00060&StatisticCode=00003&StartDate=2003-01-01&EndDate=2011-03-15
+//            result.append(baseUrl);
+//            result.append("SiteNum=").append(siteCodes[0]);
+//            result.append("&ParameterCode=").append(properties[0]);
+//            result.append("&StatisticCode=00003");//Mean only for now
+//            if (sTimeString != null && !sTimeString.isEmpty()) {
+//                result.append("&StartDate=").append(sTimeString);
+//            }
+//            if (eTimeString != null && !eTimeString.isEmpty()) {
+//                result.append("&EndDate=").append(eTimeString);
+//            }
+//        } else {
+//            /** Build the propertiesString*/
+//            StringBuilder propertiesString = new StringBuilder();
+//            for (String property : properties) {
+//                if (null != property) {
+//                    propertiesString.append(property.trim()).append(",");
+//                }
+//            }
+//            if (propertiesString.length() > 0) {
+//                propertiesString.deleteCharAt(propertiesString.length() - 1);
+//            }
+//
+//            /** Build the list of sites (siteCSV)*/
+//            StringBuilder siteCSV = new StringBuilder();
+//            for (String siteCode : siteCodes) {
+//                if (null != siteCode) {
+//                    siteCSV.append(siteCode.trim()).append(",");
+//                }
+//            }
+//            if (siteCSV.length() > 0) {
+//                siteCSV.deleteCharAt(siteCSV.length() - 1);
+//            }
+//
+//            /** Build the query URL */
+//            result.append(baseUrl);
+//            result.append("&sites=").append(siteCSV);
+//            result.append("&parameterCd=").append(propertiesString);
+//            if (sTimeString != null && !sTimeString.isEmpty()) {
+//                result.append("&startDT=").append(sTimeString);
+//            }
+//            if (eTimeString != null && !eTimeString.isEmpty()) {
+//                result.append("&endDT=").append(eTimeString);
+//            }
+//        }
+
+
+        log.debug("... built request: [" + result + "]");
+        return result.toString();
+    }
+
+    private String buildWaterServicesRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
@@ -160,6 +263,53 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return result.toString();
     }
 
+    private String buildDailyValuesRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+        StringBuilder result = new StringBuilder();
+
+        String baseUrl = context.getBaseUrl();
+        String sTimeString = context.getStartTime();
+        String eTimeString = context.getEndTime();
+        String properties[] = context.getPropertyList().toArray(new String[0]);
+        String siteCodes[] = context.getStationIdList().toArray(new String[0]);
+
+
+        /** TODO: null-check here */
+        /** Configure the date-time parameter */
+        Date sTime = null;
+        Date eTime = null;
+        try {
+            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+        }
+        try {
+            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
+        } catch (ParseException e) {
+            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+        }
+        DateFormat usgsUrlSdf = new SimpleDateFormat("yyyy-MM-dd");
+        usgsUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        sTimeString = usgsUrlSdf.format(sTime);
+        eTimeString = usgsUrlSdf.format(eTime);
+
+        //TODO: If eTimeString is empty/null, set to "now"
+
+        /** Build the query URL */
+        result.append(baseUrl);
+        result.append("SiteNum=").append(siteCodes[0]);
+        result.append("&ParameterCode=").append(properties[0]);
+        result.append("&StatisticCode=00003");//Mean only for now
+        if (sTimeString != null && !sTimeString.isEmpty()) {
+            result.append("&StartDate=").append(sTimeString);
+        }
+        if (eTimeString != null && !eTimeString.isEmpty()) {
+            result.append("&EndDate=").append(eTimeString);
+        }
+
+        log.debug("... built request: [" + result + "]");
+        return result.toString();
+    }
+
     /* (non-Javadoc)
      * @see net.ooici.agent.abstraction.AbstractAsciiAgent#parseObss(java.lang.String)
      */
@@ -167,6 +317,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
     protected List<IObservationGroup> parseObs(String asciiData) {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, Math.min(asciiData.length(), 40)) + "...]");
+
+//        ooici.eoi.netcdf.test.SysClipboard.copyString(asciiData);
 
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         StringReader srdr = new StringReader(asciiData);
@@ -458,7 +610,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 2;
+            int switcher = 4;
             switch (switcher) {
                 case 1://test temp
                     cBldr.setStartTime("2011-2-10T00:00:00Z");
@@ -479,6 +631,14 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     cBldr.addProperty("00060");
                     cBldr.addStationId("01463500");
                     break;
+                case 4:
+//                    cBldr.setStartTime("2003-01-01T00:00:00Z");
+                    cBldr.setStartTime("2011-02-01T00:00:00Z");
+                    cBldr.setEndTime("2011-03-01T00:00:00Z");
+                    cBldr.addProperty("00060");
+                    cBldr.addStationId("01463500");
+                    cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
+                    break;
             }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");
 //            cBldr.setEndTime("2011-01-31T00:00:00Z");
@@ -494,47 +654,49 @@ public class UsgsAgent extends AbstractAsciiAgent {
         String sTime = "2011-3-01T00:00:00Z", eTime = "2011-3-02T00:00:00Z";
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
         String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
+        String[] disNames = new String[]{"Connecticut", "Hudson", "Mohawk", "Passaic", "Raritan", "Delaware", "Susquehanna", "Potomac", "Patuxent", "Rappahannock", "Choptank", "James", "Appomattox", "Pamunkey", "Mattaponi"};
         String[] tempIds = new String[]{"01362500", "01463500", "01646500"};
+        String[] tempNames = new String[]{"Hudson", "Delware", "Potomac"};
 
-        for (String id : disIds) {
+        for (int i = 0; i < disIds.length; i++) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
             cBldr.setStartTime(sTime);
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00060");
-            cBldr.addStationId(id);
+            cBldr.addStationId(disIds[i]);
             String[] res = doTest(cBldr.build());
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + id + "_disc.nc");
+                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + disNames[i] + "_discharge.nc");
             } catch (IOException ex) {
                 log.error("Error writing netcdf file", ex);
             } finally {
-                if(dsout != null) {
+                if (dsout != null) {
                     dsout.close();
                 }
             }
         }
 
-        for (String id : tempIds) {
+        for (int i = 0; i < tempIds.length; i++) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
             cBldr.setStartTime(sTime);
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00010");
-            cBldr.addStationId(id);
+            cBldr.addStationId(tempIds[i]);
             String[] res = doTest(cBldr.build());
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + id + "_temp.nc");
+                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + tempNames[i] + "_temp.nc");
             } catch (IOException ex) {
                 log.error("Error writing netcdf file", ex);
             } finally {
-                if(dsout != null) {
+                if (dsout != null) {
                     dsout.close();
                 }
             }

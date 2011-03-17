@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -357,11 +358,18 @@ public class AomlAgent extends AbstractAsciiAgent {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setTesting(true);
 
-        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
-        connInfo.put("exchange", "eoitest");
-        connInfo.put("service", "eoi_ingest");
-        connInfo.put("server", "macpro");
-        connInfo.put("topic", "magnet.topic");
+//        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+//        connInfo.put("exchange", "eoitest");
+//        connInfo.put("service", "eoi_ingest");
+//        connInfo.put("server", "macpro");
+//        connInfo.put("topic", "magnet.topic");
+        java.util.HashMap<String, String> connInfo = null;
+        try {
+            connInfo = ion.core.utils.IonUtils.parseProperties();
+        } catch (IOException ex) {
+            log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
+            System.exit(1);
+        }
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");
         for (String s : result) {

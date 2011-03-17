@@ -646,7 +646,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-            doTest(cBldr.build());
+            runAgent(cBldr.build());
         }
     }
 
@@ -666,7 +666,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00060");
             cBldr.addStationId(disIds[i]);
-            String[] res = doTest(cBldr.build());
+            String[] res = runAgent(cBldr.build());
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
@@ -688,7 +688,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00010");
             cBldr.addStationId(tempIds[i]);
-            String[] res = doTest(cBldr.build());
+            String[] res = runAgent(cBldr.build());
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
@@ -705,16 +705,23 @@ public class UsgsAgent extends AbstractAsciiAgent {
         System.out.println("******FINISHED******");
     }
 
-    private static String[] doTest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) throws IOException {
+    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context) throws IOException {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
 //        agent.setTesting(true);
 
-        java.util.HashMap<String, String> connInfo = IospUtils.parseProperties(new java.io.File(System.getProperty("user.dir") + "/ooici-conn.properties"));
+//        java.util.HashMap<String, String> connInfo = IospUtils.parseProperties(new java.io.File(System.getProperty("user.dir") + "/ooici-conn.properties"));
 //        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
 //        connInfo.put("exchange", "eoitest");
 //        connInfo.put("service", "eoi_ingest");
 //        connInfo.put("server", "localhost");
 //        connInfo.put("topic", "magnet.topic");
+        java.util.HashMap<String, String> connInfo = null;
+        try {
+            connInfo = ion.core.utils.IonUtils.parseProperties();
+        } catch (IOException ex) {
+            log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
+            System.exit(1);
+        }
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");
         for (String s : result) {

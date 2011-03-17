@@ -368,11 +368,18 @@ public class SosAgent extends AbstractAsciiAgent {
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(50);//super-duper small
 
-        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
-        connInfo.put("exchange", "eoitest");
-        connInfo.put("service", "eoi_ingest");
-        connInfo.put("server", "localhost");
-        connInfo.put("topic", "magnet.topic");
+//        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+//        connInfo.put("exchange", "eoitest");
+//        connInfo.put("service", "eoi_ingest");
+//        connInfo.put("server", "localhost");
+//        connInfo.put("topic", "magnet.topic");
+        java.util.HashMap<String, String> connInfo = null;
+        try {
+            connInfo = ion.core.utils.IonUtils.parseProperties();
+        } catch (IOException ex) {
+            log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
+            System.exit(1);
+        }
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");
         for (String s : result) {

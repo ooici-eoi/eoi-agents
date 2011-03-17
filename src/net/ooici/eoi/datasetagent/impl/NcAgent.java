@@ -12,6 +12,7 @@ import java.text.ParseException;
 import java.util.Date;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import net.ooici.eoi.netcdf.NcDumpParse;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.InvalidRangeException;
@@ -143,12 +144,54 @@ public class NcAgent extends AbstractNcAgent {
         return temploc;
     }
 
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         try {
             ion.core.IonBootstrap.bootstrap();
         } catch (Exception ex) {
             log.error("Error bootstrapping", ex);
         }
+
+//        manualTesting();
+
+//        generateSamples();
+
+        generateMetadata();
+
+    }
+
+    private static void generateMetadata() throws IOException {
+        /** For each of the "R1" netcdf datasets (either local or remote)
+         *
+         * 1. get the last timestep of the data
+         * 2. get the list of global-attributes
+         * 3. build a delimited string with the following structure:
+         *      attribute_1, attribute_2, attribute_3, ..., attribute_n
+         *      value_1, value_2, value_3, ..., value_n
+         *
+         */
+        String[] datasetList = new String[]{"http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z"};
+
+        /* For now, don't add anything - this process will help us figure out what needs to be added */
+        String ncmlmask = "<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+        for (String dsUrl : datasetList) {
+            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_S);
+            cBldr.setDatasetUrl(dsUrl).setNcmlMask(ncmlmask);
+            cBldr.setStartTime("");
+            cBldr.setEndTime("");
+
+
+            String[] resp = runAgent(cBldr.build(), true);
+            System.out.println(NcDumpParse.parseToDelimited(resp[0]));
+        }
+
+
+    }
+
+    private static void generateSamples() {
+    }
+
+    private static void manualTesting() throws IOException {
         /* the ncml mask to use*/
         /* for NAM - WARNING!!  This is a HUGE file... not fully supported on the ingest side yet... */
         String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"> <variable name=\"time\"> <attribute name=\"standard_name\" value=\"time\" /> </variable> <variable name=\"lat\"> <attribute name=\"standard_name\" value=\"latitude\" /> <attribute name=\"units\" value=\"degree_north\" /> </variable> <variable name=\"lon\"> <attribute name=\"standard_name\" value=\"longitude\" /> <attribute name=\"units\" value=\"degree_east\" /> </variable> </netcdf>";
@@ -204,10 +247,13 @@ public class NcAgent extends AbstractNcAgent {
         cBldr.setStartTime(sTime);
         cBldr.setEndTime(eTime);
 
-        net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
+        runAgent(cBldr.build(), false);
+    }
+
+    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, boolean isTesting) throws IOException {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setTesting(true);
+        agent.setTesting(isTesting);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(1048576);//1mb
@@ -215,29 +261,26 @@ public class NcAgent extends AbstractNcAgent {
 //        agent.setMaxSize(30000);//pretty small
 //        agent.setMaxSize(1500);//very small
 //        agent.setMaxSize(150);//super small
-        
+
 //        agent.setMaxSize(maxSize);//ds defined
 
-        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
-        connInfo.put("exchange", "eoitest");
-        connInfo.put("service", "eoi_ingest");
-        connInfo.put("server", "localhost");
-        connInfo.put("topic", "magnet.topic");
+//        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
+//        connInfo.put("exchange", "eoitest");
+//        connInfo.put("service", "eoi_ingest");
+//        connInfo.put("server", "localhost");
+//        connInfo.put("topic", "magnet.topic");
+        java.util.HashMap<String, String> connInfo = null;
+        try {
+            connInfo = ion.core.utils.IonUtils.parseProperties();
+        } catch (IOException ex) {
+            log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
+            System.exit(1);
+        }
         String[] result = agent.doUpdate(context, connInfo);
         log.debug("Response:");
         for (String s : result) {
             log.debug(s);
         }
-
-//        String outdir = "output/nc/";
-//        try {
-//            if (!new File(outdir).exists()) {
-//                new File(outdir).mkdirs();
-//            }
-//
-//            ucar.nc2.FileWriter.writeToFile(dataset, outdir + dataurl.substring(dataurl.lastIndexOf("/") + 1), false, 0, true);
-//        } catch (IOException ex) {
-//            log.warn("Could not write NC to file", ex);
-//        }
+        return result;
     }
 }

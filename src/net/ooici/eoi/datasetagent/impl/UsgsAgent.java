@@ -610,7 +610,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 4;
+            int switcher = 2;
             switch (switcher) {
                 case 1://test temp
                     cBldr.setStartTime("2011-2-10T00:00:00Z");

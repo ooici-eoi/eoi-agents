@@ -207,9 +207,14 @@ public class Unidata2Ooi {
             bndArr = getBoundedArray(section, null);
         }
 
-        GPBWrapper<Cdmvariable.BoundedArray> baWrap = GPBWrapper.Factory(bndArr);
-        ProtoUtils.addStructureElementToStructureBuilder(structBldr, baWrap.getStructureElement());
-        varBldr.addContent(baWrap.getCASRef());
+        if (bndArr != null) {
+            GPBWrapper<Cdmvariable.BoundedArray> baWrap = GPBWrapper.Factory(bndArr);
+            ProtoUtils.addStructureElementToStructureBuilder(structBldr, baWrap.getStructureElement());
+            Cdmvariable.ArrayStructure arrStruct = Cdmvariable.ArrayStructure.newBuilder().addBoundedArrays(baWrap.getCASRef()).build();
+            GPBWrapper<Cdmvariable.ArrayStructure> asWrap = GPBWrapper.Factory(arrStruct);
+            ProtoUtils.addStructureElementToStructureBuilder(structBldr, asWrap.getStructureElement());
+            varBldr.setContent(asWrap.getCASRef());
+        }
 
         return GPBWrapper.Factory(varBldr.build());
     }

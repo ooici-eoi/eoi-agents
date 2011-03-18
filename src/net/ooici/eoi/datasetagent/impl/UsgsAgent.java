@@ -75,6 +75,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
     public static final double CONVERT_FT_TO_M = 0.3048;
     public static final double CONVERT_FT3_TO_M3 = Math.pow(CONVERT_FT_TO_M, 3);
 
+    private boolean isDailyValue = false;
+
     /** Static Initializer */
     static {
         valueSdf = new SimpleDateFormat("yyyy-MM-dd'T'HHmmss.sssZ");
@@ -98,6 +100,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             result = buildWaterServicesRequest(context);
         } else if (baseurl.endsWith("NWISQuery/GetDV1?")) {
             result = buildDailyValuesRequest(context);
+            isDailyValue = true;
         }
 
 
@@ -318,12 +321,16 @@ public class UsgsAgent extends AbstractAsciiAgent {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, Math.min(asciiData.length(), 40)) + "...]");
 
-//        ooici.eoi.netcdf.test.SysClipboard.copyString(asciiData);
+        net.ooici.SysClipboard.copyString(asciiData);
 
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         StringReader srdr = new StringReader(asciiData);
         try {
-            obsList.add(parseObservations(srdr));
+            if(!isDailyValue) {
+                obsList.add(ws_parseObservations(srdr));
+            } else {
+                obsList.add(dv_parseObservations(srdr));
+            }
         } finally {
             if (srdr != null) {
                 srdr.close();
@@ -340,7 +347,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * @param rdr
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
-    public static IObservationGroup parseObservations(Reader rdr) {
+    public static IObservationGroup ws_parseObservations(Reader rdr) {
         /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
         IObservationGroup obs = null;
         SAXBuilder builder = new SAXBuilder();
@@ -370,7 +377,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             globalAttributes.put("history", "Converted from WaterML1.1 to OOI CDM compliant NC by " + UsgsAgent.class.getName());
 
             /* references */
-            globalAttributes.put("references", new StringBuilder().append("[").append("http://waterservices.usgs.gov/").append("]").toString());
+            globalAttributes.put("references", new StringBuilder().append("[").append("http://waterservices.usgs.gov/mwis/iv?").append("]").toString());
 
 //            /* utc_start_time */
 //            Date tempDate = new Date(0);
@@ -398,6 +405,196 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
             /** Get a list of provided time series */
             List<?> timeseriesList = XPath.selectNodes(doc, XPATH_ELEMENT_TIME_SERIES);
+
+
+
+            /** Build an observation group for each unique sitecode */
+            Object nextTimeseries = null;
+            Iterator<?> iterTimeseries = timeseriesList.iterator();
+            while (iterTimeseries.hasNext()) {
+                /* Grab the next element */
+                nextTimeseries = iterTimeseries.next();
+                if (null == nextTimeseries) {
+                    continue;
+                }
+
+
+                /** Grab data for the current site */
+                String stnId = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_SITE_CODE)).getTextTrim();
+                String latitude = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_LATITUDE)).getTextTrim();
+                String longitude = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_LONGITUDE)).getTextTrim();
+                String noDataString = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_VARIABLE_NaN_VALUE)).getTextTrim();
+
+                float lat = Float.parseFloat(latitude);
+                float lon = Float.parseFloat(longitude);
+                // float noDataValue = Float.parseFloat(noDataString);
+
+
+                /* Check to see if the observation group already exists */
+                if (obs == null) {
+                    /* Create a new observation group if one does not currently exist */
+                    obs = new ObservationGroupImpl(getNextGroupId(), stnId, lat, lon);
+                }
+
+
+
+                /** Grab variable data */
+                String variableCode = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_VARIABLE_CODE)).getTextTrim();
+                // String variableUnits = getUnitsForVariableCode(variableCode);
+                // String variableName = getStdNameForVariableCode(variableCode);
+
+
+
+                /** Add each timeseries value (observation) to the observation group */
+                /* Get a list of each observation */
+                List<?> observationList = XPath.selectNodes(nextTimeseries, XPATH_ELEMENT_VALUE);
+
+
+                /* Add an observation for each "value" parsed */
+                Object next = null;
+                Iterator<?> iter = observationList.iterator();
+                while (iter.hasNext()) {
+                    /* Grab the next element */
+                    next = iter.next();
+                    if (null == next) {
+                        continue;
+                    }
+
+                    /* Grab observation data */
+                    // String qualifier = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_QUALIFIERS)).getValue();
+                    datetime = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_DATETIME)).getValue();
+                    String value = ((Element) next).getTextTrim();
+                    datetime = datetime.replaceAll("\\:", "");
+
+
+                    /* Convert observation data */
+                    int time = 0;
+                    float data = 0;
+                    float dpth = 0;
+                    VariableParams name = null;
+
+                    time = (int) (valueSdf.parse(datetime).getTime() * 0.001);
+                    // data = Float.parseFloat(value);
+                    name = getDataNameForVariableCode(variableCode);
+                    /* Only convert data if we are dealing with Steamflow) */
+                    if (name == VariableParams.RIVER_STREAMFLOW) {
+                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
+                    } else {
+                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
+                    }
+                    dpth = 0;
+
+
+                    /* Add the observation data */
+                    obs.addObservation(time, dpth, data, new VariableParams(name, DataType.FLOAT));
+
+                    /* TODO: Add the data observation qualifier */
+                    // og.addObservation(time, dpth, qualifier, new VariableParams(name, DataType.FLOAT));
+
+                }
+
+
+                /** Grab attributes */
+                Map<String, String> tsAttributes = new TreeMap<String, String>();
+
+
+                /* Extract timeseries-specific attributes */
+                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName", "[n/a]");
+                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network", "[n/a]");
+                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode", "[n/a]");
+                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode", "[n/a]");
+                tsAttributes.put("institution", new StringBuilder().append(sitename).append(" (network:").append(network).append("; agencyCode:").append(agency).append("; siteCode:").append(sCode).append(";)").toString());
+
+                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription", "[n/a]");
+                tsAttributes.put("source", method);
+
+
+
+                /** Add global and timeseries attributes */
+                obs.addAttributes(globalAttributes);
+                obs.addAttributes(tsAttributes);
+
+
+            }
+
+        } catch (JDOMException ex) {
+            log.error("Error while parsing xml from the given reader", ex);
+        } catch (IOException ex) {
+            log.error("General IO exception.  Please see stack-trace", ex);
+        } catch (ParseException ex) {
+            log.error("Could not parse date information from XML result for: " + datetime, ex);
+        }
+
+        return obs;
+    }
+
+    /**
+     * Parses the String data from the given reader into a list of observation groups.
+     * <em>Note:</em><br />
+     * The given reader is guaranteed to return from this method in a <i>closed</i> state.
+     * @param rdr
+     * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
+     */
+    public static IObservationGroup dv_parseObservations(Reader rdr) {
+        /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
+        IObservationGroup obs = null;
+        SAXBuilder builder = new SAXBuilder();
+        Document doc = null;
+        String datetime = "[no date information]"; /* datetime defined here (outside try) for error reporting */
+
+        try {
+            doc = builder.build(rdr);
+
+            /** Grab Global Attributes (to be copied into each observation group */
+            Namespace ns = Namespace.getNamespace("http://www.cuahsi.org/waterML/1.0/");
+//            Namespace ns1 = Namespace.getNamespace("ns1", "http://www.cuahsi.org/waterML/1.1/");
+//          Namespace ns2 = Namespace.getNamespace("ns2", "http://waterservices.usgs.gov/WaterML-1.1.xsd");
+//          Namespace xsi = Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema");
+
+
+//            Element root = doc.getRootElement();
+//            Element queryInfo = root.getChild("queryInfo", ns);
+            Map<String, String> globalAttributes = new HashMap<String, String>();
+
+
+            /* Extract the Global Attributes */
+            /* title */
+//            String queryUrl = xpathSafeSelectValue(queryInfo, ".//ns2:queryURL", null);
+            globalAttributes.put("title", "USGS rivers data timeseries.  Requested from \"NWIS DailyValues Service\"");
+
+            /* history */
+            globalAttributes.put("history", "Converted from WaterML1.1 to OOI CDM compliant NC by " + UsgsAgent.class.getName());
+
+            /* references */
+            globalAttributes.put("references", new StringBuilder().append("[").append("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?").append("]").toString());
+
+//            /* utc_start_time */
+//            Date tempDate = new Date(0);
+//            String beginDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:beginDateTime", null);
+//
+//            tempDate = inSdf.parse(beginDate);
+//            String beginDateISO = outSdf.format(tempDate);
+//            globalAttributes.put("utc_start_time", beginDateISO);
+//
+//
+//            /* utc_end_time */
+//            tempDate = new Date(0);
+//            String endDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:endDateTime", null);
+//
+//
+//            tempDate = inSdf.parse(endDate);
+//            String endDateISO = outSdf.format(tempDate);
+//            globalAttributes.put("utc_end_time", endDateISO);
+
+
+            /* conventions */
+            globalAttributes.put("Conventions", "CF-1.5");
+
+
+
+            /** Get a list of provided time series */
+//            List<?> timeseriesList = XPath.selectNodes(doc, XPATH_ELEMENT_TIME_SERIES);
+            List<?> timeseriesList = XPath.selectNodes(doc, ".//timeSeries");
 
 
 
@@ -610,7 +807,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 2;
+            int switcher = 4;
             switch (switcher) {
                 case 1://test temp
                     cBldr.setStartTime("2011-2-10T00:00:00Z");
@@ -632,12 +829,12 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     cBldr.addStationId("01463500");
                     break;
                 case 4:
+                    cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
 //                    cBldr.setStartTime("2003-01-01T00:00:00Z");
                     cBldr.setStartTime("2011-02-01T00:00:00Z");
                     cBldr.setEndTime("2011-03-01T00:00:00Z");
                     cBldr.addProperty("00060");
                     cBldr.addStationId("01463500");
-                    cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
                     break;
             }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");

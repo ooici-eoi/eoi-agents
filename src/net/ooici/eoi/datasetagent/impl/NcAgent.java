@@ -6,10 +6,21 @@ package net.ooici.eoi.datasetagent.impl;
 
 import java.io.BufferedWriter;
 import java.io.File;
+import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.ParseException;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.Properties;
+import java.util.TreeMap;
+import java.util.regex.Pattern;
+
+import javax.swing.JTable;
+
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.netcdf.NcDumpParse;
@@ -37,13 +48,13 @@ public class NcAgent extends AbstractNcAgent {
         try {
             sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getStartTime());
         } catch (ParseException ex) {
-            log.error("Error parsing start time - first available time will be used", ex);
+            //log.error("Error parsing start time - first available time will be used", ex);
             sTime = null;
         }
         try {
             eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getEndTime());
         } catch (ParseException ex) {
-            log.error("Error parsing end time - last available time will be used", ex);
+            //log.error("Error parsing end time - last available time will be used", ex);
             eTime = null;
         }
 
@@ -169,22 +180,132 @@ public class NcAgent extends AbstractNcAgent {
          *      value_1, value_2, value_3, ..., value_n
          *
          */
-        String[] datasetList = new String[]{"http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z"};
+//        String[] datasetList = new String[]{"http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z",
+//                                            "http://thredds1.pfeg.noaa.gov/thredds/dodsC/satellite/GR/ssta/1day",
+//                                            "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/avhrr/bigbight/2010"};
 
+        FileReader rdr = new FileReader(new File("/Users/tlarocque/Desktop/metadata_input.txt"));
+        Properties props = new Properties();
+        props.load(rdr);
+        
+
+        Map<String, Map<String, String>> datasets = new TreeMap<String, Map<String,String>>(); /* Maps dataset name to an attributes map */
+        List<String> metaLookup = new ArrayList<String>();
+        
+        /* Front-load the metadata list with the OOI required metadata */
+        metaLookup.add("title");
+        metaLookup.add("institution");
+        metaLookup.add("source");
+        metaLookup.add("history");
+        metaLookup.add("references");
+        metaLookup.add("Conventions");
+        metaLookup.add("summary");
+        metaLookup.add("comment");
+        metaLookup.add("data_url");
+        metaLookup.add("ion_time_coverage_start");
+        metaLookup.add("ion_time_coverage_end");
+        metaLookup.add("ion_geospatial_lat_min");
+        metaLookup.add("ion_geospatial_lat_max");
+        metaLookup.add("ion_geospatial_lon_min");
+        metaLookup.add("ion_geospatial_lon_max");
+        metaLookup.add("ion_geospatial_vertical_min");
+        metaLookup.add("ion_geospatial_vertical_max");
+        metaLookup.add("ion_geospatial_vertical_positive");
+            
         /* For now, don't add anything - this process will help us figure out what needs to be added */
         String ncmlmask = "<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-        for (String dsUrl : datasetList) {
+        String src = null;
+        String url = null;
+        for (Object o : props.keySet()) {
+//        for (String dsUrl : datasetList) {
+            /* Get the K/V pair */
+            src = o.toString();
+            url = props.getProperty(src);
+            
+            System.out.println("Getting ncdump for dataset @ " + url);
+            
+            /* Acquire metadata for the datasource's url */
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_S);
-            cBldr.setDatasetUrl(dsUrl).setNcmlMask(ncmlmask);
+//            cBldr.setDatasetUrl(dsUrl).setNcmlMask(ncmlmask);
+            cBldr.setDatasetUrl(url).setNcmlMask(ncmlmask);
             cBldr.setStartTime("");
             cBldr.setEndTime("");
 
-
-            String[] resp = runAgent(cBldr.build(), true);
-            System.out.println(NcDumpParse.parseToDelimited(resp[0]));
+            String[] resp = null;
+            try {
+                resp = runAgent(cBldr.build(), true);
+            } catch (Exception e) {
+                e.printStackTrace();
+                datasets.put(src + " (FAILED)", null);
+                continue;
+            }
+            
+            
+            System.out.println(".....");
+//            System.out.println("\n\nDataSource:\t" + src + "\n-------------------------------------\n" + NcDumpParse.parseToDelimited(resp[0]));
+//            Map<String, String> metadataMap = NcDumpParse.parseToMap(resp[0]);
+//            TreeMap<String, String> sortedMetadata = new TreeMap<String, String>(metadataMap);
+//            
+//            for (Object key : sortedMetadata.keySet()) {
+//                System.out.println(key.toString());
+//            }
+            Map<String, String> dsMeta = NcDumpParse.parseToMap(resp[0]);
+            datasets.put(src, dsMeta);
+            
+            
+            /* TODO: Eventually we can make this loop external and perform a sort beforehand.
+             *       this sort would frontload attributes which are found more frequently
+             *       across multiple datasets
+             */
+            for (String key : dsMeta.keySet()) {
+                if (!metaLookup.contains(key)) {
+                    metaLookup.add(key);
+                }
+            }
+                
+        }
+        
+        
+        /** Write the CSV output */
+        String NEW_LINE = System.getProperty("line.separator");
+        StringBuilder sb = new StringBuilder();
+        
+        /* TODO: Step 1: add header data here */
+        sb.append("\"Dataset Name\"");
+        for (String metaName : metaLookup) {
+            sb.append(",");
+            sb.append('"');
+            sb.append(metaName.replaceAll(Pattern.quote("\""), "\"\""));
+            sb.append('"');
+        }
+        
+        /* Step 2: Add each row of data */
+        for (String dsName : datasets.keySet()) {
+            Map<String, String> dsMeta = datasets.get(dsName);
+            sb.append(NEW_LINE);    
+            sb.append('"');
+            sb.append(dsName.replaceAll(Pattern.quote("\""), "\"\""));
+            sb.append('"');
+            String metaValue = null;
+            for (String metaName : metaLookup) {
+                sb.append(",");
+                if (null != dsMeta && null != (metaValue = dsMeta.get(metaName))) {
+                    /* To ensure correct formatting, change all existing double quotes
+                     * to two double quotes, and surround the whole cell value with
+                     * double quotes...
+                     */
+                    sb.append('"');
+                    sb.append(metaValue.replaceAll(Pattern.quote("\""), "\"\""));
+                    sb.append('"');
+                }
+            }
+            
         }
 
+        
+        System.out.println(NEW_LINE + NEW_LINE + "********************************************************");
+        System.out.println(sb.toString());
 
     }
 
@@ -277,9 +398,9 @@ public class NcAgent extends AbstractNcAgent {
             System.exit(1);
         }
         String[] result = agent.doUpdate(context, connInfo);
-        log.debug("Response:");
+//        log.debug("Response:");
         for (String s : result) {
-            log.debug(s);
+//            log.debug(s);
         }
         return result;
     }

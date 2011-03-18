@@ -33,6 +33,8 @@ import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
 import org.jdom.input.SAXBuilder;
+import org.jdom.output.Format;
+import org.jdom.output.XMLOutputter;
 import org.jdom.xpath.XPath;
 
 import ucar.nc2.dataset.NetcdfDataset;
@@ -57,20 +59,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
     private static final SimpleDateFormat valueSdf;
     private static final SimpleDateFormat inSdf;
     private static int currentGroupId = -1;
-    /** XPATH queries */
-    public static final String XPATH_ELEMENT_TIME_SERIES = ".//ns1:timeSeries";
-    public static final String XPATH_ELEMENT_SITE_CODE = "./ns1:sourceInfo/ns1:siteCode";
-    public static final String XPATH_ATTRIBUTE_AGENCY_CODE = "./ns1:sourceInfo/ns1:siteCode/@agencyCode";
-    public static final String XPATH_ELEMENT_LATITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:latitude"; /* NOTE: geogLocation is (1..*) */
-
-    public static final String XPATH_ELEMENT_LONGITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:longitude"; /* NOTE: geogLocation is (1..*) */
-
-    public static final String XPATH_ELEMENT_VALUE = "./ns1:values/ns1:value";
-    public static final String XPATH_ELEMENT_VARIABLE_CODE = "./ns1:variable/ns1:variableCode";
-    public static final String XPATH_ELEMENT_VARIABLE_NAME = "./ns1:variable/ns1:variableName";
-    public static final String XPATH_ELEMENT_VARIABLE_NaN_VALUE = "./ns1:variable/ns1:noDataValue";
-    public static final String XPATH_ATTRIBUTE_QUALIFIERS = "./@qualifiers";
-    public static final String XPATH_ATTRIBUTE_DATETIME = "./@dateTime";
+    
     /** Maths */
     public static final double CONVERT_FT_TO_M = 0.3048;
     public static final double CONVERT_FT3_TO_M3 = Math.pow(CONVERT_FT_TO_M, 3);
@@ -349,6 +338,23 @@ public class UsgsAgent extends AbstractAsciiAgent {
      */
     public static IObservationGroup ws_parseObservations(Reader rdr) {
         /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
+
+        /** XPATH queries */
+        final String XPATH_ELEMENT_TIME_SERIES = ".//ns1:timeSeries";
+        final String XPATH_ELEMENT_SITE_CODE = "./ns1:sourceInfo/ns1:siteCode";
+        final String XPATH_ATTRIBUTE_AGENCY_CODE = "./ns1:sourceInfo/ns1:siteCode/@agencyCode";
+        final String XPATH_ELEMENT_LATITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:latitude"; /* NOTE: geogLocation is (1..*) */
+
+        final String XPATH_ELEMENT_LONGITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:longitude"; /* NOTE: geogLocation is (1..*) */
+
+        final String XPATH_ELEMENT_VALUE = "./ns1:values/ns1:value";
+        final String XPATH_ELEMENT_VARIABLE_CODE = "./ns1:variable/ns1:variableCode";
+        final String XPATH_ELEMENT_VARIABLE_NAME = "./ns1:variable/ns1:variableName";
+        final String XPATH_ELEMENT_VARIABLE_NaN_VALUE = "./ns1:variable/ns1:noDataValue";
+        final String XPATH_ATTRIBUTE_QUALIFIERS = "./@qualifiers";
+        final String XPATH_ATTRIBUTE_DATETIME = "./@dateTime";
+
+
         IObservationGroup obs = null;
         SAXBuilder builder = new SAXBuilder();
         Document doc = null;
@@ -537,6 +543,23 @@ public class UsgsAgent extends AbstractAsciiAgent {
      */
     public static IObservationGroup dv_parseObservations(Reader rdr) {
         /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
+        
+        /** XPATH queries */
+        final String XPATH_ELEMENT_TIME_SERIES = ".//ns1:timeSeries";
+        final String XPATH_ELEMENT_SITE_CODE = "./ns1:sourceInfo/ns1:siteCode";
+        final String XPATH_ATTRIBUTE_AGENCY_CODE = "./ns1:sourceInfo/ns1:siteCode/@agencyCode";
+        final String XPATH_ELEMENT_LATITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:latitude"; /* NOTE: geogLocation is (1..*) */
+
+        final String XPATH_ELEMENT_LONGITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:longitude"; /* NOTE: geogLocation is (1..*) */
+
+        final String XPATH_ELEMENT_VALUE = "./ns1:values/ns1:value";
+        final String XPATH_ELEMENT_VARIABLE_CODE = "./ns1:variable/ns1:variableCode";
+        final String XPATH_ELEMENT_VARIABLE_NAME = "./ns1:variable/ns1:variableName";
+        final String XPATH_ELEMENT_VARIABLE_NaN_VALUE = "./ns1:variable/ns1:NoDataValue";
+        final String XPATH_ATTRIBUTE_QUALIFIERS = "./@qualifiers";
+        final String XPATH_ATTRIBUTE_DATETIME = "./@dateTime";
+        
+        
         IObservationGroup obs = null;
         SAXBuilder builder = new SAXBuilder();
         Document doc = null;
@@ -546,13 +569,14 @@ public class UsgsAgent extends AbstractAsciiAgent {
             doc = builder.build(rdr);
 
             /** Grab Global Attributes (to be copied into each observation group */
-            Namespace ns = Namespace.getNamespace("http://www.cuahsi.org/waterML/1.0/");
+            Namespace ns = Namespace.getNamespace("ns1", "http://www.cuahsi.org/waterML/1.0/");
 //            Namespace ns1 = Namespace.getNamespace("ns1", "http://www.cuahsi.org/waterML/1.1/");
 //          Namespace ns2 = Namespace.getNamespace("ns2", "http://waterservices.usgs.gov/WaterML-1.1.xsd");
 //          Namespace xsi = Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema");
 
 
-//            Element root = doc.getRootElement();
+            Element root = doc.getRootElement();
+            root.setNamespace(ns);
 //            Element queryInfo = root.getChild("queryInfo", ns);
             Map<String, String> globalAttributes = new HashMap<String, String>();
 
@@ -593,9 +617,12 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
 
             /** Get a list of provided time series */
+            List<?> timeseriesList = XPath.selectNodes(root, ".//ns1:timeSeries");
 //            List<?> timeseriesList = XPath.selectNodes(doc, XPATH_ELEMENT_TIME_SERIES);
-            List<?> timeseriesList = XPath.selectNodes(doc, ".//timeSeries");
+//            List<?> timeseriesList = XPath.selectNodes(doc, ".//timeSeries");
+//            List<?> timeseriesList = root.getChildren("timeSeries", ns);
 
+            System.out.println("Total timeseries in doc: " + timeseriesList.size());
 
 
             /** Build an observation group for each unique sitecode */
@@ -663,7 +690,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     float dpth = 0;
                     VariableParams name = null;
 
-                    time = (int) (valueSdf.parse(datetime).getTime() * 0.001);
+                    final SimpleDateFormat dvInputSdf;
+                    dvInputSdf = new SimpleDateFormat("yyyy-MM-dd'T'HHmmss");
+                    dvInputSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+                    
+                    time = (int) (dvInputSdf.parse(datetime).getTime() * 0.001);
                     // data = Float.parseFloat(value);
                     name = getDataNameForVariableCode(variableCode);
                     /* Only convert data if we are dealing with Steamflow) */

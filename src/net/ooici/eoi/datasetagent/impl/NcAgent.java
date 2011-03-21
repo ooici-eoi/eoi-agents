@@ -12,14 +12,12 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 import java.util.regex.Pattern;
 
-import javax.swing.JTable;
 
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
@@ -184,7 +182,7 @@ public class NcAgent extends AbstractNcAgent {
 //                                            "http://thredds1.pfeg.noaa.gov/thredds/dodsC/satellite/GR/ssta/1day",
 //                                            "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/avhrr/bigbight/2010"};
 
-        FileReader rdr = new FileReader(new File("/Users/tlarocque/Desktop/metadata_input.txt"));
+        FileReader rdr = new FileReader(new File("metadata_input.txt"));
         Properties props = new Properties();
         props.load(rdr);
         
@@ -216,11 +214,13 @@ public class NcAgent extends AbstractNcAgent {
         String ncmlmask = "<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
         String src = null;
         String url = null;
+        String usrHome = System.getProperty("user.home");
         for (Object o : props.keySet()) {
 //        for (String dsUrl : datasetList) {
             /* Get the K/V pair */
             src = o.toString();
             url = props.getProperty(src);
+            url = (url.startsWith("~")) ? url.replace("~", usrHome) : url;
             
             System.out.println("Getting ncdump for dataset @ " + url);
             

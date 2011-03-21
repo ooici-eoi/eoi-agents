@@ -831,7 +831,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             log.error("Error bootstrapping", ex);
         }
 
-        boolean makeSamples = false;
+        boolean makeSamples = true;
         if (makeSamples) {
             generateRutgersSamples();
         } else {
@@ -861,8 +861,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     break;
                 case 4:
                     cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
-//                    cBldr.setStartTime("2003-01-01T00:00:00Z");
-                    cBldr.setStartTime("2011-02-01T00:00:00Z");
+                    cBldr.setStartTime("2003-01-01T00:00:00Z");
+//                    cBldr.setStartTime("2011-02-01T00:00:00Z");
                     cBldr.setEndTime("2011-03-01T00:00:00Z");
                     cBldr.addProperty("00060");
                     cBldr.addStationId("01463500");
@@ -879,8 +879,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
     }
 
     private static void generateRutgersSamples() throws IOException {
-        String sTime = "2011-3-01T00:00:00Z", eTime = "2011-3-02T00:00:00Z";
+        /* Generates samples for near-realtime high-resolution data */
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
+        String sTime = "2011-03-01T00:00:00Z";
+        String eTime = "2011-03-10T00:00:00Z";
+
+        /* Generates samples for "historical" low-resolution data */
+        baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
+        sTime = "2003-01-01T00:00:00Z";
+        eTime = "2011-03-17T00:00:00Z";
         String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
         String[] disNames = new String[]{"Connecticut", "Hudson", "Mohawk", "Passaic", "Raritan", "Delaware", "Susquehanna", "Potomac", "Patuxent", "Rappahannock", "Choptank", "James", "Appomattox", "Pamunkey", "Mattaponi"};
         String[] tempIds = new String[]{"01362500", "01463500", "01646500"};

@@ -26,15 +26,12 @@ import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
-import ooici.netcdf.iosp.IospUtils;
 
 import org.jdom.Document;
 import org.jdom.Element;
 import org.jdom.JDOMException;
 import org.jdom.Namespace;
 import org.jdom.input.SAXBuilder;
-import org.jdom.output.Format;
-import org.jdom.output.XMLOutputter;
 import org.jdom.xpath.XPath;
 
 import ucar.nc2.dataset.NetcdfDataset;

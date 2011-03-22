@@ -9,7 +9,7 @@ import ion.core.messaging.MsgBrokerClient;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import ooici.netcdf.iosp.messaging.AttributeStore;
+import net.ooici.netcdf.iosp.messaging.AttributeStore;
 
 /**
  *

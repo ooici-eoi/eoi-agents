@@ -10,8 +10,8 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import ooici.netcdf.iosp.messaging.AttributeStore;
-import ooici.netcdf.iosp.*;
+import net.ooici.netcdf.iosp.messaging.AttributeStore;
+import net.ooici.netcdf.iosp.*;
 import ucar.ma2.InvalidRangeException;
 import ucar.nc2.dataset.NetcdfDataset;
 

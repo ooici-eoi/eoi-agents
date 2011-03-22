@@ -8,8 +8,8 @@ import java.io.IOException;
 import java.util.Properties;
 import java.util.logging.Level;
 import java.util.logging.Logger;
-import ooici.netcdf.iosp.IospUtils;
-import ooici.netcdf.iosp.OOICIiosp;
+import net.ooici.netcdf.iosp.IospUtils;
+import net.ooici.netcdf.iosp.OOICIiosp;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**

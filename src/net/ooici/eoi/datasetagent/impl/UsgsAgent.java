@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
@@ -56,6 +57,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
     private static final SimpleDateFormat valueSdf;
     private static final SimpleDateFormat inSdf;
     private static int currentGroupId = -1;
+    private static final String USR_HOME = System.getProperty("user.home");
     
     /** Maths */
     public static final double CONVERT_FT_TO_M = 0.3048;
@@ -297,6 +299,33 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         log.debug("... built request: [" + result + "]");
         return result.toString();
+    }
+    
+    /* (non-Javadoc)
+     * @see net.ooici.eoi.datasetagent.AbstractAsciiAgent#validateData(java.lang.String)
+     */
+    @Override
+    protected void validateData(String asciiData) {
+        super.validateData(asciiData);
+        StringReader sr = new StringReader(asciiData);
+        BufferedReader br = new BufferedReader(sr);
+        String firstLine = null;
+        try {
+            firstLine = br.readLine();
+        } catch (IOException e) {
+            throw new AsciiValidationException("Could not read the ascii input data during validation.", e);
+        }
+        
+        /* Check the response for errors by looking for the word "Error"
+         * ...sometimes the response will be an error even though the
+         * connection's resonse code returns "200 OK" */
+        if (null != firstLine && firstLine.matches("Error [0-9][0-9][0-9] \\- .*")) {
+            int errStart = firstLine.indexOf("Error ");
+            int msgStart = firstLine.indexOf(" - ");
+            String respCode = firstLine.substring(errStart + 6, errStart + 9);
+            String respMsg = firstLine.substring(msgStart + 3);
+            throw new AsciiValidationException(new StringBuilder("Received HTTP Error ").append(respCode).append(" with response message: \"").append(respMsg).append("\"").toString());
+        }
     }
 
     /* (non-Javadoc)
@@ -828,7 +857,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             log.error("Error bootstrapping", ex);
         }
 
-        boolean makeSamples = true;
+        boolean makeSamples = false;
         if (makeSamples) {
             generateRutgersSamples();
         } else {
@@ -876,6 +905,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
     }
 
     private static void generateRutgersSamples() throws IOException {
+        /* Configure the location for output files */
+        String output_prefix = USR_HOME + "/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/";
+        
         /* Generates samples for near-realtime high-resolution data */
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
         String sTime = "2011-03-01T00:00:00Z";
@@ -902,7 +934,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + disNames[i] + "_discharge.nc");
+                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + disNames[i] + "_discharge.nc");
             } catch (IOException ex) {
                 log.error("Error writing netcdf file", ex);
             } finally {
@@ -924,7 +956,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-                ucar.nc2.FileWriter.writeToFile(dsout, "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/" + tempNames[i] + "_temp.nc");
+                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + tempNames[i] + "_temp.nc");
             } catch (IOException ex) {
                 log.error("Error writing netcdf file", ex);
             } finally {

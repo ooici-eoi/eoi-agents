@@ -30,6 +30,29 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         outSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
+    
+    public static class AsciiValidationException extends RuntimeException {
+
+        private static final long serialVersionUID = -637461134752222692L;
+
+        public AsciiValidationException() {
+            super();
+        }
+
+        public AsciiValidationException(String message, Throwable cause) {
+            super(message, cause);
+        }
+
+        public AsciiValidationException(String message) {
+            super(message);
+        }
+
+        public AsciiValidationException(Throwable cause) {
+            super(cause);
+        }
+        
+    }
+    
     /* (non-Javadoc)
      * @see net.ooici.agent.abstraction.IDatasetAgent#acquireData(java.lang.String)
      */
@@ -44,7 +67,7 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
 
         return data;
     }
-
+    
     /* (non-Javadoc)
      * @see net.ooici.agent.abstraction.AbstractDatasetAgent#processDataset(java.lang.Object)
      */
@@ -55,8 +78,19 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         }
         IObservationGroup[] obs = null;
 
+        validateData((String)data);
         obs = parseObs((String) data).toArray(new IObservationGroup[0]);
         return processDataset(obs);
+    }
+
+    /**
+     * Subclasses of AbstractAsciiAgent should implement this method, throwing an AsciiValidationException where appropriate to designate validation failure.
+     * 
+     * @param asciiData
+     *            The ascii data to be validated before it is parsed for observational data.
+     */
+    protected void validateData(String asciiData) {
+        /* NO-OP */
     }
 
     /* TODO: Can we assume all requests from Ascii agents will be for URLs? */

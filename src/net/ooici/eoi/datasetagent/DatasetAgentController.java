@@ -185,6 +185,7 @@ public class DatasetAgentController implements ControlListener {
                     log.debug(printMessage("**Reply Message to Wrapper**", reply));
 
                     ((ControlProcess) source).send(reply);
+                    /* TODO: should we return here? */
                 }
 
                 net.ooici.services.sa.DataSource.SourceType source_type = context.getSourceType();
@@ -216,7 +217,7 @@ public class DatasetAgentController implements ControlListener {
                 /* TODO: Make the connection information default to the conn-info for the DAC...will
                  * be replaced by a proto object containing this information.
                  */
-                log.debug("ProcThread:" + threadId + ":: Bulid connInfo");
+                log.debug("ProcThread:" + threadId + ":: Build connInfo");
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
                 connInfo.put("exchange", "eoitest");
                 connInfo.put("service", "eoi_ingest");
@@ -228,7 +229,27 @@ public class DatasetAgentController implements ControlListener {
                  * The reply should be the ooi resource id
                  */
                 log.debug("ProcThread:" + threadId + ":: Perform update");
-                String[] ooiDsId = agent.doUpdate(context, connInfo);
+                String[] ooiDsId = null;
+                try {
+                    ooiDsId = agent.doUpdate(context, connInfo);
+                } catch (Exception ex) {
+                    /* Send a reply_err message back to caller */
+                    log.error("ProcThread:" + threadId + ":: Received could not perform update", ex);
+                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
+                    reply.getIonHeaders().putAll(msg.getIonHeaders());
+                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+                    reply.getIonHeaders().put("encoding", "json");
+                    reply.getIonHeaders().put("status", "ERROR");
+                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+                    reply.getIonHeaders().put("response", "ION ERROR");
+
+                    log.debug(printMessage("**Reply Message to Wrapper**", reply));
+
+                    ((ControlProcess) source).send(reply);
+                    return;
+                }
 
                 log.debug("ProcThread:" + threadId + ":: Update complete - send reply to wrapper");
                 IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId[0]);

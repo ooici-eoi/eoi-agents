@@ -31,27 +31,31 @@ public class DatasetAgentController implements ControlListener {
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DatasetAgentController.class);
     private final ControlThread controlThread;
     private final ExecutorService processService;
-    private static String host = "";
-    private static String exchange = "";
-    private static String wrapperName = "";
+    
+    private static String w_host_name = "";
+    private static String w_xp_name = "";       /* Wrapper Service Exchange Point Name aka Topic (usu. magnet.topic) */
+    private static String w_scoped_name = "";   /* Qualified Wrapper Service Name */ 
+    private static String i_scoped_name = "";   /* Qualified Ingest Service Name */
 
     public static void main(String[] args) {
-        String bindingCallback = "";
-        if (args.length == 4) {
+        String w_callback_op = "";
+        if (args.length == 5) {
             try {
-                host = args[0];
-                exchange = args[1];
-                wrapperName = args[2];
-                bindingCallback = args[3];
+                w_host_name = args[0];
+                w_xp_name = args[1];
+                w_scoped_name = args[2];
+                w_callback_op = args[3];
+                i_scoped_name = args[4];
+                
             } catch (IllegalArgumentException ex) {
                 /* No-Op */
             }
 
-            new DatasetAgentController(host, exchange, wrapperName, bindingCallback);
+            new DatasetAgentController(w_host_name, w_xp_name, w_scoped_name, w_callback_op, i_scoped_name);
         }
     }
 
-    public DatasetAgentController(String host, String exchange, String wrapperName, String bindingCallback) {
+    public DatasetAgentController(String host, String exchange, String wrapperName, String bindingCallback, String ingestXchPoint) {
         try {
             IonBootstrap.bootstrap();
         } catch (Exception ex) {
@@ -181,6 +185,8 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
+                    
+                    
 
                     log.debug(printMessage("**Reply Message to Wrapper**", reply));
 
@@ -219,10 +225,11 @@ public class DatasetAgentController implements ControlListener {
                  */
                 log.debug("ProcThread:" + threadId + ":: Build connInfo");
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
-                connInfo.put("exchange", "eoitest");
-                connInfo.put("service", "eoi_ingest");
-                connInfo.put("server", host);
-                connInfo.put("topic", "magnet.topic");
+//                connInfo.put("exchange", "eoitest");
+//                connInfo.put("service", "eoi_ingest");
+                connInfo.put("host", w_host_name);
+                connInfo.put("xp", "magnet.topic");     /* aka exchange TODO: get this from main args */
+                connInfo.put("xp_name", i_scoped_name); /* aka topic */
 
                 /*
                  * Perform the update - this can result in multiple messages being sent to the ingest service
@@ -340,6 +347,7 @@ public class DatasetAgentController implements ControlListener {
         }
 
         public void sendControlMessage(String toName, String op, Object content) {
+            log.debug("\n\n\ntoName: \t" + toName + "\nop: \t" + op + "\ncontent: \t" + content);
             cp.send(new MessagingName(toName), op, content);
         }
 

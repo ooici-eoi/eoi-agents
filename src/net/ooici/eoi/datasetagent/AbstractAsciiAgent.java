@@ -154,6 +154,8 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
             }
         }
 
+        ncds.finish();
+        
         return ncds;
     }
 }

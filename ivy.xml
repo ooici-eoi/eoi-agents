@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivy-module version="2.0">
-    <info module="eoi-agents" organisation="net.ooici" revision="0.2.1"/>
+    <info module="eoi-agents" organisation="net.ooici" revision="0.2.2"/>
     <configurations>
         <conf name="compile"/>
     </configurations>
@@ -17,8 +17,8 @@
 		<!-- JUnit -->
         <dependency org="junit" name="junit" rev="4.8.2" conf="*->*,!sources,!javadoc"/>
         <!-- ION project dependencies -->
-        <dependency name="ionproto" rev="0.3.13-pl33" conf="*->*,!sources,!javadoc" />
-        <dependency name="ioncore-java" rev="0.2.3" conf="*->*,!sources,!javadoc" />
+        <dependency name="ionproto" rev="0.3.13-pl44" conf="*->*,!sources,!javadoc" />
+        <dependency name="ioncore-java" rev="0.2.4" conf="*->*,!sources,!javadoc" />
         <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />
     </dependencies>
 </ivy-module>

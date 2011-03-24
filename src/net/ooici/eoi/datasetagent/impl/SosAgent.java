@@ -52,7 +52,7 @@ public class SosAgent extends AbstractAsciiAgent {
     @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         log.debug("");
-        log.info("Building SOS Request for context:\n{\n" + context.toString() + "}\n");
+        log.info("Building SOS Request for the given context:\n{\n" + context.toString() + "}\n");
 
         StringBuilder result = new StringBuilder();
 

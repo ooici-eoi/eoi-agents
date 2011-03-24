@@ -4,9 +4,11 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.TimeZone;
+
 import net.ooici.cdm.syntactic.Cdmdatatype;
 import ucar.ma2.DataType;
 
@@ -32,8 +34,14 @@ public class AgentUtils {
         java.io.Reader rdr;
         try {
             if (url.startsWith("http://")) {
+                /* Retrieve a stream of data from the given url... */
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
                 rdr = new java.io.InputStreamReader(conn.getInputStream());
+                
+                /* Check the response for errors via response codes */
+                if ((int)(conn.getResponseCode() / 100) != 2) { /* passing  http code is 2xx */
+                    throw new IOException(new StringBuilder("Received HTTP Error ").append(conn.getResponseCode()).append(" with response message: \"").append(conn.getResponseMessage()).append("\"").toString());
+                }
             } else {
                 rdr = new java.io.FileReader(url);
             }
@@ -43,6 +51,7 @@ public class AgentUtils {
             while ((line = reader.readLine()) != null) {
                 sb.append(line).append("\n");
             }
+            
         } catch (java.net.MalformedURLException ex) {
         	log.error("Given URL cannot be parsed: '" + url + "'", ex);
         } catch (java.io.IOException ex) {

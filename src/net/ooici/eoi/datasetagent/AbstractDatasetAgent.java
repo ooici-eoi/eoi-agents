@@ -53,7 +53,10 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     private ion.core.messaging.MsgBrokerClient cl = null;
     private ion.core.messaging.MessagingName toName = null;
     private ion.core.messaging.MessagingName fromName = null;
-    private String ingest_op = "ingest";
+//    private String ingest_op = "ingest";
+    private final String RECV_SHELL_OP = "recv_dataset";
+    private final String RECV_CHUNK_OP = "recv_chunk";
+    private final String RECV_DONE_OP = "recv_done";
     private String recieverQueue = null;
 
     @Override
@@ -132,24 +135,23 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
         byte[] dataMessageContent;
         try {
+            /** Estimate the size of the dataset */
             long estSize = NcUtils.estimateSize(ncds);
+
             if (estSize <= maxSize) {
-                /* Send the full dataset */
+                /** Send the full dataset */
                 /* TODO: Deal with subRanges when sending full datasets */
                 /* TODO: Do we even want this option anymore?!?! Should we ALWAYS send the data "by variable"?? */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
-//                sendDataMessage(dataMessageContent);
-                IonMessage reply = rpcDataMessage(dataMessageContent);
-                ret = reply.getContent().toString();
+                sendDatasetMsg(dataMessageContent);
             } else {
-
-                /* Send the "empty" dataset */
+                /** Send a "shell" of the dataset */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, false);
-                sendDataMessage(dataMessageContent);
-//                IonMessage reply = rpcDataMessage(op, dataMessageContent);
-//                ret = reply.getContent().toString();
+                sendDatasetMsg(dataMessageContent);
+                // IonMessage reply = rpcDataMessage(op, dataMessageContent);
+                // ret = reply.getContent().toString();
 
-                /* Send the variables */
+                /** Send the variables in "chunks" */
                 for (ucar.nc2.Variable v : ncds.getVariables()) {
                     log.debug("Processing Variable: " + v.getName());
                     try {
@@ -181,11 +183,12 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             respBody = AgentUtils.getStackTraceString(ex);
         } finally {
             /* Send Message to signify the end of the ingest */
-            IonMsg.Builder endMsgBldr = IonMsg.newBuilder();
-            endMsgBldr.setResponseCode(respCode);
-            endMsgBldr.setResponseBody(respBody);
-            GPBWrapper<IonMsg> msgWrap = GPBWrapper.Factory(endMsgBldr.build());
-            log.debug(msgWrap.toString());
+//            IonMsg.Builder endMsgBldr = IonMsg.newBuilder();
+//            endMsgBldr.setResponseCode(respCode);
+//            endMsgBldr.setResponseBody(respBody);
+//            GPBWrapper<IonMsg> msgWrap = GPBWrapper.Factory(endMsgBldr.build());
+//            log.debug(msgWrap.toString());
+            sendDataDoneMsg();
         }
 
         return ret;
@@ -310,6 +313,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
 
 //                sendDataMessage(sbldr.build().toByteArray());
+                sendDataChunkMsg(sbldr.build().toByteArray());
             }
         }
     }
@@ -337,24 +341,38 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //        return -ft * 0.3048;
 //    }
 
-    protected IonMessage rpcDataMessage(byte[] dataMessageContent) {
-        IonMessage dataMessage = cl.createMessage(fromName, toName, ingest_op, dataMessageContent);
+    protected void sendDatasetMsg(byte[] dataMessageContent) {
+        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_SHELL_OP, dataMessageContent);
         dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-        log.debug(printMessage("**NetcdfDataset Message to eoi_ingest**", dataMessage));
+        log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
         cl.sendMessage(dataMessage);
-        return cl.consumeMessage(recieverQueue);
+//        return cl.consumeMessage(recieverQueue);
     }
 
-    protected void sendDataMessage(byte[] dataMessageContent) {
-        IonMessage dataMessage = cl.createMessage(fromName, toName, ingest_op, dataMessageContent);
+    protected void sendDataChunkMsg(byte[] dataMessageContent) {
+        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent);
         dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-        log.debug(printMessage("**NetcdfDataset Message to eoi_ingest**", dataMessage));
+        log.debug(printMessage("@@@--->>> NetcdfDataset data chunk (message) to eoi_ingest", dataMessage));
+        cl.sendMessage(dataMessage);
+    }
+
+    protected void sendDataDoneMsg() {
+        /* Build an container with an empty structure */
+        /* TODO: find a better way to invoke this RPC -- the RPC requires no data.. */
+        net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
+        GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
+        net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
+        ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+
+        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
+        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+        log.debug(printMessage("@@@--->>> NetcdfDataset data \"DONE\" message to eoi_ingest", dataMessage));
         cl.sendMessage(dataMessage);
     }
 
     private void initMsgBrokerClient(HashMap<String, String> connectionInfo) {
-        toName = new ion.core.messaging.MessagingName(connectionInfo.get("exchange"), connectionInfo.get("service"));
-        cl = new ion.core.messaging.MsgBrokerClient(connectionInfo.get("server"), com.rabbitmq.client.AMQP.PROTOCOL.PORT, connectionInfo.get("topic"));
+        toName = new ion.core.messaging.MessagingName(connectionInfo.get("xp_name"));
+        cl = new ion.core.messaging.MsgBrokerClient(connectionInfo.get("host"), com.rabbitmq.client.AMQP.PROTOCOL.PORT, connectionInfo.get("xp"));
         fromName = ion.core.messaging.MessagingName.generateUniqueName();
         cl.attach();
         recieverQueue = cl.declareQueue(null);

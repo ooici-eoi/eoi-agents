@@ -115,6 +115,10 @@ public class AttributeFactory {
     }
 
     private static Number[] getMetadata(NetcdfDataset ncds, FeatureType ftype, AxisType atype, String vname, String sname) {
+        if (null == ftype)
+            ftype = FeatureType.NONE;
+        
+        
         Number min = Double.NaN;
         Number max = Double.NaN;
         CoordinateAxis ca = null;

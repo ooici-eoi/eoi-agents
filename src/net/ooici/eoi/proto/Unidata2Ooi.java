@@ -308,7 +308,7 @@ public class Unidata2Ooi {
         try {
             IonBootstrap.bootstrap();
 
-            String ds = "/Users/cmueller/Development/OOI/Dev/code/eoidev/proto_test/station_profile.nc";
+            String ds = "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/glider_20101008T0000_20101025T0000_njdep_ru16.nc";
 
             NetcdfDataset ncds = NetcdfDataset.openDataset(ds);
 //            byte[] data = Unidata2Ooi.ncdfToByteArray(ncds);
@@ -327,7 +327,7 @@ public class Unidata2Ooi {
 
             /* Write structure to disk */
             new java.io.File("output").mkdirs();
-            java.io.FileOutputStream fos = new java.io.FileOutputStream("output/" + "" + ds.substring(ds.lastIndexOf("/")).replace(".nc", ".protostruct"));
+            java.io.FileOutputStream fos = new java.io.FileOutputStream(ds.replace(".nc", ".ooicdm"));
             struct.writeTo(fos);
 
         } catch (Exception ex) {

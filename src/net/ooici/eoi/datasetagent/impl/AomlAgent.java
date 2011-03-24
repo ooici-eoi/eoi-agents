@@ -365,7 +365,7 @@ public class AomlAgent extends AbstractAsciiAgent {
 //        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = ion.core.utils.IonUtils.parseProperties();
+            connInfo = net.ooici.IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);

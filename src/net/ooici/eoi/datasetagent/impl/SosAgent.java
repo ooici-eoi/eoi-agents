@@ -138,6 +138,8 @@ public class SosAgent extends AbstractAsciiAgent {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
 
+        net.ooici.SysClipboard.copyString(asciiData);
+
         List<IObservationGroup> obsList = null;
         StringReader srdr = new StringReader(asciiData);
         try {
@@ -375,7 +377,7 @@ public class SosAgent extends AbstractAsciiAgent {
 //        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = ion.core.utils.IonUtils.parseProperties();
+            connInfo = net.ooici.IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);

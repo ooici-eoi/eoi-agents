@@ -26,6 +26,7 @@ import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import net.ooici.eoi.netcdf.NcDumpParse;
 
 import org.jdom.Document;
 import org.jdom.Element;
@@ -828,10 +829,17 @@ public class UsgsAgent extends AbstractAsciiAgent {
             log.error("Error bootstrapping", ex);
         }
 
-        boolean makeSamples = true;
+        boolean makeSamples = false;
+        boolean makeMetadataTable = false;
+        boolean manual = true;
+
         if (makeSamples) {
             generateRutgersSamples();
-        } else {
+        }
+        if(makeMetadataTable) {
+            generateRutgersMetadata();
+        }
+        if (manual){
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
@@ -871,8 +879,172 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-            runAgent(cBldr.build());
+            runAgent(cBldr.build(), true);
         }
+    }
+
+    private static void generateRutgersMetadata() throws IOException {
+        /** For each of the "R1" netcdf datasets (either local or remote)
+         *
+         * 1. get the last timestep of the data
+         * 2. get the list of global-attributes
+         * 3. build a delimited string with the following structure:
+         *      attribute_1, attribute_2, attribute_3, ..., attribute_n
+         *      value_1, value_2, value_3, ..., value_n
+         *
+         */
+//        String[] datasetList = new String[]{"http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z",
+//                                            "http://thredds1.pfeg.noaa.gov/thredds/dodsC/satellite/GR/ssta/1day",
+//                                            "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/avhrr/bigbight/2010"};
+
+
+        Map<String, Map<String, String>> datasets = new TreeMap<String, Map<String,String>>(); /* Maps dataset name to an attributes map */
+        List<String> metaLookup = new ArrayList<String>();
+
+        /* Front-load the metadata list with the OOI required metadata */
+        metaLookup.add("title");
+        metaLookup.add("institution");
+        metaLookup.add("source");
+        metaLookup.add("history");
+        metaLookup.add("references");
+        metaLookup.add("Conventions");
+        metaLookup.add("summary");
+        metaLookup.add("comment");
+        metaLookup.add("data_url");
+        metaLookup.add("ion_time_coverage_start");
+        metaLookup.add("ion_time_coverage_end");
+        metaLookup.add("ion_geospatial_lat_min");
+        metaLookup.add("ion_geospatial_lat_max");
+        metaLookup.add("ion_geospatial_lon_min");
+        metaLookup.add("ion_geospatial_lon_max");
+        metaLookup.add("ion_geospatial_vertical_min");
+        metaLookup.add("ion_geospatial_vertical_max");
+        metaLookup.add("ion_geospatial_vertical_positive");
+
+        /* For now, don't add anything - this process will help us figure out what needs to be added *//* Generates samples for near-realtime high-resolution data */
+        String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
+        String sTime = "2011-03-01T00:00:00Z";
+        String eTime = "2011-03-10T00:00:00Z";
+
+        /* Generates samples for "historical" low-resolution data */
+        baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
+        sTime = "2003-01-01T00:00:00Z";
+        eTime = "2011-03-17T00:00:00Z";
+
+        String prefix = (baseURL.endsWith("NWISQuery/GetDV1?")) ? "USGS-DV " : "USGS-WS ";
+
+        String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
+        String[] disNames = new String[]{"Connecticut", "Hudson", "Mohawk", "Passaic", "Raritan", "Delaware", "Susquehanna", "Potomac", "Patuxent", "Rappahannock", "Choptank", "James", "Appomattox", "Pamunkey", "Mattaponi"};
+        String[] tempIds = new String[]{"01362500", "01463500", "01646500"};
+        String[] tempNames = new String[]{"Hudson", "Delware", "Potomac"};
+
+        String dsName;
+        for (int i = 0; i < disIds.length; i++) {
+            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
+            cBldr.setBaseUrl(baseURL);
+            cBldr.setStartTime(sTime);
+            cBldr.setEndTime(eTime);
+            cBldr.addProperty("00060");
+            cBldr.addStationId(disIds[i]);
+            dsName = prefix + disNames[i] + "[" + disIds[i] + "]";
+            String[] resp = null;
+            try {
+                resp = runAgent(cBldr.build(), true);
+            } catch (Exception e) {
+                e.printStackTrace();
+                datasets.put(dsName + " (FAILED)", null);
+                continue;
+            }
+            Map<String, String> dsMeta = NcDumpParse.parseToMap(resp[0]);
+            datasets.put(dsName, dsMeta);
+
+
+            /* TODO: Eventually we can make this loop external and perform a sort beforehand.
+             *       this sort would frontload attributes which are found more frequently
+             *       across multiple datasets
+             */
+            for (String key : dsMeta.keySet()) {
+                if (!metaLookup.contains(key)) {
+                    metaLookup.add(key);
+                }
+            }
+        }
+
+        for (int i = 0; i < tempIds.length; i++) {
+            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
+            cBldr.setBaseUrl(baseURL);
+            cBldr.setStartTime(sTime);
+            cBldr.setEndTime(eTime);
+            cBldr.addProperty("00010");
+            cBldr.addStationId(tempIds[i]);
+            dsName = prefix + tempNames[i] + "[" + tempIds[i] + "]";
+            String[] resp = null;
+            try {
+                resp = runAgent(cBldr.build(), true);
+            } catch (Exception e) {
+                e.printStackTrace();
+                datasets.put(dsName + " (FAILED)", null);
+                continue;
+            }
+            Map<String, String> dsMeta = NcDumpParse.parseToMap(resp[0]);
+            datasets.put(dsName, dsMeta);
+
+
+            /* TODO: Eventually we can make this loop external and perform a sort beforehand.
+             *       this sort would frontload attributes which are found more frequently
+             *       across multiple datasets
+             */
+            for (String key : dsMeta.keySet()) {
+                if (!metaLookup.contains(key)) {
+                    metaLookup.add(key);
+                }
+            }
+        }
+
+        /** Write the CSV output */
+        String NEW_LINE = System.getProperty("line.separator");
+        StringBuilder sb = new StringBuilder();
+
+        /* TODO: Step 1: add header data here */
+        sb.append("Dataset Name");
+        for (String metaName : metaLookup) {
+            sb.append("|");
+            sb.append(metaName);
+//            sb.append('"');
+//            sb.append(metaName.replaceAll(Pattern.quote("\""), "\"\""));
+//            sb.append('"');
+        }
+
+        /* Step 2: Add each row of data */
+        for (String ds : datasets.keySet()) {
+            Map<String, String> dsMeta = datasets.get(ds);
+            sb.append(NEW_LINE);
+            sb.append(ds);
+//            sb.append('"');
+//            sb.append(ds.replaceAll(Pattern.quote("\""), "\"\""));
+//            sb.append('"');
+            String metaValue = null;
+            for (String metaName : metaLookup) {
+                sb.append("|");
+                if (null != dsMeta && null != (metaValue = dsMeta.get(metaName))) {
+                    sb.append(metaValue);
+                    /* To ensure correct formatting, change all existing double quotes
+                     * to two double quotes, and surround the whole cell value with
+                     * double quotes...
+                     */
+//                    sb.append('"');
+//                    sb.append(metaValue.replaceAll(Pattern.quote("\""), "\"\""));
+//                    sb.append('"');
+                }
+            }
+
+        }
+
+        System.out.println(NEW_LINE + NEW_LINE + "********************************************************");
+        System.out.println(sb.toString());
+        System.out.println(NEW_LINE + "********************************************************");
     }
 
     private static void generateRutgersSamples() throws IOException {
@@ -898,7 +1070,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00060");
             cBldr.addStationId(disIds[i]);
-            String[] res = runAgent(cBldr.build());
+            String[] res = runAgent(cBldr.build(), false);
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
@@ -920,7 +1092,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00010");
             cBldr.addStationId(tempIds[i]);
-            String[] res = runAgent(cBldr.build());
+            String[] res = runAgent(cBldr.build(), false);
             NetcdfDataset dsout = null;
             try {
                 dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
@@ -937,9 +1109,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
         System.out.println("******FINISHED******");
     }
 
-    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context) throws IOException {
+    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, boolean isTesting) throws IOException {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-//        agent.setTesting(true);
+        agent.setTesting(isTesting);
 
 //        java.util.HashMap<String, String> connInfo = IospUtils.parseProperties(new java.io.File(System.getProperty("user.dir") + "/ooici-conn.properties"));
 //        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
@@ -949,7 +1121,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = ion.core.utils.IonUtils.parseProperties();
+            connInfo = net.ooici.IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);

@@ -16,7 +16,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
-import java.util.regex.Pattern;
 
 
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
@@ -182,7 +181,7 @@ public class NcAgent extends AbstractNcAgent {
 //                                            "http://thredds1.pfeg.noaa.gov/thredds/dodsC/satellite/GR/ssta/1day",
 //                                            "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/avhrr/bigbight/2010"};
 
-        FileReader rdr = new FileReader(new File("metadata_input.txt"));
+        FileReader rdr = new FileReader(new File("netcdf_metadata_input.txt"));
         Properties props = new Properties();
         props.load(rdr);
         
@@ -272,32 +271,35 @@ public class NcAgent extends AbstractNcAgent {
         StringBuilder sb = new StringBuilder();
         
         /* TODO: Step 1: add header data here */
-        sb.append("\"Dataset Name\"");
+        sb.append("Dataset Name");
         for (String metaName : metaLookup) {
-            sb.append(",");
-            sb.append('"');
-            sb.append(metaName.replaceAll(Pattern.quote("\""), "\"\""));
-            sb.append('"');
+            sb.append("|");
+            sb.append(metaName);
+//            sb.append('"');
+//            sb.append(metaName.replaceAll(Pattern.quote("\""), "\"\""));
+//            sb.append('"');
         }
         
         /* Step 2: Add each row of data */
         for (String dsName : datasets.keySet()) {
             Map<String, String> dsMeta = datasets.get(dsName);
-            sb.append(NEW_LINE);    
-            sb.append('"');
-            sb.append(dsName.replaceAll(Pattern.quote("\""), "\"\""));
-            sb.append('"');
+            sb.append(NEW_LINE);
+            sb.append(dsName);
+//            sb.append('"');
+//            sb.append(dsName.replaceAll(Pattern.quote("\""), "\"\""));
+//            sb.append('"');
             String metaValue = null;
             for (String metaName : metaLookup) {
-                sb.append(",");
+                sb.append("|");
                 if (null != dsMeta && null != (metaValue = dsMeta.get(metaName))) {
+                    sb.append(metaValue);
                     /* To ensure correct formatting, change all existing double quotes
                      * to two double quotes, and surround the whole cell value with
                      * double quotes...
                      */
-                    sb.append('"');
-                    sb.append(metaValue.replaceAll(Pattern.quote("\""), "\"\""));
-                    sb.append('"');
+//                    sb.append('"');
+//                    sb.append(metaValue.replaceAll(Pattern.quote("\""), "\"\""));
+//                    sb.append('"');
                 }
             }
             
@@ -306,6 +308,7 @@ public class NcAgent extends AbstractNcAgent {
         
         System.out.println(NEW_LINE + NEW_LINE + "********************************************************");
         System.out.println(sb.toString());
+        System.out.println(NEW_LINE + "********************************************************");
 
     }
 
@@ -392,7 +395,7 @@ public class NcAgent extends AbstractNcAgent {
 //        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = ion.core.utils.IonUtils.parseProperties();
+            connInfo = net.ooici.IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);

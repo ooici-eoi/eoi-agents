@@ -49,7 +49,7 @@ public class NcDumpParse {
         while((line = br.readLine()) != null) {
             if(line.startsWith(" :")) {
                 header = line.substring(line.indexOf(":") + 1, line.indexOf(" = "));
-                value = line.substring(line.indexOf(" = ") + 3, line.indexOf(";"));
+                value = line.substring(line.indexOf(" = ") + 3, line.lastIndexOf(";"));
                 result.put(header, value);
             }
         }

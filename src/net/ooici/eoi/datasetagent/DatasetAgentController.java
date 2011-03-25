@@ -35,27 +35,25 @@ public class DatasetAgentController implements ControlListener {
     private static String w_host_name = "";
     private static String w_xp_name = "";       /* Wrapper Service Exchange Point Name aka Topic (usu. magnet.topic) */
     private static String w_scoped_name = "";   /* Qualified Wrapper Service Name */ 
-    private static String i_scoped_name = "";   /* Qualified Ingest Service Name */
 
     public static void main(String[] args) {
         String w_callback_op = "";
-        if (args.length == 5) {
+        if (args.length == 4) {
             try {
                 w_host_name = args[0];
                 w_xp_name = args[1];
                 w_scoped_name = args[2];
                 w_callback_op = args[3];
-                i_scoped_name = args[4];
                 
             } catch (IllegalArgumentException ex) {
                 /* No-Op */
             }
 
-            new DatasetAgentController(w_host_name, w_xp_name, w_scoped_name, w_callback_op, i_scoped_name);
+            new DatasetAgentController(w_host_name, w_xp_name, w_scoped_name, w_callback_op);
         }
     }
 
-    public DatasetAgentController(String host, String exchange, String wrapperName, String bindingCallback, String ingestXchPoint) {
+    public DatasetAgentController(String host, String exchange, String wrapperName, String bindingCallback) {
         try {
             IonBootstrap.bootstrap();
         } catch (Exception ex) {
@@ -228,8 +226,8 @@ public class DatasetAgentController implements ControlListener {
 //                connInfo.put("exchange", "eoitest");
 //                connInfo.put("service", "eoi_ingest");
                 connInfo.put("host", w_host_name);
-                connInfo.put("xp", "magnet.topic");     /* aka exchange TODO: get this from main args */
-                connInfo.put("xp_name", i_scoped_name); /* aka topic */
+                connInfo.put("xp_name", context.getXpName());
+                connInfo.put("ingest_topic", context.getIngestTopic());
 
                 /*
                  * Perform the update - this can result in multiple messages being sent to the ingest service

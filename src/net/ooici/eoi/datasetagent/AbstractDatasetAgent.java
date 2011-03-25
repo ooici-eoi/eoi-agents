@@ -371,8 +371,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     }
 
     private void initMsgBrokerClient(HashMap<String, String> connectionInfo) {
-        toName = new ion.core.messaging.MessagingName(connectionInfo.get("xp_name"));
-        cl = new ion.core.messaging.MsgBrokerClient(connectionInfo.get("host"), com.rabbitmq.client.AMQP.PROTOCOL.PORT, connectionInfo.get("xp"));
+        toName = new ion.core.messaging.MessagingName(connectionInfo.get("ingest_topic"));
+        cl = new ion.core.messaging.MsgBrokerClient(connectionInfo.get("host"), com.rabbitmq.client.AMQP.PROTOCOL.PORT, connectionInfo.get("xp_name"));
         fromName = ion.core.messaging.MessagingName.generateUniqueName();
         cl.attach();
         recieverQueue = cl.declareQueue(null);

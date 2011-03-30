@@ -2,10 +2,8 @@
  * To change this template, choose Tools | Templates
  * and open the template in the editor.
  */
-
 package net.ooici.eoi.netcdf;
 
-import net.ooici.eoi.datasetagent.impl.NcAgent;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
@@ -15,7 +13,16 @@ import ucar.nc2.dataset.NetcdfDataset;
  */
 public class NcUtils {
 
-    private NcUtils(){}
+    private NcUtils() {
+    }
+
+    public static long estimateSize(ucar.nc2.dataset.NetcdfDataset ncd, java.util.HashMap<String, ucar.ma2.Range> ranges) {
+        long size = 0;
+        for (ucar.nc2.Variable v : ncd.getVariables()) {
+            size += estimateSize(v, ranges, false);
+        }
+        return size;
+    }
 
     /**
      * Estimates the filesize of the given NetcdfDataset.  Delegates to {@link estimateSize(NetcdfDataset ncd, boolean verbose) } with verbose == true
@@ -48,6 +55,7 @@ public class NcUtils {
     public static long estimateSize(ucar.nc2.Variable v) {
         return estimateSize(v, false);
     }
+
     /**
      * Estimates the size of a Netcdf Variable.
      * @param v the Variable to estimate size from
@@ -55,10 +63,30 @@ public class NcUtils {
      * @return the estimated size of the variable in bytes
      */
     public static long estimateSize(ucar.nc2.Variable v, boolean verbose) {
-        if(verbose) {
-            System.out.println("\t" + v.getName() + ": " + v.getElementSize() + " x " + v.getSize());
+        return estimateSize(v, null, verbose);
+    }
+
+    public static long estimateSize(ucar.nc2.Variable v, java.util.HashMap<String, ucar.ma2.Range> ranges, boolean verbose) {
+        ucar.ma2.Section sec = getSubRangedSection(v, ranges);
+        long sz = sec.computeSize();
+        if (verbose) {
+            System.out.println("\t" + v.getName() + ": " + v.getElementSize() + " x " + sz);
         }
-        return v.getElementSize() * v.getSize();
+        return v.getElementSize() * sz;
+    }
+
+    public static ucar.ma2.Section getSubRangedSection(ucar.nc2.Variable v, java.util.HashMap<String, ucar.ma2.Range> ranges) {
+        ucar.ma2.Section sec = new ucar.ma2.Section(v.getShapeAsSection());
+        if (ranges != null) {
+            /* Apply any subRanges */
+            for (int i = 0; i < sec.getRanges().size(); i++) {
+                ucar.ma2.Range r = sec.getRange(i);
+                if (ranges.containsKey(r.getName())) {
+                    sec.replaceRange(i, ranges.get(r.getName()));
+                }
+            }
+        }
+        return sec;
     }
 
     /**

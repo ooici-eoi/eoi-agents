@@ -136,11 +136,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         byte[] dataMessageContent;
         try {
             /** Estimate the size of the dataset */
-            long estSize = NcUtils.estimateSize(ncds);
+            long estSize = NcUtils.estimateSize(ncds, subRanges);
 
             if (estSize <= maxSize) {
                 /** Send the full dataset */
-                /* TODO: Deal with subRanges when sending full datasets */
+                /* TODO: zDeal with subRanges when sending full datasets */
                 /* TODO: Do we even want this option anymore?!?! Should we ALWAYS send the data "by variable"?? */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
                 sendDatasetMsg(dataMessageContent);
@@ -156,16 +156,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                     log.debug("Processing Variable: " + v.getName());
                     try {
 
-                        /* Get the section for the complete variable - must create a new instance because the one in the Variable has 'isImmutable==true' */
-                        ucar.ma2.Section sec = new ucar.ma2.Section(v.getShapeAsSection());
-
-                        /* Apply any subRanges */
-                        for (int i = 0; i < sec.getRanges().size(); i++) {
-                            Range r = sec.getRange(i);
-                            if (subRanges.containsKey(r.getName())) {
-                                sec.replaceRange(i, subRanges.get(r.getName()));
-                            }
-                        }
+                        /* Get the section for the complete variable - with subranges applied */
+                        ucar.ma2.Section sec = NcUtils.getSubRangedSection(v, subRanges);
 
                         /* Decompose and send variable data */
                         decompSendVariable(v, sec, 0);

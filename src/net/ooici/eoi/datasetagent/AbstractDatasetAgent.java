@@ -15,6 +15,7 @@ import net.ooici.core.message.IonMessage.ResponseCodes;
 import net.ooici.eoi.netcdf.AttributeFactory;
 import net.ooici.eoi.netcdf.NcUtils;
 import net.ooici.eoi.proto.Unidata2Ooi;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.InvalidRangeException;
@@ -38,7 +39,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     private boolean testing = false;
     /**
      * This is the value used to decompose the dataset when sending.
-     * This is the maximum <i>total bytes</i> of <b>data</b> that will be sent indent one message.
+     * This is the maximum <i>total bytes</i> of <b>data</b> that will be sent in one message.
      * It does not include wrapper and message size.
      */
     private long maxSize = 5242880;//Default is 5 MB
@@ -54,36 +55,78 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     private ion.core.messaging.MessagingName toName = null;
     private ion.core.messaging.MessagingName fromName = null;
 //    private String ingest_op = "ingest";
-    private final String RECV_SHELL_OP = "recv_dataset";
+    private final String RECV_DATASET_OP = "recv_dataset";
     private final String RECV_CHUNK_OP = "recv_chunk";
     private final String RECV_DONE_OP = "recv_done";
     private String recieverQueue = null;
 
+    /*
+     * (non-Javadoc)
+     * @see net.ooici.eoi.datasetagent.IDatasetAgent#setTesting(boolean)
+     */
     @Override
     public void setTesting(boolean isTest) {
         testing = isTest;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see net.ooici.eoi.datasetagent.IDatasetAgent#setMaxSize(long)
+     */
     @Override
     public void setMaxSize(long maxSize) {
         this.maxSize = maxSize;
     }
 
+    /*
+     * (non-Javadoc)
+     * @see net.ooici.eoi.datasetagent.IDatasetAgent#setDecompDivisor(int)
+     */
     @Override
     public void setDecompDivisor(int decompDivisor) {
         this.decompDivisor = decompDivisor;
     }
 
+    /**
+     * TODO:
+     * @param rng
+     */
     public void addSubRange(Range rng) {
         subRanges.put(rng.getName(), rng);
     }
 
+    /**
+     * TODO:
+     * @param rng
+     */
     public void removeSubRange(Range rng) {
         subRanges.remove(rng.getName());
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.IDatasetAgent#doUpdate()
+    /**
+     * Performs a dataset update sequence per the requirements in the given <code>context</code>. <code>connectionInfo</code> provides the
+     * necessary arguments to establish brokered communication with the service which should ingest the product of said update.<br />
+     * <br />
+     * Typical update sequences occur over the following steps:<br />
+     * <ol>
+     * <li>Build a data request for the given <code>context</code><br />
+     * {@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+     * <li>Acquire data from the previously built request as either <code>String</code> data (CSV, TSV, etc) or a <code>NetCdfDataset</code>
+     * <br />
+     * {@link #acquireData(String)}</li>
+     * <li>Process and send the data in part or wholesale depending upon a subclasses implementation<br />
+     * {@link #_processDataset(Object)} <br />
+     * </li>
+     * </ol>
+     * 
+     * @param context
+     *            the current or required state of a given dataset providing context for performing updates upon it
+     * @param connectionInfo
+     *            mapped parameters used in establishing connectivity for sending the results of a dataset update
+     * 
+     * @return TODO:
+     * 
+     * @see #initMsgBrokerClient(HashMap)
      */
     @Override
     public final String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage context, java.util.HashMap<String, String> connectionInfo) {
@@ -107,12 +150,62 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         return result;
     }
 
+    /**
+     * Processes data as from {@link #acquireData(String)} -- which may be defined by a subclasses implementation
+     * 
+     * @param data
+     *            any arbitrary data to be processed typically the result from {@link #acquireData(String)}
+     * 
+     * @return TODO:
+     */
     protected abstract String[] _processDataset(Object data);
 
+    /**
+     * Breaks the given <code>NetcdfDataset</code> into manageable chunks and sends them to an ingestion service using the brokered
+     * connection established by {@link #initMsgBrokerClient(HashMap)}. Prior to sending, changes to the <code>NetcdfDataset</code> are
+     * finalized by appending necessary metadata and applying {@link ucar.nc2.NetcdfFile#finish()}. This method ensures that dataset chunks are never
+     * larger in size than then the maximum size, set by {@link #setMaxSize(long)}
+     * 
+     * @param ncds
+     *            a {@link NetcdfDataset} object
+     * @param op
+     *            TODO: **not used**
+     * 
+     * @return TODO: unused?
+     * 
+     * @see #decompSendVariable(ucar.nc2.Variable, ucar.ma2.Section, int)
+     * @see #initMsgBrokerClient(HashMap)
+     * @see #sendDatasetMsg(byte[])
+     * @see #sendDataChunkMsg(byte[])
+     * @see #sendDataDoneMsg()
+     */
     protected String sendNetcdfDataset(ucar.nc2.dataset.NetcdfDataset ncds, String op) {
         return sendNetcdfDataset(ncds, op, true);
     }
 
+    /**
+     * Breaks the given <code>NetcdfDataset</code> into manageable chunks and sends them to an ingestion service using the brokered
+     * connection established by {@link #initMsgBrokerClient(HashMap)}. Prior to sending, changes to the <code>NetcdfDataset</code> are
+     * finalized by appending necessary metadata and applying {@link NetcdfFile#finish()}. This method ensures that dataset chunks are never
+     * larger in size than then the maximum size, set by {@link #setMaxSize(long)}
+     * 
+     * @param ncds
+     *            a {@link NetcdfDataset} object
+     * @param op
+     *            TODO: **not used**
+     * @param includeData
+     *            a <code>boolean</code> specifying whether or not to include the data of the given dataset. If <code>false</code> only
+     *            header information will be sent
+     * 
+     * @return TODO: unused?
+     * 
+     * @see #decompSendVariable(ucar.nc2.Variable, ucar.ma2.Section, int)
+     * @see #initMsgBrokerClient(HashMap)
+     * @see #sendDatasetMsg(byte[])
+     * @see #sendDataChunkMsg(byte[])
+     * @see #sendDataDoneMsg()
+     * 
+     */
     protected String sendNetcdfDataset(ucar.nc2.dataset.NetcdfDataset ncds, String op, boolean includeData) {
         assert ncds != null;
 
@@ -310,6 +403,13 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         }
     }
 
+    /**
+     * Adds ION-specific global metadata to the given <code>NetcdfDataset</code> to specify the geospatial and temporal bounds of that
+     * dataset
+     * 
+     * @param ncds
+     *            a {@link NetcdfDataset} object
+     */
     protected void addOoiciBoundsMetadata(NetcdfDataset ncds) {
         FeatureType ft = NcUtils.determineFeatureType(ncds);
 
@@ -326,21 +426,43 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         AttributeFactory.addVertBoundsMetadata(ncds, ft);
     }
 
-//    private double mbToMetersPosDown(double mbPressure) {
-//        /* From:  http://www.4wx.com/wxcalc/formulas/pressureAltitude.php  */
-//        double ft = (1 - (Math.pow(mbPressure / 1013.25, 0.190284))) * 145366.45;
-//        /* Convert feet to meters */
-//        return -ft * 0.3048;
-//    }
-
+//  private double mbToMetersPosDown(double mbPressure) {
+//      /* From:  http://www.4wx.com/wxcalc/formulas/pressureAltitude.php  */
+//      double ft = (1 - (Math.pow(mbPressure / 1013.25, 0.190284))) * 145366.45;
+//      /* Convert feet to meters */
+//      return -ft * 0.3048;
+//  }
+    
+    /**
+     * Sends the <code>byte[]</code> representation of a dataset to the remote operation specified by {@link #RECV_DATASET_OP} using the
+     * currently active <code>MsgBrokerClient</code>. This message send is one way, that is, the message is NOT sent via RPC conventions
+     * 
+     * @param dataMessageContent
+     *            A serialized <code>byte[]</code> representation of a dataset
+     * 
+     * @see #initMsgBrokerClient(HashMap)
+     * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset)
+     * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
+     */
     protected void sendDatasetMsg(byte[] dataMessageContent) {
-        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_SHELL_OP, dataMessageContent);
+        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent);
         dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
         log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
         cl.sendMessage(dataMessage);
-//        return cl.consumeMessage(recieverQueue);
+        // return cl.consumeMessage(recieverQueue);
     }
 
+    /**
+     * Sends the <code>byte[]</code> representation of a dataset "section" to the remote operation specified by {@link #RECV_CHUNK_OP} using
+     * the currently active <code>MsgBrokerClient</code>. This message send is one way, that is, the message is NOT sent via RPC conventions
+     * 
+     * @param dataMessageContent
+     *            A serialized <code>byte[]</code> representation of a dataset section
+     * 
+     * @see #initMsgBrokerClient(HashMap)
+     * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset)
+     * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
+     */
     protected void sendDataChunkMsg(byte[] dataMessageContent) {
         IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent);
         dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
@@ -348,6 +470,15 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         cl.sendMessage(dataMessage);
     }
 
+    /**
+     * Signals the service ingesting dataset data that the most recent stream of "sends" is complete by sending notification to the remote
+     * operation specified by {@link #RECV_DONE_OP} using the currently active <code>MsgBrokerClient</code>. This message send is one way,
+     * that is, the message is NOT sent via RPC conventions
+     * 
+     * @see #initMsgBrokerClient(HashMap)
+     * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset)
+     * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
+     */
     protected void sendDataDoneMsg() {
         /* Build an container with an empty structure */
         /* TODO: find a better way to invoke this RPC -- the RPC requires no data.. */

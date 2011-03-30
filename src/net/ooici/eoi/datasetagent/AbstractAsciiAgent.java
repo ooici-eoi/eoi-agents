@@ -52,9 +52,18 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         }
         
     }
-    
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.IDatasetAgent#acquireData(java.lang.String)
+
+    /**
+     * Satisfies the given <code>request</code> by interpreting it as a URL and then, by procuring <code>String</code> data from that URL.
+     * Typically, requests are built dynamically, and this method is a convenience for retrieving CSV and TSV data from REST webservices and
+     * the like.
+     * 
+     * @param request
+     *            a URL request as built from {@link IDatasetAgent#buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}
+     * @return the HTTP <code>String</code> response of the given <code>request</code>
+     * 
+     * @see IDatasetAgent#buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)
+     * @see AgentUtils#getDataString(String)
      */
     @Override
     public Object acquireData(String request) {
@@ -67,9 +76,28 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
 
         return data;
     }
-    
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.AbstractDatasetAgent#processDataset(java.lang.Object)
+
+    /**
+     * Processes the given <code>data</code> as from {@link #acquireData(String)}. The argument <code>data</code> is assumed to be in
+     * instance of a <code>String</code>. If this is not the case an <code>IllegalArgumentException</code> will be thrown.<br />
+     * <br />
+     * Dataset processing occurs in the following steps:<br />
+     * <ol>
+     * <li>The given <code>data</code> is validated<br />
+     * {@link #validateData(String)}</li>
+     * <li>The <code>String data</code> is parsed into a list of <code>IObservationGroup</code> objects<br />
+     * {@link #parseObs(String)}</li>
+     * <li>The resultant observation list is processed<br />
+     * {@link #processDataset(IObservationGroup...)}</li>
+     * </ol>
+     * 
+     * @param data
+     *            a CSV or TSV result from {@link #acquireData(String)}
+     * 
+     * @return TODO:
+     * 
+     * @throws IllegalArgumentException
+     *             When the given <code>data</code> is not an instance of <code>String</code>
      */
     @Override
     protected final String[] _processDataset(Object data) {
@@ -84,21 +112,76 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
     }
 
     /**
-     * Subclasses of AbstractAsciiAgent should implement this method, throwing an AsciiValidationException where appropriate to designate validation failure.
+     * Subclasses of AbstractAsciiAgent may optionally override this method, throwing an AsciiValidationException where appropriate to
+     * designate validation failure.
      * 
      * @param asciiData
      *            The ascii data to be validated before it is parsed for observational data.
+     * 
+     * @throws AsciiValidationException
+     *             When the given <code>asciiData</code> is understood to be invalid
      */
     protected void validateData(String asciiData) {
         /* NO-OP */
     }
 
-    /* TODO: Can we assume all requests from Ascii agents will be for URLs? */
+    /**
+     * Parses the given <code>String</code> data as a list of <code>IObservationGroup</code> objects
+     * 
+     * @param asciiData
+     *            <code>String</code> data passed to this method from {@link #acquireData(String)}
+     * 
+     * @return a list of <code>IObservationGroup</code> objects representing the observations parsed from the given <code>asciiData</code>
+     */
     abstract protected List<IObservationGroup> parseObs(String asciiData);
 
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.AbstractAsciiAgent#obs2Ncds(java.util.List)
+    /**
+     * Constructs a <code>NetcdfDataset</code> representation of the given list of <code>IObservationGroup</code> objects.<br />
+     * <br />
+     * <b>Dataset Feature Type decisions:</b><br />
+     * The type of <code>NetcdfDataset</code> produced is dependent on the number of items in <code>obsList</code>, the
+     * number of unique stations and unique depth values specified by those observations. The following table hightlights the underlying methods
+     * used in creating the <code>NetcdfDataset</code> outputs based on the aforementioned criteria:<br />
+     * <table border=1><tr>
+     * <th>Build Method</th>
+     * <th># of Obs Groups</th>
+     * <th># of Station IDs</th>
+     * <th># of Depth Values</th>
+     * </tr><tr>
+     * <td>{@link NcdsFactory#buildStation(IObservationGroup)}</td>
+     * <td>1</td>
+     * <td>1</td>
+     * <td>1</td>
+     * </tr><tr>
+     * <td>{@link NcdsFactory#buildStationProfile(IObservationGroup)}</td>
+     * <td>1</td>
+     * <td>1</td>
+     * <td>2+</td>
+     * </tr><tr>
+     * <td>{@link NcdsFactory#buildTrajectory(IObservationGroup[])}</td>
+     * <td>2+</td>
+     * <td>1</td>
+     * <td>1</td>
+     * </tr><tr>
+     * <td>{@link NcdsFactory#buildTrajectoryProfile(IObservationGroup[])}</td>
+     * <td>2+</td>
+     * <td>1</td>
+     * <td>2+</td>
+     * </tr><tr>
+     * <td>{@link NcdsFactory#buildStationMulti(IObservationGroup[])}</td>
+     * <td>2+</td>
+     * <td>2+</td>
+     * <td>1</td>
+     * </tr><tr>
+     * <td>{@link NcdsFactory#buildStationProfileMulti(IObservationGroup[])}</td>
+     * <td>2+</td>
+     * <td>2+</td>
+     * <td>2+</td>
+     * </tr></table>
+     * 
+     * @param obsList
+     * @return
      */
     protected NetcdfDataset obs2Ncds(IObservationGroup... obsList) {
         log.debug("Creating NC Dataset...");

@@ -15,8 +15,21 @@ import ucar.nc2.dataset.NetcdfDataset;
  */
 public abstract class AbstractNcAgent extends AbstractDatasetAgent implements INcAgent {
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.AbstractDatasetAgent#processDataset(java.lang.Object)
+    /**
+     * Processes the given <code>data</code> as from {@link #acquireData(String)}. The argument <code>data</code> is assumed to be in
+     * instance of a <code>NetcdfDataset</code>. If this is not the case an <code>IllegalArgumentException</code> will be thrown.<br />
+     * <br />
+     * DatasetDataset processing is delegated to subclasses implementation of {@link #processDataset(NetcdfDataset)}
+     * 
+     * @param data
+     *            a <code>NetcdfDataset</code> result from {@link #acquireData(String)}
+     * 
+     * @return TODO:
+     * 
+     * @throws IllegalArgumentException
+     *             When the given <code>data</code> is not an instance of <code>NetcdfDataset</code>
+     * 
+     * @see NetcdfDataset
      */
     @Override
     protected final String[] _processDataset(Object data) {

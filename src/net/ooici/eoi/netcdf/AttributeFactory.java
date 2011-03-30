@@ -82,6 +82,11 @@ public class AttributeFactory {
     public static void addLonBoundsMetadata(NetcdfDataset ncds, FeatureType ftype) {
         Number[] minMax = getMetadata(ncds, ftype, AxisType.Lon, "lon", "longitude");
 
+        double maxcheck = minMax[1].doubleValue();
+        if(maxcheck > 180) {
+            minMax[1] = maxcheck - 360;
+        }
+
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_GEOSPATIAL_LON_MIN, minMax[0]));
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_GEOSPATIAL_LON_MAX, minMax[1]));
     }
@@ -89,25 +94,39 @@ public class AttributeFactory {
     public static void addVertBoundsMetadata(NetcdfDataset ncds, FeatureType ftype) {
         Number[] minMax = getMetadata(ncds, ftype, AxisType.Height, "z", "depth");
 
-        if (Double.isNaN(minMax[0].doubleValue()) | Double.isNaN(minMax[1].floatValue())) {
-            /* TODO: Try something else!! */
-        }
-
+        boolean isNan = (Double.isNaN(minMax[0].doubleValue()) | Double.isNaN(minMax[1].floatValue()));
 
         /* Determine positive direction */
-        String posDir = "down";//default to 'down'
+        String posDir = "";//default to ''
+//        String posDir = "down";//default to 'down'
         for (Variable v : ncds.getVariables()) {
             Attribute a = v.findAttribute("positive");
             if (a != null) {
-                posDir = a.getStringValue();
+                /* If we don't have values, use the variable (why else have "positive"??) */
+                if(isNan) {
+                    try {
+                        Array arr = v.read();
+                        minMax[0] = MAMath.getMinimum(arr);
+                        minMax[1] = MAMath.getMaximum(arr);
+                        posDir = a.getStringValue();
+                    } catch (IOException ex) {
+                        minMax[0] = Double.NaN;
+                        minMax[1] = Double.NaN;
+                        // exit quietly, return nans
+                    }
+                }
+
             }
             break;
         }
 
-        if (Double.isNaN(minMax[0].doubleValue()) | Double.isNaN(minMax[1].floatValue())) {
-            /* If we can't sort out the vertical bounds, don't bother with the directionality! */
-            posDir = "";
-        }
+
+
+
+//        if (isNan) {
+//            /* If we can't sort out the vertical bounds, don't bother with the directionality! */
+//            posDir = "";
+//        }
 
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_GEOSPATIAL_VERTICAL_MIN, minMax[0]));
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_GEOSPATIAL_VERTICAL_MAX, minMax[1]));
@@ -168,4 +187,5 @@ public class AttributeFactory {
         }
         return new Number[]{min, max};
     }
+
 }

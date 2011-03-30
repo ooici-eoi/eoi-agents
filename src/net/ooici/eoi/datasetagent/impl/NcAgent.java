@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileReader;
@@ -11,6 +12,7 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
@@ -180,35 +182,48 @@ public class NcAgent extends AbstractNcAgent {
 //        String[] datasetList = new String[]{"http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z",
 //                                            "http://thredds1.pfeg.noaa.gov/thredds/dodsC/satellite/GR/ssta/1day",
 //                                            "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/avhrr/bigbight/2010"};
-
+        File metaIn = new File("netcdf_metadata_input.txt");
+        if (!metaIn.exists()) {
+            System.out.println("The file specifying the datasets (\"netcdf_metadata_input.txt\") cannot be found: cannot continue processing");
+            System.exit(1);
+        }
         FileReader rdr = new FileReader(new File("netcdf_metadata_input.txt"));
         Properties props = new Properties();
         props.load(rdr);
-        
 
-        Map<String, Map<String, String>> datasets = new TreeMap<String, Map<String,String>>(); /* Maps dataset name to an attributes map */
+
+        Map<String, Map<String, String>> datasets = new TreeMap<String, Map<String, String>>(); /* Maps dataset name to an attributes map */
         List<String> metaLookup = new ArrayList<String>();
-        
-        /* Front-load the metadata list with the OOI required metadata */
-        metaLookup.add("title");
-        metaLookup.add("institution");
-        metaLookup.add("source");
-        metaLookup.add("history");
-        metaLookup.add("references");
-        metaLookup.add("Conventions");
-        metaLookup.add("summary");
-        metaLookup.add("comment");
-        metaLookup.add("data_url");
-        metaLookup.add("ion_time_coverage_start");
-        metaLookup.add("ion_time_coverage_end");
-        metaLookup.add("ion_geospatial_lat_min");
-        metaLookup.add("ion_geospatial_lat_max");
-        metaLookup.add("ion_geospatial_lon_min");
-        metaLookup.add("ion_geospatial_lon_max");
-        metaLookup.add("ion_geospatial_vertical_min");
-        metaLookup.add("ion_geospatial_vertical_max");
-        metaLookup.add("ion_geospatial_vertical_positive");
-            
+
+        /* Front-load the metadata list with the existing metadata headers - preserves order of the spreadsheet */
+        File headIn = new File("metadata_headers.txt");
+        if (!headIn.exists()) {
+            System.out.println("The file specifying the existing metadata (\"metadata_headers.txt\") cannot be found: continuing with only \"OOI Minimum\" metadata specified");
+            metaLookup.add("title");
+            metaLookup.add("institution");
+            metaLookup.add("source");
+            metaLookup.add("history");
+            metaLookup.add("references");
+            metaLookup.add("Conventions");
+            metaLookup.add("summary");
+            metaLookup.add("comment");
+            metaLookup.add("data_url");
+            metaLookup.add("ion_time_coverage_start");
+            metaLookup.add("ion_time_coverage_end");
+            metaLookup.add("ion_geospatial_lat_min");
+            metaLookup.add("ion_geospatial_lat_max");
+            metaLookup.add("ion_geospatial_lon_min");
+            metaLookup.add("ion_geospatial_lon_max");
+            metaLookup.add("ion_geospatial_vertical_min");
+            metaLookup.add("ion_geospatial_vertical_max");
+            metaLookup.add("ion_geospatial_vertical_positive");
+        }
+        BufferedReader headRdr = new BufferedReader(new FileReader(headIn));
+        String line;
+        while ((line = headRdr.readLine()) != null) {
+            metaLookup.add(line.trim());
+        }
+
         /* For now, don't add anything - this process will help us figure out what needs to be added */
         String ncmlmask = "<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
         String src = null;
@@ -220,9 +235,9 @@ public class NcAgent extends AbstractNcAgent {
             src = o.toString();
             url = props.getProperty(src);
             url = (url.startsWith("~")) ? url.replace("~", usrHome) : url;
-            
+
             System.out.println("Getting ncdump for dataset @ " + url);
-            
+
             /* Acquire metadata for the datasource's url */
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_S);
@@ -239,8 +254,8 @@ public class NcAgent extends AbstractNcAgent {
                 datasets.put(src + " (FAILED)", null);
                 continue;
             }
-            
-            
+
+
             System.out.println(".....");
 //            System.out.println("\n\nDataSource:\t" + src + "\n-------------------------------------\n" + NcDumpParse.parseToDelimited(resp[0]));
 //            Map<String, String> metadataMap = NcDumpParse.parseToMap(resp[0]);
@@ -251,8 +266,8 @@ public class NcAgent extends AbstractNcAgent {
 //            }
             Map<String, String> dsMeta = NcDumpParse.parseToMap(resp[0]);
             datasets.put(src, dsMeta);
-            
-            
+
+
             /* TODO: Eventually we can make this loop external and perform a sort beforehand.
              *       this sort would frontload attributes which are found more frequently
              *       across multiple datasets
@@ -262,14 +277,14 @@ public class NcAgent extends AbstractNcAgent {
                     metaLookup.add(key);
                 }
             }
-                
+
         }
-        
-        
+
+
         /** Write the CSV output */
         String NEW_LINE = System.getProperty("line.separator");
         StringBuilder sb = new StringBuilder();
-        
+
         /* TODO: Step 1: add header data here */
         sb.append("Dataset Name");
         for (String metaName : metaLookup) {
@@ -279,7 +294,7 @@ public class NcAgent extends AbstractNcAgent {
 //            sb.append(metaName.replaceAll(Pattern.quote("\""), "\"\""));
 //            sb.append('"');
         }
-        
+
         /* Step 2: Add each row of data */
         for (String dsName : datasets.keySet()) {
             Map<String, String> dsMeta = datasets.get(dsName);
@@ -302,10 +317,10 @@ public class NcAgent extends AbstractNcAgent {
 //                    sb.append('"');
                 }
             }
-            
+
         }
 
-        
+
         System.out.println(NEW_LINE + NEW_LINE + "********************************************************");
         System.out.println(sb.toString());
         System.out.println(NEW_LINE + "********************************************************");
@@ -349,6 +364,12 @@ public class NcAgent extends AbstractNcAgent {
 //        eTime = "2011-02-02T00:00:00Z";
 //        maxSize = 33554432;//for pfeg ==> all geospatial (1 time) = 32mb
 
+        /* CODAR - marcoora */
+        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/codar/totals/macoora6km";
+        sTime = "2011-03-24T00:00:00Z";
+        eTime = "2011-03-27T00:00:00Z";
+
         /* Local testing */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/output/usgs/USGS_Test.nc";
@@ -359,7 +380,7 @@ public class NcAgent extends AbstractNcAgent {
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        dataurl = "/Users/cmueller/User_Data/Shared_Datasets/NCOM/ncom_glb_scs_2007050700.nc";
 //        sTime = "2007-05-07T00:00:00Z";
-//        eTime = "2007-05-08T00:00:00Z";
+//        eTime = "2007-05-09T00:00:00Z";
 
         /* Rutgers ROMS */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";

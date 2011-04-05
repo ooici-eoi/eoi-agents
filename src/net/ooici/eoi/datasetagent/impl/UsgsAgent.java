@@ -26,8 +26,10 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
+import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.netcdf.NcDumpParse;
+import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 
 import org.jdom.Document;
 import org.jdom.Element;
@@ -39,10 +41,14 @@ import org.jdom.xpath.XPath;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
- * TODO Add class comments
+ * The UsgsAgent class is designed to fulfill updates for datasets which originate from USGS services. Ensure the update context (
+ * {@link EoiDataContextMessage}) to be passed to {@link #doUpdate(EoiDataContextMessage, HashMap)} has been constructed for USGS agents by
+ * checking the result of {@link EoiDataContextMessage#getSourceType()}
  * 
  * @author tlarocque
  * @version 1.0
+ * @see {@link EoiDataContextMessage#getSourceType()}
+ * @see {@link AgentFactory#getDatasetAgent(net.ooici.services.sa.DataSource.SourceType)}
  */
 public class UsgsAgent extends AbstractAsciiAgent {
 
@@ -74,8 +80,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
         inSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
+    /**
+     * Constructs a URL from the given data <code>context</code> by appending necessary USGS-specific query string parameters to the base URL
+     * returned by <code>context.getBaseUrl()</code>. This URL may subsequently be passed through {@link #acquireData(String)} to procure
+     * updated data according to the <code>context</code> given here.  Requests may be built differently depending on which USGS service
+     * <code>context.getBaseUrl()</code> specifies.  Valid services include the WaterService webservice and the DailyValues service.
+     * 
+     * @param context
+     *            the current or required state of a USGS dataset providing context for building data requests to fulfill dataset updates
+     * @return A dataset update request URL built from the given <code>context</code> against a USGS service.
      */
     @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
@@ -302,8 +315,14 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return result.toString();
     }
     
-    /* (non-Javadoc)
-     * @see net.ooici.eoi.datasetagent.AbstractAsciiAgent#validateData(java.lang.String)
+    /**
+     * Parses the given <code>asciiData</code> for any signs of error
+     * 
+     * @param asciiData
+     *            <code>String</code> data as retrieved from {@link #acquireData(String)}
+     * 
+     * @throws AsciiValidationException
+     *             When the given <code>asciiData</code> is invalid or cannot be validated
      */
     @Override
     protected void validateData(String asciiData) {
@@ -329,8 +348,13 @@ public class UsgsAgent extends AbstractAsciiAgent {
         }
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.AbstractAsciiAgent#parseObss(java.lang.String)
+    /**
+     * Parses the given USGS <code>String</code> data (XML) as a list of <code>IObservationGroup</code> objects
+     * 
+     * @param asciiData
+     *            XML (<code>String</code>) data passed to this method from {@link #acquireData(String)}
+     * 
+     * @return a list of <code>IObservationGroup</code> objects representing the observations parsed from the given <code>asciiData</code>
      */
     @Override
     protected List<IObservationGroup> parseObs(String asciiData) {
@@ -357,10 +381,13 @@ public class UsgsAgent extends AbstractAsciiAgent {
     }
 
     /**
-     * Parses the String data from the given reader into a list of observation groups.
-     * <em>Note:</em><br />
+     * Parses the String data from the given reader into a list of observation groups.<br />
+     * <br />
+     * <b>Note:</b><br />
      * The given reader is guaranteed to return from this method in a <i>closed</i> state.
+     * 
      * @param rdr
+     *            a <code>Reader</code> object linked to a stream of USGS ascii data from the Waterservices Service
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
     public static IObservationGroup ws_parseObservations(Reader rdr) {
@@ -562,10 +589,13 @@ public class UsgsAgent extends AbstractAsciiAgent {
     }
 
     /**
-     * Parses the String data from the given reader into a list of observation groups.
-     * <em>Note:</em><br />
+     * Parses the String data from the given reader into a list of observation groups.<br />
+     * <br />
+     * <b>Note:</b><br />
      * The given reader is guaranteed to return from this method in a <i>closed</i> state.
+     * 
      * @param rdr
+     *            a <code>Reader</code> object linked to a stream of USGS ascii data from the Daily Values Service
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
     public static IObservationGroup dv_parseObservations(Reader rdr) {
@@ -839,11 +869,24 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return result;
     }
 
+    /**
+     * Converts the given list of <code>IObservationGroup</code>s to a {@link NetcdfDataset}, breaks that dataset into manageable sections
+     * and sends those data "chunks" to the ingestion service.
+     * 
+     * @param obsList
+     *            a group of observations as a list of <code>IObservationGroup</code> objects
+     *            
+     * @return TODO:
+     * 
+     * @see #obs2Ncds(IObservationGroup...)
+     * @see #sendNetcdfDataset(NetcdfDataset, String)
+     * @see #sendNetcdfDataset(NetcdfDataset, String, boolean)
+     */
     @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
         NetcdfDataset ncds = obs2Ncds(obsList);
-        /* Send this via the send dataset method of DAC */
+        /* Send this via the send dataset method of AbstractDatasetAgent */
         ret.add(this.sendNetcdfDataset(ncds, "ingest"));
         return ret.toArray(new String[0]);
     }

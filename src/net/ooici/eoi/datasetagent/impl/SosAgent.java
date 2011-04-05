@@ -24,14 +24,21 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
+import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import ucar.nc2.dataset.NetcdfDataset;
 
+
 /**
- * TODO Add class comments
+ * The SosAgent class is designed to fulfill updates for datasets which originate from SOS services. Ensure the update context (
+ * {@link EoiDataContextMessage}) to be passed to {@link #doUpdate(EoiDataContextMessage, HashMap)} has been constructed for SOS agents by
+ * checking the result of {@link EoiDataContextMessage#getSourceType()}
  * 
  * @author tlarocque
  * @version 1.0
+ * @see {@link EoiDataContextMessage#getSourceType()}
+ * @see {@link AgentFactory#getDatasetAgent(net.ooici.services.sa.DataSource.SourceType)}
  */
 public class SosAgent extends AbstractAsciiAgent {
 
@@ -46,8 +53,14 @@ public class SosAgent extends AbstractAsciiAgent {
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
+    /**
+     * Constructs a URL from the given data <code>context</code> by appending necessary SOS-specific query string parameters to the base URL
+     * returned by <code>context.getBaseUrl()</code>. This URL may subsequently be passed through {@link #acquireData(String)} to procure
+     * updated data according to the <code>context</code> given here.
+     * 
+     * @param context
+     *            the current or required state of an SOS dataset providing context for building data requests to fulfill dataset updates
+     * @return A dataset update request URL built from the given <code>context</code> against an SOS service.
      */
     @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
@@ -130,8 +143,13 @@ public class SosAgent extends AbstractAsciiAgent {
         return result.toString();
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.AbstractAsciiAgent#parseObss(java.lang.String)
+    /**
+     * Parses the given SOS <code>String</code> data (CSV) as a list of <code>IObservationGroup</code> objects
+     * 
+     * @param asciiData
+     *            CSV data passed to this method from {@link #acquireData(String)}
+     * 
+     * @return a list of <code>IObservationGroup</code> objects representing the observations parsed from the given <code>asciiData</code>
      */
     @Override
     protected List<IObservationGroup> parseObs(String asciiData) {
@@ -154,10 +172,13 @@ public class SosAgent extends AbstractAsciiAgent {
     }
 
     /**
-     * Parses the String data from the given reader into a list of observation groups.
-     * <em>Note:</em><br />
+     * Parses the String data from the given reader into a list of observation groups.<br />
+     * <br />
+     * <b>Note:</b><br />
      * The given reader is guaranteed to return from this method in a <i>closed</i> state.
+     * 
      * @param rdr
+     *            a <code>Reader</code> object linked to a stream of SOS ascii data
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
     public static List<IObservationGroup> parseObservations(Reader rdr) {
@@ -316,13 +337,26 @@ public class SosAgent extends AbstractAsciiAgent {
         return obsList;
     }
 
+    /**
+     * Converts the given list of <code>IObservationGroup</code>s to a {@link NetcdfDataset}, breaks that dataset into manageable sections
+     * and sends those data "chunks" to the ingestion service.
+     * 
+     * @param obsList
+     *            a group of observations as a list of <code>IObservationGroup</code> objects
+     *            
+     * @return TODO:
+     * 
+     * @see #obs2Ncds(IObservationGroup...)
+     * @see #sendNetcdfDataset(NetcdfDataset, String)
+     * @see #sendNetcdfDataset(NetcdfDataset, String, boolean)
+     */
     @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
         
         NetcdfDataset ncds = obs2Ncds(obsList);
 
-        /* Send this via the send dataset method of DAC */
+        /* Send this via the send dataset method of AbstractDatasetAgent */
         ret.add(this.sendNetcdfDataset(ncds, "ingest"));
 
         return ret.toArray(new String[0]);

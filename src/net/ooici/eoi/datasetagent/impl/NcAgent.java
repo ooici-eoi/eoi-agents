@@ -14,15 +14,21 @@ import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
 
+import net.ooici.core.link.Link;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
+import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import net.ooici.eoi.datasetagent.IDatasetAgent;
 import net.ooici.eoi.netcdf.NcDumpParse;
+import net.ooici.services.sa.DataSource.EoiDataContextMessage;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.InvalidRangeException;
@@ -31,15 +37,34 @@ import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
 import ucar.nc2.dataset.NetcdfDataset;
 
+
 /**
- *
+ * The NcAgent class is designed to fulfill updates for datasets which originate as Netcdf files (*.nc). Ensure the update context (
+ * {@link EoiDataContextMessage}) to be passed to {@link #doUpdate(EoiDataContextMessage, HashMap)} has been constructed for NC agents by
+ * checking the result of {@link EoiDataContextMessage#getSourceType()}
+ * 
  * @author cmueller
+ * @author tlarocque (documentation)
+ * @version 1.0
+ * @see {@link EoiDataContextMessage#getSourceType()}
+ * @see {@link AgentFactory#getDatasetAgent(net.ooici.services.sa.DataSource.SourceType)}
  */
 public class NcAgent extends AbstractNcAgent {
 
     private static final Logger log = LoggerFactory.getLogger(NcAgent.class);
     private Date sTime = null, eTime = null;
 
+    /**
+     * Constructs a local reference to an NCML file which acts as an access point to the <code>NetcdfDataset</code> which can provide
+     * updates for the given <code>context</code>. The resultant filepath may subsequently be passed through {@link #acquireData(String)} to
+     * procure updated data according to the <code>context</code> given here.
+     * 
+     * @param context
+     *            the current or required state of an NC dataset providing context for building data requests to fulfill dataset updates
+     * @return A filepath pointing to an NCML file built from the given <code>context</code>.
+     * 
+     * @see #buildNcmlMask(String, String)
+     */
     @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
         String ncmlTemplate = context.getNcmlMask();
@@ -62,6 +87,20 @@ public class NcAgent extends AbstractNcAgent {
         return ncmlPath;
     }
 
+    /**
+     * Satisfies the given <code>request</code> by interpreting it as a Netcdf ncml file and then, by constructing a {@link NetcdfDataset}
+     * object from that file. Requests are built dynamically in
+     * {@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}. This method is a convenience for opening
+     * {@link NetcdfDataset} objects from the result of the {@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}
+     * method.
+     * 
+     * @param request
+     *            an ncml filepath as built from {@link IDatasetAgent#buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}
+     * @return the response of the given <code>request</code> as a {@link NetcdfDataset} object
+     * 
+     * @see #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)
+     * @see NetcdfDataset#openDataset(String)
+     */
     @Override
     public Object acquireData(String request) {
         NetcdfDataset ncds = null;
@@ -74,6 +113,19 @@ public class NcAgent extends AbstractNcAgent {
         return ncds;
     }
 
+    /**
+     * Adds subranges to the datasets dimensions as appropriate, breaks that dataset into manageable sections
+     * and sends those data "chunks" to the ingestion service.
+     * 
+     * @param ncds
+     *            the {@link NetcdfDataset} to process
+     *            
+     * @return TODO:
+     * 
+     * @see #addSubRange(ucar.ma2.Range)
+     * @see #sendNetcdfDataset(NetcdfDataset, String)
+     * @see #sendNetcdfDataset(NetcdfDataset, String, boolean)
+     */
     @Override
     public String[] processDataset(NetcdfDataset ncds) {
         if (sTime != null & eTime != null) {

@@ -7,10 +7,11 @@ package net.ooici.eoi.datasetagent;
 
 /**
  * The <code>INcAgent</code> interface extends the <code>IDatasetAgent</code> interface by providing a publically accessible method for
- * processing a <code>NetcdfDataset</code> object. Typical implementations of this interface define dataset processing as the actions
+ * processing a <code>NetcdfDataset</code> object.<br />
+ * <br />
+ * Typical implementations of this interface define dataset processing as the actions
  * required in breaking the given dataset into manageable sections and passing those object(s) to a service for ingestion/persistence and
  * the like
- * 
  * 
  * @author cmueller
  * @author tlarocque

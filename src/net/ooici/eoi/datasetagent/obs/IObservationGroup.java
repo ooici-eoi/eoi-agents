@@ -7,7 +7,9 @@ import net.ooici.eoi.netcdf.VariableParams;
 
 
 /**
- * An IObservationGroup contains a grouping of one or more data observations at a fixed geographic point.
+ * The IObservationGroup specifies the interface for implementing containers to store groupings of one or more data observations at a fixed
+ * geographic point.
+ * 
  * @author tlarocque
  */
 public interface IObservationGroup {

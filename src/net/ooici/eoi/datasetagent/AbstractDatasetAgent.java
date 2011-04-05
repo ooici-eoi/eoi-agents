@@ -23,9 +23,39 @@ import ucar.ma2.Range;
 import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.NetcdfDataset;
 
+
 /**
- * TODO Add class comments
- *
+ * The AbstractDatasetAgent provides the core functionallity used in typical implementations of an <code>IDatasetAgent</code>.<br />
+ * <br />
+ * This class defines the standard implementation for the method {@link #doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage, HashMap)}<br />
+ * <br />
+ * <b><code>doUpdate()</code></b> Performs a dataset update sequence by chaining
+ * calls to the methods:
+ * <ol>
+ * <li>{@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+ * <li>{@link #acquireData(String)}</li>
+ * <li>{@link #_processDataset(Object)}</li>
+ * </ol>
+ * 
+ * This class also defines the following helper methods for satisfying dataset update requests:
+ * <ul>
+ * <li>{@link #sendNetcdfDataset(NetcdfDataset, String)}</li>
+ * <li>{@link #sendNetcdfDataset(NetcdfDataset, String, boolean)}</li>
+ * <li>{@link #decompSendVariable(ucar.nc2.Variable, ucar.ma2.Section, int)}</li>
+ * <li>{@link #addOoiciBoundsMetadata(NetcdfDataset)}</li>
+ * <li>{@link #sendDatasetMsg(byte[])}</li>
+ * <li>{@link #sendDataChunkMsg(byte[])}</li>
+ * <li>{@link #sendDataDoneMsg()}</li>
+ * </ul>
+ * 
+ * <b>Implementation Note:</b><br />
+ * Concrete classes are required to implement the following methods:
+ * <ul>
+ * <li>{@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+ * <li>{@link #acquireData(String)}</li>
+ * <li>{@link #_processDataset(Object)}</li>
+ * </ul>
+ * 
  * @author cmueller
  * @author tlarocque
  * @version 1.0
@@ -111,7 +141,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * <ol>
      * <li>Build a data request for the given <code>context</code><br />
      * {@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
-     * <li>Acquire data from the previously built request as either <code>String</code> data (CSV, TSV, etc) or a <code>NetCdfDataset</code>
+     * <li>Acquire data from the previously built request as either <code>String</code> data (CSV, TSV, XML etc) or a <code>NetCdfDataset</code>
      * <br />
      * {@link #acquireData(String)}</li>
      * <li>Process and send the data in part or wholesale depending upon a subclasses implementation<br />

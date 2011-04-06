@@ -187,7 +187,7 @@ public class NcAgent extends AbstractNcAgent {
             System.out.println("The file specifying the datasets (\"netcdf_metadata_input.txt\") cannot be found: cannot continue processing");
             System.exit(1);
         }
-        FileReader rdr = new FileReader(new File("netcdf_metadata_input.txt"));
+        FileReader rdr = new FileReader(metaIn);
         Properties props = new Properties();
         props.load(rdr);
 
@@ -196,7 +196,7 @@ public class NcAgent extends AbstractNcAgent {
         List<String> metaLookup = new ArrayList<String>();
 
         /* Front-load the metadata list with the existing metadata headers - preserves order of the spreadsheet */
-        File headIn = new File("metadata_headers.txt");
+        File headIn = new File("netcdf_metadata_headers.txt");
         if (!headIn.exists()) {
             System.out.println("The file specifying the existing metadata (\"metadata_headers.txt\") cannot be found: continuing with only \"OOI Minimum\" metadata specified");
             metaLookup.add("title");
@@ -223,6 +223,7 @@ public class NcAgent extends AbstractNcAgent {
         while ((line = headRdr.readLine()) != null) {
             metaLookup.add(line.trim());
         }
+        headRdr.close();
 
         /* For now, don't add anything - this process will help us figure out what needs to be added */
         String ncmlmask = "<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
@@ -319,6 +320,18 @@ public class NcAgent extends AbstractNcAgent {
             }
 
         }
+
+        /* writer the metadata headers to the "headers" file */
+        headIn.delete();
+        BufferedWriter writer = new BufferedWriter(new FileWriter(headIn));
+        String nl = System.getProperty("line.seperator");
+        for (int i = 0; i < metaLookup.size() - 1; i++) {
+            writer.write(metaLookup.get(i));
+            writer.write(nl);
+        }
+        writer.write(metaLookup.get(metaLookup.size() - 1));
+        writer.flush();
+        writer.close();
 
 
         System.out.println(NEW_LINE + NEW_LINE + "********************************************************");

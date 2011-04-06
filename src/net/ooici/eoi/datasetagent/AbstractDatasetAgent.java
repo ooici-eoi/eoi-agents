@@ -10,7 +10,6 @@ import ion.core.utils.ProtoUtils;
 import java.io.IOException;
 import java.util.HashMap;
 import net.ooici.cdm.syntactic.Cdmvariable;
-import net.ooici.core.message.IonMessage.IonMsg;
 import net.ooici.core.message.IonMessage.ResponseCodes;
 import net.ooici.eoi.netcdf.AttributeFactory;
 import net.ooici.eoi.netcdf.NcUtils;
@@ -20,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
+import ucar.nc2.NetcdfFile;
 import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.NetcdfDataset;
 
@@ -217,6 +217,16 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         String ret = null;
         if (testing) {
+            try {
+                /* Dump the dataset locally */
+                new java.io.File("out").mkdir();
+                String outname = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
+                outname = (outname.endsWith(".nc")) ? outname : outname + ".nc";
+                ucar.nc2.FileWriter.writeToFile(ncds, "out/" + outname);
+            } catch (IOException ex) {
+                log.error("Error writing file during testing...", ex);
+            }
+
             ret = ncds.toString();
             return ret;
         }

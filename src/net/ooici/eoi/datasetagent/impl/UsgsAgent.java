@@ -59,12 +59,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
     private static final SimpleDateFormat inSdf;
     private static int currentGroupId = -1;
     private static final String USR_HOME = System.getProperty("user.home");
-    
     /** Maths */
     public static final double CONVERT_FT_TO_M = 0.3048;
     public static final double CONVERT_FT3_TO_M3 = Math.pow(CONVERT_FT_TO_M, 3);
-
     private boolean isDailyValue = false;
+    private String data_url;
 
     /** Static Initializer */
     static {
@@ -92,6 +91,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             isDailyValue = true;
         }
 
+// <editor-fold defaultstate="collapsed" desc="OLD - COMMENTED">
 
 //        String baseUrl = context.getBaseUrl();
 //        String sTimeString = context.getStartTime();
@@ -179,10 +179,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //                result.append("&endDT=").append(eTimeString);
 //            }
 //        }
-
-
-        log.debug("... built request: [" + result + "]");
-        return result.toString();
+// </editor-fold>
+        data_url = result.toString();
+        log.debug("... built request: [" + data_url + "]");
+        return data_url;
     }
 
     private String buildWaterServicesRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
@@ -249,9 +249,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
         result.append("&startDT=").append(sTimeString);
         result.append("&endDT=").append(eTimeString);
 
-
-
-        log.debug("... built request: [" + result + "]");
         return result.toString();
     }
 
@@ -298,10 +295,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
             result.append("&EndDate=").append(eTimeString);
         }
 
-        log.debug("... built request: [" + result + "]");
         return result.toString();
     }
-    
+
     /* (non-Javadoc)
      * @see net.ooici.eoi.datasetagent.AbstractAsciiAgent#validateData(java.lang.String)
      */
@@ -316,7 +312,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         } catch (IOException e) {
             throw new AsciiValidationException("Could not read the ascii input data during validation.", e);
         }
-        
+
         /* Check the response for errors by looking for the word "Error"
          * ...sometimes the response will be an error even though the
          * connection's resonse code returns "200 OK" */
@@ -342,7 +338,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         StringReader srdr = new StringReader(asciiData);
         try {
-            if(!isDailyValue) {
+            if (!isDailyValue) {
                 obsList.add(ws_parseObservations(srdr));
             } else {
                 obsList.add(dv_parseObservations(srdr));
@@ -363,7 +359,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * @param rdr
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
-    public static IObservationGroup ws_parseObservations(Reader rdr) {
+    public IObservationGroup ws_parseObservations(Reader rdr) {
         /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
 
         /** XPATH queries */
@@ -404,42 +400,36 @@ public class UsgsAgent extends AbstractAsciiAgent {
             /* Extract the Global Attributes */
             /* title */
             String queryUrl = xpathSafeSelectValue(queryInfo, ".//ns2:queryURL", null);
-            globalAttributes.put("title", "USGS rivers data timeseries.  Requested from \"" + queryUrl + "\"");
+//            globalAttributes.put("title", "USGS rivers data timeseries.  Requested from \"" + queryUrl + "\"");
+            String siteName = xpathSafeSelectValue(root, "//ns1:sourceInfo/ns1:siteName", null);
+            String locationParam = xpathSafeSelectValue(root, "//ns1:queryInfo/ns1:criteria/ns1:locationParam", null);
+            locationParam = locationParam.substring(locationParam.indexOf(":") + 1, locationParam.indexOf("]"));
+            String variableName = xpathSafeSelectValue(root, "//ns1:variable/ns1:variableName", null);
+            int cut = variableName.indexOf(",");
+            if (cut >= 1) {
+                variableName = variableName.substring(0, cut);
+            }
+            String title = siteName + " (" + locationParam + ") - " + variableName;
+            title = title.replace(",", "").replace(".", "");
+            globalAttributes.put("title", title);
+            globalAttributes.put("institution", "USGS NWIS");
 
             /* history */
-            globalAttributes.put("history", "Converted from WaterML1.1 to OOI CDM compliant NC by " + UsgsAgent.class.getName());
+            globalAttributes.put("history", "Converted from WaterML1.1 to OOI CDM by " + UsgsAgent.class.getName());
 
             /* references */
-            globalAttributes.put("references", new StringBuilder().append("[").append("http://waterservices.usgs.gov/mwis/iv?").append("]").toString());
 
-//            /* utc_start_time */
-//            Date tempDate = new Date(0);
-//            String beginDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:beginDateTime", null);
-//
-//            tempDate = inSdf.parse(beginDate);
-//            String beginDateISO = outSdf.format(tempDate);
-//            globalAttributes.put("utc_start_time", beginDateISO);
-//
-//
-//            /* utc_end_time */
-//            tempDate = new Date(0);
-//            String endDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:endDateTime", null);
-//
-//
-//            tempDate = inSdf.parse(endDate);
-//            String endDateISO = outSdf.format(tempDate);
-//            globalAttributes.put("utc_end_time", endDateISO);
-
+            globalAttributes.put("references", "http://waterservices.usgs.gov/rest/WOF-IV-Service.html");
 
             /* conventions */
             globalAttributes.put("Conventions", "CF-1.5");
 
+            /* data url */
+            globalAttributes.put("data_url", data_url);
 
 
             /** Get a list of provided time series */
             List<?> timeseriesList = XPath.selectNodes(doc, XPATH_ELEMENT_TIME_SERIES);
-
-
 
             /** Build an observation group for each unique sitecode */
             Object nextTimeseries = null;
@@ -527,28 +517,28 @@ public class UsgsAgent extends AbstractAsciiAgent {
                 }
 
 
-                /** Grab attributes */
-                Map<String, String> tsAttributes = new TreeMap<String, String>();
-
-
-                /* Extract timeseries-specific attributes */
-                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName", "[n/a]");
-                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network", "[n/a]");
-                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode", "[n/a]");
-                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode", "[n/a]");
-                tsAttributes.put("institution", new StringBuilder().append(sitename).append(" (network:").append(network).append("; agencyCode:").append(agency).append("; siteCode:").append(sCode).append(";)").toString());
-
-                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription", "[n/a]");
-                tsAttributes.put("source", method);
-
-
-
-                /** Add global and timeseries attributes */
-                obs.addAttributes(globalAttributes);
-                obs.addAttributes(tsAttributes);
+//                /** Grab attributes */
+//                Map<String, String> tsAttributes = new TreeMap<String, String>();
+//
+//
+//                /* Extract timeseries-specific attributes */
+//                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName", "[n/a]");
+//                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network", "[n/a]");
+//                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode", "[n/a]");
+//                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode", "[n/a]");
+//                tsAttributes.put("institution", new StringBuilder().append(sitename).append(" (network:").append(network).append("; agencyCode:").append(agency).append("; siteCode:").append(sCode).append(";)").toString());
+//
+//                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription", "[n/a]");
+//                tsAttributes.put("source", method);
+//
+//
+//
+//                /** Add global and timeseries attributes */
+//                obs.addAttributes(tsAttributes);
 
 
             }
+            obs.addAttributes(globalAttributes);
 
         } catch (JDOMException ex) {
             log.error("Error while parsing xml from the given reader", ex);
@@ -568,9 +558,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * @param rdr
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
-    public static IObservationGroup dv_parseObservations(Reader rdr) {
+    public IObservationGroup dv_parseObservations(Reader rdr) {
         /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
-        
+
         /** XPATH queries */
         final String XPATH_ELEMENT_TIME_SERIES = ".//ns1:timeSeries";
         final String XPATH_ELEMENT_SITE_CODE = "./ns1:sourceInfo/ns1:siteCode";
@@ -585,8 +575,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
         final String XPATH_ELEMENT_VARIABLE_NaN_VALUE = "./ns1:variable/ns1:NoDataValue";
         final String XPATH_ATTRIBUTE_QUALIFIERS = "./@qualifiers";
         final String XPATH_ATTRIBUTE_DATETIME = "./@dateTime";
-        
-        
+
+
         IObservationGroup obs = null;
         SAXBuilder builder = new SAXBuilder();
         Document doc = null;
@@ -611,35 +601,26 @@ public class UsgsAgent extends AbstractAsciiAgent {
             /* Extract the Global Attributes */
             /* title */
 //            String queryUrl = xpathSafeSelectValue(queryInfo, ".//ns2:queryURL", null);
-            globalAttributes.put("title", "USGS rivers data timeseries.  Requested from \"NWIS DailyValues Service\"");
+            String siteName = xpathSafeSelectValue(root, "//ns1:sourceInfo/ns1:siteName", null);
+            String locationParam = xpathSafeSelectValue(root, "//ns1:queryInfo/ns1:criteria/ns1:locationParam", null);
+            locationParam = locationParam.substring(locationParam.indexOf(":") + 1, locationParam.indexOf("/"));
+            String variableName = xpathSafeSelectValue(root, "//ns1:variable/ns1:variableName", null);
+            String dataType = xpathSafeSelectValue(root, "//ns1:variable/ns1:dataType", null);
+            String title = siteName + " (" + locationParam + ") - Daily " + dataType + " " + variableName;
+            title = title.replace(",", "").replace(".", "");
+            globalAttributes.put("title", title);
 
             /* history */
-            globalAttributes.put("history", "Converted from WaterML1.1 to OOI CDM compliant NC by " + UsgsAgent.class.getName());
+            globalAttributes.put("history", "Converted from WaterML1.0 to OOI CDM by " + UsgsAgent.class.getName());
 
             /* references */
-            globalAttributes.put("references", new StringBuilder().append("[").append("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?").append("]").toString());
-
-//            /* utc_start_time */
-//            Date tempDate = new Date(0);
-//            String beginDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:beginDateTime", null);
-//
-//            tempDate = inSdf.parse(beginDate);
-//            String beginDateISO = outSdf.format(tempDate);
-//            globalAttributes.put("utc_start_time", beginDateISO);
-//
-//
-//            /* utc_end_time */
-//            tempDate = new Date(0);
-//            String endDate = xpathSafeSelectValue(queryInfo, ".//ns2:timeParam/ns2:endDateTime", null);
-//
-//
-//            tempDate = inSdf.parse(endDate);
-//            String endDateISO = outSdf.format(tempDate);
-//            globalAttributes.put("utc_end_time", endDateISO);
-
+            globalAttributes.put("references", "http://waterservices.usgs.gov/rest/USGS-DV-Service.html (interim)");
 
             /* conventions */
             globalAttributes.put("Conventions", "CF-1.5");
+
+            /* Data URL */
+            globalAttributes.put("data_url", data_url);
 
 
 
@@ -649,7 +630,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            List<?> timeseriesList = XPath.selectNodes(doc, ".//timeSeries");
 //            List<?> timeseriesList = root.getChildren("timeSeries", ns);
 
-            System.out.println("Total timeseries in doc: " + timeseriesList.size());
+//            System.out.println("Total timeseries in doc: " + timeseriesList.size());
 
 
             /** Build an observation group for each unique sitecode */
@@ -720,7 +701,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     final SimpleDateFormat dvInputSdf;
                     dvInputSdf = new SimpleDateFormat("yyyy-MM-dd'T'HHmmss");
                     dvInputSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-                    
+
                     time = (int) (dvInputSdf.parse(datetime).getTime() * 0.001);
                     // data = Float.parseFloat(value);
                     name = getDataNameForVariableCode(variableCode);
@@ -742,29 +723,30 @@ public class UsgsAgent extends AbstractAsciiAgent {
                 }
 
 
-                /** Grab attributes */
-                Map<String, String> tsAttributes = new TreeMap<String, String>();
+//                /** Grab attributes */
+//                Map<String, String> tsAttributes = new TreeMap<String, String>();
+//
+//
+//                /* Extract timeseries-specific attributes */
+//                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName", "[n/a]");
+//                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network", "[n/a]");
+//                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode", "[n/a]");
+//                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode", "[n/a]");
+//                tsAttributes.put("institution", new StringBuilder().append(sitename).append(" (network:").append(network).append("; agencyCode:").append(agency).append("; siteCode:").append(sCode).append(";)").toString());
+//
+//                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription", "[n/a]");
+//                tsAttributes.put("source", method);
+//
+//
+//
+//                /** Add global and timeseries attributes */
+//                obs.addAttributes(tsAttributes);
 
-
-                /* Extract timeseries-specific attributes */
-                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName", "[n/a]");
-                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network", "[n/a]");
-                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode", "[n/a]");
-                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode", "[n/a]");
-                tsAttributes.put("institution", new StringBuilder().append(sitename).append(" (network:").append(network).append("; agencyCode:").append(agency).append("; siteCode:").append(sCode).append(";)").toString());
-
-                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription", "[n/a]");
-                tsAttributes.put("source", method);
-
-
-
-                /** Add global and timeseries attributes */
-                obs.addAttributes(globalAttributes);
-                obs.addAttributes(tsAttributes);
 
 
             }
 
+            obs.addAttributes(globalAttributes);
         } catch (JDOMException ex) {
             log.error("Error while parsing xml from the given reader", ex);
         } catch (IOException ex) {
@@ -858,16 +840,16 @@ public class UsgsAgent extends AbstractAsciiAgent {
             log.error("Error bootstrapping", ex);
         }
 
-        boolean makeSamples = false;
-        boolean makeMetadataTable = false;
-        boolean manual = true;
+        boolean makeSamples = false, dailyValues = false;
+        boolean makeMetadataTable = true;
+        boolean manual = false;
         if (makeSamples) {
-            generateRutgersSamples();
+            generateRutgersSamples(dailyValues);
         }
-        if(makeMetadataTable) {
+        if (makeMetadataTable) {
             generateRutgersMetadata();
         }
-        if (manual){
+        if (manual) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
@@ -894,8 +876,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     break;
                 case 4:
                     cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
-                    cBldr.setStartTime("2003-01-01T00:00:00Z");
-//                    cBldr.setStartTime("2011-02-01T00:00:00Z");
+//                    cBldr.setStartTime("2003-01-01T00:00:00Z");
+                    cBldr.setStartTime("2011-02-01T00:00:00Z");
                     cBldr.setEndTime("2011-03-01T00:00:00Z");
                     cBldr.addProperty("00060");
                     cBldr.addStationId("01463500");
@@ -924,9 +906,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //        String[] datasetList = new String[]{"http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z",
 //                                            "http://thredds1.pfeg.noaa.gov/thredds/dodsC/satellite/GR/ssta/1day",
 //                                            "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/avhrr/bigbight/2010"};
-
-
-        Map<String, Map<String, String>> datasets = new TreeMap<String, Map<String,String>>(); /* Maps dataset name to an attributes map */
+        Map<String, Map<String, String>> datasets = new TreeMap<String, Map<String, String>>(); /* Maps dataset name to an attributes map */
         List<String> metaLookup = new ArrayList<String>();
 
         /* Front-load the metadata list with the OOI required metadata */
@@ -1075,23 +1055,28 @@ public class UsgsAgent extends AbstractAsciiAgent {
         System.out.println(NEW_LINE + "********************************************************");
     }
 
-    private static void generateRutgersSamples() throws IOException {
+    private static void generateRutgersSamples(boolean dailyValues) throws IOException {
         /* Configure the location for output files */
         String output_prefix = USR_HOME + "/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/";
-        
+
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'00:00:00'Z'");
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Date now = new Date();
+
         /* Generates samples for near-realtime high-resolution data */
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
-        String sTime = "2011-03-01T00:00:00Z";
-        String eTime = "2011-03-10T00:00:00Z";
+        String sTime = sdf.format(new Date(now.getTime() - 86400000));//start 1 day before
+        String eTime = sdf.format(now);
 
-        /* Generates samples for "historical" low-resolution data */
-        baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
-        sTime = "2003-01-01T00:00:00Z";
-        eTime = "2011-03-17T00:00:00Z";
+        if (dailyValues) {
+            /* Generates samples for "historical" low-resolution data */
+            baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
+            sTime = "2003-01-01T00:00:00Z";
+        }
         String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
-        String[] disNames = new String[]{"Connecticut", "Hudson", "Mohawk", "Passaic", "Raritan", "Delaware", "Susquehanna", "Potomac", "Patuxent", "Rappahannock", "Choptank", "James", "Appomattox", "Pamunkey", "Mattaponi"};
+//        String[] disNames = new String[]{"Connecticut", "Hudson", "Mohawk", "Passaic", "Raritan", "Delaware", "Susquehanna", "Potomac", "Patuxent", "Rappahannock", "Choptank", "James", "Appomattox", "Pamunkey", "Mattaponi"};
         String[] tempIds = new String[]{"01362500", "01463500", "01646500"};
-        String[] tempNames = new String[]{"Hudson", "Delware", "Potomac"};
+//        String[] tempNames = new String[]{"Hudson", "Delware", "Potomac"};
 
         for (int i = 0; i < disIds.length; i++) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();

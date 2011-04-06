@@ -8,14 +8,32 @@ import net.ooici.eoi.netcdf.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
 
 import ucar.nc2.dataset.NetcdfDataset;
 
+
 /**
- * TODO Add class comments
+ * The AbstractAsciiAgent provides the core functionallity used in typical implementations of dataset agents which act on services that
+ * produce ascii data observations.<br />
+ * <br />
+ * This class defines the standard implementation for the method {@link #acquireData(String)} and {@link #_processDataset(Object)}. See
+ * javadocs for more info. <br />
+ * <br />
+ * This class also defines the helper method {@link #obs2Ncds(IObservationGroup...)} for satisfying dataset update requests<br />
+ * <br />
+ * <b>Implementation Note:</b><br />
+ * Concrete classes are required to implement the following methods:
+ * <ul>
+ * <li>{@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+ * <li>{@link #parseObs(String)}</li>
+ * <li>{@link #processDataset(IObservationGroup...)}</li>
+ * </ul>
+ * and may optionally override the method {@link #validateData(String)}
  * 
+ * @author cmueller
  * @author tlarocque
  * @version 1.0
  */
@@ -55,12 +73,12 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
 
     /**
      * Satisfies the given <code>request</code> by interpreting it as a URL and then, by procuring <code>String</code> data from that URL.
-     * Typically, requests are built dynamically, and this method is a convenience for retrieving CSV and TSV data from REST webservices and
+     * Typically, requests are built dynamically, and this method is a convenience for retrieving CSV, TSV, or XML data from REST webservices and
      * the like.
      * 
      * @param request
      *            a URL request as built from {@link IDatasetAgent#buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}
-     * @return the HTTP <code>String</code> response of the given <code>request</code>
+     * @return the response of the given <code>request</code> as a <code>String</code>
      * 
      * @see IDatasetAgent#buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)
      * @see AgentUtils#getDataString(String)
@@ -92,7 +110,7 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
      * </ol>
      * 
      * @param data
-     *            a CSV or TSV result from {@link #acquireData(String)}
+     *            a CSV, TSV, XML result from {@link #acquireData(String)}
      * 
      * @return TODO:
      * 

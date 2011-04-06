@@ -10,14 +10,18 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 
 /**
  * The <code>IAsciiAgent</code> interface extends the <code>IDatasetAgent</code> interface by providing a publically accessible method for
- * processing a list of <code>IObservationGroup</code> objects interpretted as datasets. Typical implementations of this interface define
- * dataset processing as the actions required in interpreting a list of <code>IObservationGroup</code>'s as a dataset object, breaking that
- * dataset into manageable sections and passing those object(s) to a service for ingestion/persistence and the like
+ * processing a list of <code>IObservationGroup</code> objects interpretted as datasets. The <code>IObservationGroup</code> interface
+ * provides a contract for a container which stores observations extracted from dataset sources/services which output ascii data.<br />
+ * <br />
+ * Typical implementations of this interface define dataset processing as the actions required in interpreting a list of
+ * <code>IObservationGroup</code>'s as a dataset object, breaking that dataset into manageable sections and passing those object(s) to a
+ * service for ingestion/persistence.
  * 
  * 
  * @author cmueller
  * @author tlarocque
  * @version 1.0
+ * @see IObservationGroup
  */
 public interface IAsciiAgent extends IDatasetAgent {
 

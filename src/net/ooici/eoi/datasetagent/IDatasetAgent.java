@@ -4,9 +4,16 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import ucar.nc2.dataset.NetcdfDataset;
+
 
 /**
- * TODO Add class comments
+ * IDatasetAgent provides a generic contract for performing updates on OOI Datasets. The primary entry-point to the dataset update mechanism
+ * is {@link #doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage, java.util.HashMap)}, which is responsible for updating a
+ * service defined by connection parameters in a <code>HashMap</code> using the current state of the dataset defined by an
+ * <code>EoiDataContextMessage</code>. The remaining methods {@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}
+ * and {@link #acquireData(String)} can be utilized by <code>doUpdate()</code> to produced the updated dataset before it is pushed to the
+ * aforementioned service.
  * 
  * @author cmueller
  * @author tlarocque
@@ -17,23 +24,27 @@ public interface IDatasetAgent {
     /**
      * Generates the request that should be used when retrieving data. This request is passed directly to {@link #acquireData(String)}, and
      * so implementations should define these two methods to work in tandem in completing the request/response portion of a dataset update.
+     * Typically, <code>buildRequest()</code> returns a URL, local file, or OPeNDAP request for retrieving data.
      * 
      * @param context
      *            the current or required state of a given dataset providing context for building data requests to fulfill dataset updates
      * 
-     * @return a <code>String</code> request which {@link #acquireData(String)} can fulfill
+     * @return a data/dataset request which {@link #acquireData(String)} can fulfill
+     * @see #acquireData(String)
      * 
      */
     String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context);
 
     /**
      * Produces a response to the given <code>request</code>. Implementations may further define the format of the request and resultant
-     * data.
+     * data. Typical implementations returns data/datasets in the form of Ascii (CST/TSV) <code>String</code>s or {@link NetcdfDataset}
+     * objects.
      * 
      * @param request
      *            A data acquisition request to be fulfilled. Implementations may define the structure of this methods result.
      * 
-     * @return the data result for the given <code>request</code>
+     * @return the data/dataset result for the given <code>request</code>
+     * @see #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)
      */
     Object acquireData(String request);
 

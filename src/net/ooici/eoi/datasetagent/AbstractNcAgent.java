@@ -7,8 +7,22 @@ package net.ooici.eoi.datasetagent;
 
 import ucar.nc2.dataset.NetcdfDataset;
 
+
 /**
- * TODO Add class comments
+ * The AbstractNcAgent provides the core functionallity used in typical implementations of dataset agents which act on services that produce
+ * Netcdf Dataset observations (*.nc files).<br />
+ * <br />
+ * This class defines the standard implementation of {@link #_processDataset(Object)} by type casting the given data object as a
+ * {@link NetcdfDataset} and delegating processing to {@link #processDataset(NetcdfDataset)}<br />
+ * <br />
+ * <b>Implementation Note:</b><br />
+ * Concrete classes are required to implement the following methods:
+ * <ul>
+ * <li>{@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+ * <li>{@link #acquireData(String)}</li>
+ * <li>{@link #processDataset(NetcdfDataset)}</li>
+ * </ul>
+ * and may optionally override the method {@link #validateData(String)}
  * 
  * @author tlarocque
  * @version 1.0

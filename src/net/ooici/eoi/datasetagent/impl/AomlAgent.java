@@ -18,19 +18,30 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import net.ooici.Pair;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
+import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
+import net.ooici.eoi.datasetagent.IDatasetAgent;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupDupDepthImpl;
 import net.ooici.eoi.netcdf.VariableParams;
+import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import net.ooici.services.sa.DataSource.RequestType;
 import net.ooici.services.sa.DataSource.SourceType;
 import ucar.nc2.dataset.NetcdfDataset;
 
+
 /**
- *
+ * The AomlAgent class is designed to fulfill updates for datasets which originate from AOML services. Ensure the update context (
+ * {@link EoiDataContextMessage}) to be passed to {@link #doUpdate(EoiDataContextMessage, HashMap)} has been constructed for AOML agents by
+ * checking the result of {@link EoiDataContextMessage#getSourceType()}
+ * 
  * @author cmueller
+ * @author tlarocque (documentation)
+ * @version 1.0
+ * @see {@link EoiDataContextMessage#getSourceType()}
+ * @see {@link AgentFactory#getDatasetAgent(net.ooici.services.sa.DataSource.SourceType)}
  */
 public class AomlAgent extends AbstractAsciiAgent {
 
@@ -43,8 +54,14 @@ public class AomlAgent extends AbstractAsciiAgent {
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.IDatasetAgent#buildRequest(java.util.Map)
+    /**
+     * Constructs a URL from the given data <code>context</code> by appending necessary AOML-specific query string parameters to the base URL
+     * returned by <code>context.getBaseUrl()</code>. This URL may subsequently be passed through {@link #acquireData(String)} to procure
+     * updated data according to the <code>context</code> given here.
+     * 
+     * @param context
+     *            the current or required state of an AOML dataset providing context for building data requests to fulfill dataset updates
+     * @return A dataset update request URL built from the given <code>context</code> against an AOML service.
      */
     @Override
     public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
@@ -137,8 +154,17 @@ public class AomlAgent extends AbstractAsciiAgent {
         return result.toString();
     }
 
-    /* (non-Javadoc)
-     * @see net.ooici.agent.abstraction.IDatasetAgent#acquireData(java.lang.String)
+    /**
+     * Satisfies the given <code>request</code> by interpreting it as a AOML Service URL and then, by procuring <code>String</code> (TSV) data from that URL.
+     * Requests are built dynamically in {@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}.  This method is a convenience for
+     * retrieving TSV data from the AOML Service.
+     * 
+     * @param request
+     *            a URL request as built from {@link IDatasetAgent#buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}
+     * @return the response of the given <code>request</code> as a TSV <code>String</code>
+     * 
+     * @see IDatasetAgent#buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)
+     * @see AgentUtils#getDataString(String)
      */
     @Override
     public Object acquireData(String request) {
@@ -165,6 +191,14 @@ public class AomlAgent extends AbstractAsciiAgent {
         return data;
     }
 
+    /**
+     * Parses the given AOML <code>String</code> data (TSV) as a list of <code>IObservationGroup</code> objects
+     * 
+     * @param asciiData
+     *            TSV data passed to this method from {@link #acquireData(String)}
+     * 
+     * @return a list of <code>IObservationGroup</code> objects representing the observations parsed from the given <code>asciiData</code>
+     */
     @Override
     protected List<IObservationGroup> parseObs(String asciiData) {
         List<IObservationGroup> ogList = new ArrayList<IObservationGroup>();
@@ -315,6 +349,19 @@ public class AomlAgent extends AbstractAsciiAgent {
         return ogList;
     }
 
+    /**
+     * Converts the given list of <code>IObservationGroup</code>s to one ore more {@link NetcdfDataset} objects, breaks those datasets into manageable sections
+     * and sends those data "chunks" to the ingestion service.
+     * 
+     * @param obsList
+     *            a group of observations as a list of <code>IObservationGroup</code> objects
+     *            
+     * @return TODO:
+     * 
+     * @see #obs2Ncds(IObservationGroup...)
+     * @see #sendNetcdfDataset(NetcdfDataset, String)
+     * @see #sendNetcdfDataset(NetcdfDataset, String, boolean)
+     */
     @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();

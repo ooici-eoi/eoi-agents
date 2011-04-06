@@ -35,7 +35,9 @@ import ucar.nc2.dataset.VariableDS;
 /**
  *
  * @author cmueller
+ * @deprecated Not necessary to distinguish between grid Netcdf datasets and non-grid Netcdf datasets - use NcAgent instead
  */
+@Deprecated
 public class NcGridAgent extends AbstractNcAgent {
 
     private static final Logger log = LoggerFactory.getLogger(NcGridAgent.class);
@@ -394,7 +396,7 @@ public class NcGridAgent extends AbstractNcAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setTesting(true);
+        agent.setAgentRunType(AgentRunType.NORMAL);
 
         java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
         connInfo.put("exchange", "eoitest");

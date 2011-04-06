@@ -58,7 +58,7 @@ public interface IDatasetAgent {
      * @param isTest
      *            Whether or not we are testing
      */
-    void setTesting(boolean isTest);
+    void setAgentRunType(net.ooici.eoi.datasetagent.AbstractDatasetAgent.AgentRunType agentRunType);
 
     /**
      * Sets the maximum <i>total bytes</i> of <b>data</b> that can be sent in one message.<br />

@@ -248,7 +248,7 @@ public class NcAgent extends AbstractNcAgent {
 
             String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), true);
+                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(src + " (FAILED)", null);
@@ -393,12 +393,12 @@ public class NcAgent extends AbstractNcAgent {
         cBldr.setEndTime(eTime);
 
 
-        runAgent(cBldr.build(), false);
+        runAgent(cBldr.build(), AgentRunType.NORMAL);
     }
 
-    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, boolean isTesting) throws IOException {
+    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, AgentRunType agentRunType) throws IOException {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setTesting(isTesting);
+        agent.setAgentRunType(agentRunType);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(1048576);//1mb

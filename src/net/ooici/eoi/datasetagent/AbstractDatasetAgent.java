@@ -33,10 +33,17 @@ import ucar.nc2.dataset.NetcdfDataset;
 public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
     private static Logger log = LoggerFactory.getLogger(AbstractDatasetAgent.class);
+
+    public enum AgentRunType {
+
+        NORMAL,
+        TEST_NO_WRITE_DATA,
+        TEST_WRITE_DATA,
+    }
     /**
-     * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - turn off to bypass messaging
+     * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE_DATA" or "TEST_WRITE_DATA" to run in "test" mode
      */
-    private boolean testing = false;
+    private AgentRunType runType = AgentRunType.NORMAL;
     /**
      * This is the value used to decompose the dataset when sending.
      * This is the maximum <i>total bytes</i> of <b>data</b> that will be sent in one message.
@@ -65,8 +72,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see net.ooici.eoi.datasetagent.IDatasetAgent#setTesting(boolean)
      */
     @Override
-    public void setTesting(boolean isTest) {
-        testing = isTest;
+    public void setAgentRunType(AgentRunType agentRunType) {
+        runType = agentRunType;
     }
 
     /*
@@ -134,10 +141,10 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         /* If the connectionInfo object is null, assume this is being called from a test */
         if (connectionInfo == null) {
-            testing = true;
+            runType = AgentRunType.TEST_NO_WRITE_DATA;
         }
 
-        if (!testing) {
+        if (runType == AgentRunType.NORMAL) {
             initMsgBrokerClient(connectionInfo);
         }
 
@@ -216,19 +223,20 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         ncds.finish();
 
         String ret = null;
-        if (testing) {
-            try {
-                /* Dump the dataset locally */
-                new java.io.File("out").mkdir();
-                String outname = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
-                outname = (outname.endsWith(".nc")) ? outname : outname + ".nc";
-                ucar.nc2.FileWriter.writeToFile(ncds, "out/" + outname);
-            } catch (IOException ex) {
-                log.error("Error writing file during testing...", ex);
-            }
-
-            ret = ncds.toString();
-            return ret;
+        switch (runType) {
+            case TEST_WRITE_DATA:
+                try {
+                    /* Dump the dataset locally */
+                    new java.io.File("out").mkdir();
+                    String outname = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
+                    outname = (outname.endsWith(".nc")) ? outname : outname + ".nc";
+                    ucar.nc2.FileWriter.writeToFile(ncds, "out/" + outname);
+                } catch (Exception ex) {
+                    log.error("Error writing file during testing...", ex);
+                }
+            case TEST_NO_WRITE_DATA:
+                ret = ncds.toString();
+                return ret;
         }
 
         ResponseCodes respCode = ResponseCodes.OK;
@@ -384,32 +392,32 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             }
         } else {
             log.debug(indent + "--> proc-sec: " + sec.toString());
-            if (!testing) {
+//            if (!runType) {//Not necessary - can't get here if runType (see "sendNetcdfDataset")
                 /* Build the array and the bounded array */
-                ion.core.utils.GPBWrapper arrWrap = Unidata2Ooi.getOoiArray(var, sec);
-                Cdmvariable.BoundedArray bndArr = Unidata2Ooi.getBoundedArray(sec, (arrWrap != null) ? arrWrap.getCASRef() : null);
-                ion.core.utils.GPBWrapper<Cdmvariable.BoundedArray> baWrap = ion.core.utils.GPBWrapper.Factory(bndArr);
+            ion.core.utils.GPBWrapper arrWrap = Unidata2Ooi.getOoiArray(var, sec);
+            Cdmvariable.BoundedArray bndArr = Unidata2Ooi.getBoundedArray(sec, (arrWrap != null) ? arrWrap.getCASRef() : null);
+            ion.core.utils.GPBWrapper<Cdmvariable.BoundedArray> baWrap = ion.core.utils.GPBWrapper.Factory(bndArr);
 ////                log.debug(baWrap.toString());
 ////                log.debug(arrWrap.toString());
 
-                /* Build the supplement message */
-                net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
-                supMsgBldr.setDatasetId("");
-                supMsgBldr.setVariableName(var.getName());
-                supMsgBldr.setBoundedArray(baWrap.getCASRef());
-                GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
+            /* Build the supplement message */
+            net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
+            supMsgBldr.setDatasetId("");
+            supMsgBldr.setVariableName(var.getName());
+            supMsgBldr.setBoundedArray(baWrap.getCASRef());
+            GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
 
-                /* init the struct bldr */
-                net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
-                /* add the supplement wrapper as the head */
-                ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
-                /* add the bounded array and ndarray as items */
-                ProtoUtils.addStructureElementToStructureBuilder(sbldr, baWrap.getStructureElement());
-                ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
+            /* init the struct bldr */
+            net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
+            /* add the supplement wrapper as the head */
+            ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+            /* add the bounded array and ndarray as items */
+            ProtoUtils.addStructureElementToStructureBuilder(sbldr, baWrap.getStructureElement());
+            ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
 
 //                sendDataMessage(sbldr.build().toByteArray());
-                sendDataChunkMsg(sbldr.build().toByteArray());
-            }
+            sendDataChunkMsg(sbldr.build().toByteArray());
+//            }
         }
     }
 
@@ -442,7 +450,6 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //      /* Convert feet to meters */
 //      return -ft * 0.3048;
 //  }
-    
     /**
      * Sends the <code>byte[]</code> representation of a dataset to the remote operation specified by {@link #RECV_DATASET_OP} using the
      * currently active <code>MsgBrokerClient</code>. This message send is one way, that is, the message is NOT sent via RPC conventions
@@ -556,7 +563,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //
 //
 //        try {
-//            if (!testing) {
+//            if (!runType) {
 //                dataMessageContent = Unidata2Ooi.varToByteArray(var, section);
 //                IonMessage reply = rpcDataMessage(op, dataMessageContent);
 //                ret = reply.getContent().toString();

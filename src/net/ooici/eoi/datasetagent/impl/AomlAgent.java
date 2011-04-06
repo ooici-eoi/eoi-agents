@@ -356,7 +356,7 @@ public class AomlAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setTesting(true);
+        agent.setAgentRunType(AgentRunType.TEST_WRITE_DATA);
 
 //        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
 //        connInfo.put("exchange", "eoitest");

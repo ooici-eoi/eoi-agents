@@ -907,7 +907,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-            runAgent(cBldr.build(), true);
+            runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
         }
     }
 
@@ -978,7 +978,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             dsName = prefix + disNames[i] + "[" + disIds[i] + "]";
             String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), true);
+                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(dsName + " (FAILED)", null);
@@ -1010,7 +1010,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             dsName = prefix + tempNames[i] + "[" + tempIds[i] + "]";
             String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), true);
+                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(dsName + " (FAILED)", null);
@@ -1101,18 +1101,18 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00060");
             cBldr.addStationId(disIds[i]);
-            String[] res = runAgent(cBldr.build(), false);
-            NetcdfDataset dsout = null;
-            try {
-                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + disNames[i] + "_discharge.nc");
-            } catch (IOException ex) {
-                log.error("Error writing netcdf file", ex);
-            } finally {
-                if (dsout != null) {
-                    dsout.close();
-                }
-            }
+            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_DATA);
+//            NetcdfDataset dsout = null;
+//            try {
+//                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
+//                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + disNames[i] + "_discharge.nc");
+//            } catch (IOException ex) {
+//                log.error("Error writing netcdf file", ex);
+//            } finally {
+//                if (dsout != null) {
+//                    dsout.close();
+//                }
+//            }
         }
 
         for (int i = 0; i < tempIds.length; i++) {
@@ -1123,26 +1123,26 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00010");
             cBldr.addStationId(tempIds[i]);
-            String[] res = runAgent(cBldr.build(), false);
-            NetcdfDataset dsout = null;
-            try {
-                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + tempNames[i] + "_temp.nc");
-            } catch (IOException ex) {
-                log.error("Error writing netcdf file", ex);
-            } finally {
-                if (dsout != null) {
-                    dsout.close();
-                }
-            }
+            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_DATA);
+//            NetcdfDataset dsout = null;
+//            try {
+//                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
+//                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + tempNames[i] + "_temp.nc");
+//            } catch (IOException ex) {
+//                log.error("Error writing netcdf file", ex);
+//            } finally {
+//                if (dsout != null) {
+//                    dsout.close();
+//                }
+//            }
         }
 
         System.out.println("******FINISHED******");
     }
 
-    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, boolean isTesting) throws IOException {
+    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, AgentRunType agentRunType) throws IOException {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setTesting(isTesting);
+        agent.setAgentRunType(agentRunType);
 
 //        java.util.HashMap<String, String> connInfo = IospUtils.parseProperties(new java.io.File(System.getProperty("user.dir") + "/ooici-conn.properties"));
 //        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();

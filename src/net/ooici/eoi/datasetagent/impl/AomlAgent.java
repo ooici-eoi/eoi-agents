@@ -288,26 +288,28 @@ public class AomlAgent extends AbstractAsciiAgent {
         /* Extract the Global Attributes */
         /* title */
         String queryUrl = "http://www.aoml.noaa.gov/";
-        globalAttributes.put("title", "AOML data from \"" + queryUrl + "\"");
-
-        /* history */
-        globalAttributes.put("history", "Converted from TSV to OOI CDM compliant NC by " + AomlAgent.class.getName());
-
-        /* references */
-        globalAttributes.put("references", "[" + queryUrl + "; http://www.noaa.gov/]");
-
-        /* conventions */
-        globalAttributes.put("Conventions", "CF-1.5");
-
-        /* institution */
-        globalAttributes.put("institution", "NOAA's Atlantic and Oceanographic Meteorological Laboratory (" + queryUrl + ")");
-
-        /* source */
-        globalAttributes.put("source", "NOAA AOML");
+        /* TODO: Get these attributes correct... */
+//        globalAttributes.put("title", "AOML data from \"" + queryUrl + "\"");
+//
+//        /* history */
+//        globalAttributes.put("history", "Converted from TSV to OOI CDM compliant NC by " + AomlAgent.class.getName());
+//
+//        /* references */
+//        globalAttributes.put("references", "[" + queryUrl + "; http://www.noaa.gov/]");
+//
+//        /* conventions */
+//        globalAttributes.put("Conventions", "CF-1.5");
+//
+//        /* institution */
+//        globalAttributes.put("institution", "NOAA's Atlantic and Oceanographic Meteorological Laboratory (" + queryUrl + ")");
+//
+//        /* source */
+//        globalAttributes.put("source", "NOAA AOML");
 
         /* Add each attribute */
         for (IObservationGroup s : ogList) {
-            s.addAttributes(globalAttributes);
+            s.addAttribute("title", "AOML " + s.getStnid());
+//            s.addAttributes(globalAttributes);
         }
 
         return ogList;
@@ -335,14 +337,14 @@ public class AomlAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(SourceType.AOML);
         cBldr.setBaseUrl("http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?");
-//        cBldr.setTop(47.0);
-//        cBldr.setBottom(31.0);
-//        cBldr.setRight(-60.0);
-//        cBldr.setLeft(-82.0);
-        cBldr.setTop(60.0);
-        cBldr.setBottom(-60.0);
-        cBldr.setRight(179.9);
-        cBldr.setLeft(-179.9);
+        cBldr.setTop(47.0);
+        cBldr.setBottom(31.0);
+        cBldr.setRight(-60.0);
+        cBldr.setLeft(-82.0);
+//        cBldr.setTop(60.0);
+//        cBldr.setBottom(-60.0);
+//        cBldr.setRight(179.9);
+//        cBldr.setLeft(-179.9);
         /* Request data from one month ago for a length of 10 days.. */
         java.util.GregorianCalendar endTime = new java.util.GregorianCalendar(TimeZone.getTimeZone("UTC"));
         endTime.add(java.util.Calendar.MONTH, -1);

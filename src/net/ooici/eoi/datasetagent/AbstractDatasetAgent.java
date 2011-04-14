@@ -23,7 +23,6 @@ import ucar.nc2.NetcdfFile;
 import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.NetcdfDataset;
 
-
 /**
  * The AbstractDatasetAgent provides the core functionallity used in typical implementations of an <code>IDatasetAgent</code>.<br />
  * <br />
@@ -78,11 +77,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          */
         TEST_NO_WRITE,
         /**
-         * Runs the agent in "test mode" with results written to disk as NetCDF files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "out/{ds_title}.nc"
+         * Runs the agent in "test mode" with results written to disk as NetCDF files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{ds_title}.nc"
          */
         TEST_WRITE_NC,
         /**
-         * Runs the agent in "test mode" with results written to disk as "cdmproto" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "out/{ds_title}/{ds_title}.cdmproto"
+         * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
         TEST_WRITE_CDMPROTO,
@@ -114,6 +113,13 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     private final String RECV_DONE_OP = "recv_done";
     private String recieverQueue = null;
 
+    /* Local instance of the datasetName.  Obtained in "sendNetcdfDataset" and used if writing to disk rather than sending */
+    private String datasetName = "not_set";
+    /* For incrementing the suffix of the output when writing .ooicdm files */
+    private int incrementor = 0;
+    /* Output directory when writing files during testing - must have trailing "/" */
+    private String outputDir = "out/";
+
     /*
      * (non-Javadoc)
      * @see net.ooici.eoi.datasetagent.IDatasetAgent#setTesting(boolean)
@@ -121,6 +127,15 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     @Override
     public void setAgentRunType(AgentRunType agentRunType) {
         runType = agentRunType;
+    }
+
+    /*
+     * (non-Javadoc)
+     * @see net.ooici.eoi.datasetagent.IDatasetAgent#setOutputDir(String)
+     */
+    @Override
+    public void setOutputDir(String outputDir) {
+        this.outputDir = (outputDir.endsWith("/")) ? outputDir : outputDir + "/";
     }
 
     /*
@@ -264,21 +279,25 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         assert ncds != null;
 
         /* Apply OOICI geospatial-temporal metadata */
-//        addOoiciBoundsMetadata(ncds);
+        addOoiciBoundsMetadata(ncds);
 
         /* "finish" the dataset - applies any changes that have been applied to ensure they appear in the dataset as appropriate */
         ncds.finish();
 
+        datasetName = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
+        datasetName = datasetName.replace(":", "_").replace(".nc", "");
+
         String ret = null;
         switch (runType) {
+            case TEST_WRITE_CDMPROTO:
+                ret = ncds.toString();
+                break;
             case TEST_WRITE_NC:
                 try {
                     /* Dump the dataset locally */
-                    new java.io.File("out").mkdir();
-                    String outname = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
-                    outname = (outname.endsWith(".nc")) ? outname : outname + ".nc";
-                    outname = outname.replace(":", "_");
-                    ucar.nc2.FileWriter.writeToFile(ncds, "out/" + outname);
+                    new java.io.File(outputDir).mkdir();
+//                    datasetName = (datasetName.endsWith(".nc")) ? datasetName : datasetName + ".nc";
+                    ucar.nc2.FileWriter.writeToFile(ncds, outputDir + datasetName + ".nc");
                 } catch (Exception ex) {
                     log.error("Error writing file during testing...", ex);
                 }
@@ -339,7 +358,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //            endMsgBldr.setResponseBody(respBody);
 //            GPBWrapper<IonMsg> msgWrap = GPBWrapper.Factory(endMsgBldr.build());
 //            log.debug(msgWrap.toString());
-            sendDataDoneMsg();
+            switch(runType) {
+                case NORMAL:
+                    sendDataDoneMsg();
+                    break;
+            }
         }
 
         return ret;
@@ -464,7 +487,14 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
 
 //                sendDataMessage(sbldr.build().toByteArray());
-            sendDataChunkMsg(sbldr.build().toByteArray());
+            switch (runType) {
+                case NORMAL:
+                    sendDataChunkMsg(sbldr.build().toByteArray());
+                    break;
+                case TEST_WRITE_CDMPROTO:
+                    writeChunkProto(sbldr.build().toByteArray());
+                    break;
+            }
 //            }
         }
     }
@@ -510,10 +540,17 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
      */
     protected void sendDatasetMsg(byte[] dataMessageContent) {
-        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent);
-        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-        log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
-        cl.sendMessage(dataMessage);
+        switch (runType) {
+            case NORMAL:
+                IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent);
+                dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+                log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
+                cl.sendMessage(dataMessage);
+                break;
+            case TEST_WRITE_CDMPROTO:
+                writeDatasetProto(dataMessageContent);
+                break;
+        }
         // return cl.consumeMessage(recieverQueue);
     }
 
@@ -529,10 +566,17 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
      */
     protected void sendDataChunkMsg(byte[] dataMessageContent) {
-        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent);
-        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-        log.debug(printMessage("@@@--->>> NetcdfDataset data chunk (message) to eoi_ingest", dataMessage));
-        cl.sendMessage(dataMessage);
+        switch (runType) {
+            case NORMAL:
+                IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent);
+                dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+                log.debug(printMessage("@@@--->>> NetcdfDataset data chunk (message) to eoi_ingest", dataMessage));
+                cl.sendMessage(dataMessage);
+                break;
+            case TEST_WRITE_CDMPROTO:
+                writeChunkProto(dataMessageContent);
+                break;
+        }
     }
 
     /**
@@ -572,6 +616,37 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         if (cl != null) {
             cl.detach();
             cl = null;
+        }
+    }
+
+    private void writeDatasetProto(byte[] payload) {
+        datasetName = datasetName.replace(" ", "_");
+        new java.io.File(outputDir, datasetName).mkdirs();
+        writeBytes(payload, outputDir + datasetName + "/" + datasetName + ".ooicdm");
+    }
+
+    private void writeChunkProto(byte[] payload) {
+        datasetName = datasetName.replace(" ", "_");
+        new java.io.File(outputDir, datasetName).mkdirs();
+        writeBytes(payload, outputDir + datasetName + "/" + datasetName + "_" + incrementor++ + ".ooicdm");
+    }
+
+    private void writeBytes(byte[] bytes, String name) {
+        java.io.FileOutputStream fos = null;
+        try {
+            fos = new java.io.FileOutputStream(name);
+            fos.write(bytes);
+            fos.flush();
+        } catch (IOException ex) {
+            log.error("Failed to write \"ooicdm\" file", ex);
+        } finally {
+            if(fos != null) {
+                try {
+                    fos.close();
+                } catch (IOException ex) {
+                    // no op
+                }
+            }
         }
     }
 

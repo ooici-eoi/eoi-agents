@@ -83,7 +83,7 @@ public class AttributeFactory {
         Number[] minMax = getMetadata(ncds, ftype, AxisType.Lon, "lon", "longitude");
 
         double maxcheck = minMax[1].doubleValue();
-        if(maxcheck > 180) {
+        if (maxcheck > 180) {
             minMax[1] = maxcheck - 360;
         }
 
@@ -103,21 +103,20 @@ public class AttributeFactory {
             Attribute a = v.findAttribute("positive");
             if (a != null) {
                 /* If we don't have values, use the variable (why else have "positive"??) */
-                if(isNan) {
+                if (isNan) {
                     try {
                         Array arr = v.read();
                         minMax[0] = MAMath.getMinimum(arr);
                         minMax[1] = MAMath.getMaximum(arr);
-                        posDir = a.getStringValue();
                     } catch (IOException ex) {
                         minMax[0] = Double.NaN;
                         minMax[1] = Double.NaN;
                         // exit quietly, return nans
                     }
                 }
-
+                posDir = a.getStringValue();
+                break;
             }
-            break;
         }
 
 
@@ -134,10 +133,11 @@ public class AttributeFactory {
     }
 
     private static Number[] getMetadata(NetcdfDataset ncds, FeatureType ftype, AxisType atype, String vname, String sname) {
-        if (null == ftype)
+        if (null == ftype) {
             ftype = FeatureType.NONE;
-        
-        
+        }
+
+
         Number min = Double.NaN;
         Number max = Double.NaN;
         CoordinateAxis ca = null;
@@ -187,5 +187,4 @@ public class AttributeFactory {
         }
         return new Number[]{min, max};
     }
-
 }

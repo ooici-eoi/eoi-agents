@@ -405,7 +405,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setAgentRunType(AgentRunType.TEST_WRITE_DATA);
+        agent.setAgentRunType(AgentRunType.TEST_WRITE_NC);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(50);//super-duper small

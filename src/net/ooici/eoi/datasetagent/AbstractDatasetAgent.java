@@ -76,14 +76,19 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         /**
          * Runs the agent in "test mode" - the update is processed normally, but the response is the 'cdl' dump for the dataset.  No messages or data are sent via messages or written to disk
          */
-        TEST_NO_WRITE_DATA,
+        TEST_NO_WRITE,
         /**
-         * Runs the agent in "test mode" with results written to disk - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "out/<ds_title>.nc"
+         * Runs the agent in "test mode" with results written to disk as NetCDF files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "out/{ds_title}.nc"
          */
-        TEST_WRITE_DATA,
+        TEST_WRITE_NC,
+        /**
+         * Runs the agent in "test mode" with results written to disk as "cdmproto" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "out/{ds_title}/{ds_title}.cdmproto"
+         * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
+         */
+        TEST_WRITE_CDMPROTO,
     }
     /**
-     * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE_DATA" or "TEST_WRITE_DATA" to run in "test" mode
+     * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
      */
     private AgentRunType runType = AgentRunType.NORMAL;
     /**
@@ -183,7 +188,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         /* If the connectionInfo object is null, assume this is being called from a test */
         if (connectionInfo == null) {
-            runType = AgentRunType.TEST_NO_WRITE_DATA;
+            runType = AgentRunType.TEST_NO_WRITE;
         }
 
         if (runType == AgentRunType.NORMAL) {
@@ -266,7 +271,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         String ret = null;
         switch (runType) {
-            case TEST_WRITE_DATA:
+            case TEST_WRITE_NC:
                 try {
                     /* Dump the dataset locally */
                     new java.io.File("out").mkdir();
@@ -277,7 +282,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 } catch (Exception ex) {
                     log.error("Error writing file during testing...", ex);
                 }
-            case TEST_NO_WRITE_DATA:
+            case TEST_NO_WRITE:
                 ret = ncds.toString();
                 return ret;
         }

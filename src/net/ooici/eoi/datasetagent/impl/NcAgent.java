@@ -298,7 +298,7 @@ public class NcAgent extends AbstractNcAgent {
 
             String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
+                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(src + " (FAILED)", null);

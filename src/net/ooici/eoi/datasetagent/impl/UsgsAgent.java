@@ -940,7 +940,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_DATA);
+            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
         }
     }
 
@@ -1009,7 +1009,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             dsName = prefix + disNames[i] + "[" + disIds[i] + "]";
             String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
+                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(dsName + " (FAILED)", null);
@@ -1041,7 +1041,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             dsName = prefix + tempNames[i] + "[" + tempIds[i] + "]";
             String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
+                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(dsName + " (FAILED)", null);
@@ -1134,7 +1134,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00060");
             cBldr.addStationId(disIds[i]);
-            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_DATA);
+            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
 //            NetcdfDataset dsout = null;
 //            try {
 //                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
@@ -1156,7 +1156,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setEndTime(eTime);
             cBldr.addProperty("00010");
             cBldr.addStationId(tempIds[i]);
-            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_DATA);
+            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
 //            NetcdfDataset dsout = null;
 //            try {
 //                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);

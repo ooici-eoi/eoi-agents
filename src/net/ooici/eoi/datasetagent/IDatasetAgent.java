@@ -72,6 +72,13 @@ public interface IDatasetAgent {
     void setAgentRunType(net.ooici.eoi.datasetagent.AbstractDatasetAgent.AgentRunType agentRunType);
 
     /**
+     * Sets the output directory when testing with any of the "WRITE" {@link net.ooici.eoi.datasetagent.AbstractDatasetAgent.AgentRunType} enums
+     * 
+     * @param outputDir the directory in which to write output
+     */
+    void setOutputDir(String outputDir);
+
+    /**
      * Sets the maximum <i>total bytes</i> of <b>data</b> that can be sent in one message.<br />
      * <br />
      * This is the value used to decompose the dataset when sending and does not include wrapper and message size.

@@ -136,8 +136,12 @@ public class NcdsFactory {
             }
 
             /* Add global attributes */
+            String value;
             for (String key : allAttributes.keySet()) {
-                ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
+                /* Ensure existing values aren't overwritten */
+                value = ncds.findAttValueIgnoreCase(null, key, "");
+                value = (value.isEmpty()) ? allAttributes.get(key) : value + "; " + allAttributes.get(key);
+                ncds.addAttribute(null, new Attribute(key, value));
             }
         } catch (IOException ex) {
             log.error("Error building station NetcdfDataset", ex);
@@ -222,8 +226,12 @@ public class NcdsFactory {
             }
 
             /* Add global attributes */
+            String value;
             for (String key : allAttributes.keySet()) {
-                ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
+                /* Ensure existing values aren't overwritten */
+                value = ncds.findAttValueIgnoreCase(null, key, "");
+                value = (value.isEmpty()) ? allAttributes.get(key) : value + "; " + allAttributes.get(key);
+                ncds.addAttribute(null, new Attribute(key, value));
             }
         } catch (IOException ex) {
             log.error("Error building stationProfile NetcdfDataset", ex);
@@ -302,12 +310,15 @@ public class NcdsFactory {
 
             /* Iterate over the observation groups and fill the data */
             Map<String, String> allAttributes = new HashMap<String, String>();
+
             IObservationGroup og;
             HashMap<String, IndexIterator> darrs = new HashMap<String, IndexIterator>();
             Number time;
             Number depth = allDepths.get(0);
             for (int obs = 0; obs < nobs; obs++) {
                 og = obsGroups[obs];
+                /* Add the attributes */
+                allAttributes.putAll(og.getAttributes());
                 time = og.getTimes()[0];
                 putArrayData(tii, ncdtTime, time);
                 putArrayData(loii, ncdtLl, og.getLon());
@@ -343,8 +354,12 @@ public class NcdsFactory {
             }
 
             /* Add global attributes */
+            String value;
             for (String key : allAttributes.keySet()) {
-                ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
+                /* Ensure existing values aren't overwritten */
+                value = ncds.findAttValueIgnoreCase(null, key, "");
+                value = (value.isEmpty()) ? allAttributes.get(key) : value + "; " + allAttributes.get(key);
+                ncds.addAttribute(null, new Attribute(key, value));
             }
         } catch (IOException ex) {
             log.error("Error building trajectory NetcdfDataset", ex);
@@ -433,6 +448,8 @@ public class NcdsFactory {
             Number[] depths;
             for (int obs = 0; obs < nobs; obs++) {
                 og = obsGroups[obs];
+                /* Add the attributes */
+                allAttributes.putAll(og.getAttributes());
                 time = og.getTimes()[0];
                 depths = og.getDepths();
                 putArrayData(tii, ncdtTime, time);
@@ -471,8 +488,12 @@ public class NcdsFactory {
             }
 
             /* Add global attributes */
+            String value;
             for (String key : allAttributes.keySet()) {
-                ncds.addAttribute(null, new Attribute(key, allAttributes.get(key)));
+                /* Ensure existing values aren't overwritten */
+                value = ncds.findAttValueIgnoreCase(null, key, "");
+                value = (value.isEmpty()) ? allAttributes.get(key) : value + "; " + allAttributes.get(key);
+                ncds.addAttribute(null, new Attribute(key, value));
             }
         } catch (IOException ex) {
             log.error("Error building trajectoryProfile NetcdfDataset", ex);
@@ -649,7 +670,5 @@ public class NcdsFactory {
         } catch (IOException ex) {
             log.error("Error writing NetCDF File", ex);
         }
-
-
     }
 }

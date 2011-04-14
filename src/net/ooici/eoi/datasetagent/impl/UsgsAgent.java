@@ -44,7 +44,8 @@ import ucar.nc2.dataset.NetcdfDataset;
  * The UsgsAgent class is designed to fulfill updates for datasets which originate from USGS services. Ensure the update context (
  * {@link EoiDataContextMessage}) to be passed to {@link #doUpdate(EoiDataContextMessage, HashMap)} has been constructed for USGS agents by
  * checking the result of {@link EoiDataContextMessage#getSourceType()}
- * 
+ *
+ * @author cmueller
  * @author tlarocque
  * @version 1.0
  * @see {@link EoiDataContextMessage#getSourceType()}
@@ -310,11 +311,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         return result.toString();
     }
-<<<<<<< HEAD
-
-    /* (non-Javadoc)
-     * @see net.ooici.eoi.datasetagent.AbstractAsciiAgent#validateData(java.lang.String)
-=======
     
     /**
      * Parses the given <code>asciiData</code> for any signs of error
@@ -324,7 +320,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * 
      * @throws AsciiValidationException
      *             When the given <code>asciiData</code> is invalid or cannot be validated
->>>>>>> ooici-eoi/develop
      */
     @Override
     protected void validateData(String asciiData) {
@@ -454,8 +449,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
             globalAttributes.put("references", "http://waterservices.usgs.gov/rest/WOF-IV-Service.html");
 
-            /* conventions */
-            globalAttributes.put("Conventions", "CF-1.5");
+            /* source */
+            globalAttributes.put("source", "Instantaneous Values Webservice (http://waterservices.usgs.gov/mwis/iv?)");
+
+            /* conventions - from schema */
+//            globalAttributes.put("Conventions", "CF-1.5");
 
             /* data url */
             globalAttributes.put("data_url", data_url);
@@ -652,8 +650,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
             /* references */
             globalAttributes.put("references", "http://waterservices.usgs.gov/rest/USGS-DV-Service.html (interim)");
 
-            /* conventions */
-            globalAttributes.put("Conventions", "CF-1.5");
+            /* source */
+            globalAttributes.put("source", "Daily Values Webservice (http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?)");
+
+            /* conventions - from schema */
+//            globalAttributes.put("Conventions", "CF-1.5");
 
             /* Data URL */
             globalAttributes.put("data_url", data_url);
@@ -889,20 +890,21 @@ public class UsgsAgent extends AbstractAsciiAgent {
             log.error("Error bootstrapping", ex);
         }
 
-        boolean makeSamples = false, dailyValues = false;
-        boolean makeMetadataTable = true;
-        boolean manual = false;
+        boolean dailyValues = false;
+        boolean makeSamples = false;
+        boolean makeMetadataTable = false;
+        boolean manual = true;
         if (makeSamples) {
             generateRutgersSamples(dailyValues);
         }
         if (makeMetadataTable) {
-            generateRutgersMetadata();
+            generateRutgersMetadata(dailyValues);
         }
         if (manual) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 4;
+            int switcher = 3;
             switch (switcher) {
                 case 1://test temp
                     cBldr.setStartTime("2011-2-10T00:00:00Z");
@@ -911,8 +913,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     cBldr.addStationId("01463500");
                     break;
                 case 2://test discharge
-                    cBldr.setStartTime("2011-2-10T00:00:00Z");
-                    cBldr.setEndTime("2011-2-11T00:00:00Z");
+                    cBldr.setStartTime("2011-4-10T00:00:00Z");
+                    cBldr.setEndTime("2011-4-11T00:00:00Z");
                     cBldr.addProperty("00060");
                     cBldr.addStationId("01463500");
                     break;
@@ -938,11 +940,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-            runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE_DATA);
+            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_DATA);
         }
     }
 
-    private static void generateRutgersMetadata() throws IOException {
+    private static void generateRutgersMetadata(boolean dailyValues) throws IOException {
         /** For each of the "R1" netcdf datasets (either local or remote)
          *
          * 1. get the last timestep of the data
@@ -1105,9 +1107,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
     }
 
     private static void generateRutgersSamples(boolean dailyValues) throws IOException {
-        /* Configure the location for output files */
-        String output_prefix = USR_HOME + "/Dropbox/EOI_Shared/dataset_samples/rutgers/Rivers/";
-
         SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'00:00:00'Z'");
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         Date now = new Date();
@@ -1178,12 +1177,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setAgentRunType(agentRunType);
 
-//        java.util.HashMap<String, String> connInfo = IospUtils.parseProperties(new java.io.File(System.getProperty("user.dir") + "/ooici-conn.properties"));
-//        java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
-//        connInfo.put("exchange", "eoitest");
-//        connInfo.put("service", "eoi_ingest");
-//        connInfo.put("server", "localhost");
-//        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
             connInfo = net.ooici.IonUtils.parseProperties();

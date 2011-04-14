@@ -64,10 +64,22 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
     private static Logger log = LoggerFactory.getLogger(AbstractDatasetAgent.class);
 
+    /**
+     * Used to determine what the agent does after processing an update.
+     */
     public enum AgentRunType {
 
+        /**
+         * The 'default' runtype which sends messages to the ingest service after processing the update
+         */
         NORMAL,
+        /**
+         * Runs the agent in "test mode" - the update is processed normally, but the response is the 'cdl' dump for the dataset.  No messages or data are sent via messages or written to disk
+         */
         TEST_NO_WRITE_DATA,
+        /**
+         * Runs the agent in "test mode" with results written to disk - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "out/<ds_title>.nc"
+         */
         TEST_WRITE_DATA,
     }
     /**
@@ -247,7 +259,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         assert ncds != null;
 
         /* Apply OOICI geospatial-temporal metadata */
-        addOoiciBoundsMetadata(ncds);
+//        addOoiciBoundsMetadata(ncds);
 
         /* "finish" the dataset - applies any changes that have been applied to ensure they appear in the dataset as appropriate */
         ncds.finish();
@@ -260,6 +272,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                     new java.io.File("out").mkdir();
                     String outname = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
                     outname = (outname.endsWith(".nc")) ? outname : outname + ".nc";
+                    outname = outname.replace(":", "_");
                     ucar.nc2.FileWriter.writeToFile(ncds, "out/" + outname);
                 } catch (Exception ex) {
                     log.error("Error writing file during testing...", ex);

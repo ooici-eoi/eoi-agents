@@ -63,8 +63,8 @@ public interface IDatasetAgent {
     String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage context, java.util.HashMap<String, String> connectionInfo);
 
     /**
-     * Flags this Dataset Agent that updates are being done strictly for testing. While testing, updates are produced but NOT sent to the
-     * ingestion service
+     * Determines the "runType" for the agent instance. In all cases, updates are produced.  However, only with <code>AgentRunType.NORMAL</code> are
+     * any messages sent.  See {@link net.ooici.eoi.datasetagent.AbstractDatasetAgent.AgentRunType} for details about the various options.
      * 
      * @param isTest
      *            Whether or not we are testing

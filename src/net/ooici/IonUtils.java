@@ -4,9 +4,14 @@
  */
 package net.ooici;
 
+import com.google.protobuf.GeneratedMessage;
+import com.google.protobuf.JsonFormat;
+import com.google.protobuf.Message;
+import ion.core.IonBootstrap;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -50,5 +55,22 @@ public class IonUtils {
             props = parseProperties(connFile);
         }
         return props;
+    }
+
+    public static GeneratedMessage convertJsonToGPB(String jsonRequest, int typeInt) throws Exception {
+        assert (jsonRequest != null && jsonRequest.length() > 0);
+
+        // Get GeneratedMessage class for type id
+        Class clazz = IonBootstrap.getMappedClassForKeyValue(typeInt);
+        assert (clazz != null);
+
+        // Get builder instance by invoking static newBuilder() via reflection
+        Method method = clazz.getMethod("newBuilder", (Class[]) null);
+        Message.Builder builder = (Message.Builder) method.invoke(null, (Object[]) null);
+
+        // Copy Json into GPB
+        JsonFormat.merge(jsonRequest, builder);
+
+        return (GeneratedMessage) builder.build();
     }
 }

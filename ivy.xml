@@ -9,16 +9,39 @@
         <dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" conf="*->*,!sources,!javadoc" />
         <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.6.1" conf="*->*,!sources,!javadoc" />
         <dependency org="jaxen" name="jaxen" rev="1.1.1" conf="*->*,!sources,!javadoc" transitive="false"/>
+        <dependency org="colt" name="colt" rev="1.2.0" conf="*->*,!sources,!javadoc" />
+        <dependency org="commons-net" name="commons-net" rev="1.4.1" conf="*->*,!sources"/>
+        
+        <!-- ION project dependencies -->
+        <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />
+        <dependency name="ioncore-java" rev="0.2.4" conf="*->*,!sources,!javadoc" />
+        <!-- These come with the ioncore-java dependency -->
+<!--        
+		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" conf="*->*,!sources,!javadoc" />
+        <dependency org="org.slf4j" name="slf4j-log4j12" rev="1.6.1" conf="*->*,!sources,!javadoc" />
         <dependency org="org.msgpack" name="msgpack" rev="0.3" conf="*->*,!sources,!javadoc"/>
         <dependency org="com.rabbitmq" name="amqp-client" rev="2.3.1" conf="*->*,!sources,!javadoc" />
-        <dependency org="colt" name="colt" rev="1.2.0" conf="*->*,!sources,!javadoc" />
         <dependency org="com.googlecode.json-simple" name="json-simple" rev="1.1" conf="*->*,!sources,!javadoc" />
-        <dependency org="com.google.protobuf" name="protobuf-java" rev="2.3.0" conf="*->*,!sources,!javadoc" />
+        <dependency org="com.google.protobuf" name="protobuf-java" rev="2.3.0"/>
+        <dependency org="protobuf-format-java.googlecode.com" name="protobuf-format-java" rev="1.1.1"/>
+        
+        <dependency org="org.springframework" name="spring-aop" rev="3.0.4.RELEASE" conf="*->*,!sources,!javadoc" transitive="false" />
+        <dependency org="org.springframework" name="spring-context-support" rev="3.0.4.RELEASE" conf="*->*,!sources,!javadoc" transitive="false" />
+        <dependency org="org.springframework" name="spring-core" rev="3.0.4.RELEASE" conf="*->*,!sources,!javadoc" transitive="false" />
+        <dependency org="org.springframework" name="spring-oxm" rev="3.0.4.RELEASE" conf="*->*,!sources,!javadoc" transitive="false" />
+        <dependency org="org.springframework" name="spring-test" rev="3.0.4.RELEASE" conf="*->*,!sources,!javadoc" transitive="false" />
+        
+        <dependency org="org.springframework.amqp" name="spring-amqp" rev="1.0.0.M1" conf="*->*,!sources,!javadoc"  transitive="false" />
+        <dependency org="org.springframework.amqp" name="spring-rabbit" rev="1.0.0.M1" conf="*->*,!sources,!javadoc"  transitive="false" />
+        <dependency org="org.springframework.amqp" name="spring-rabbit-admin" rev="1.0.0.M1" conf="*->*,!sources,!javadoc"  transitive="false" />
+        
+        <dependency org="junit" name="junit" rev="4.8.2" conf="*->*,!sources,!javadoc"/>
+        
+        <dependency name="ionproto" rev="0.3.15-pl2" conf="*->*,!sources,!javadoc" />
+-->
+        
 		<!-- JUnit -->
         <dependency org="junit" name="junit" rev="4.8.2" conf="*->*,!sources,!javadoc"/>
-        <!-- ION project dependencies -->
-        <dependency name="ionproto" rev="0.3.13-pl50" conf="*->*,!sources,!javadoc" />
-        <dependency name="ioncore-java" rev="0.2.4" conf="*->*,!sources,!javadoc" />
-        <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />
+        
     </dependencies>
 </ivy-module>

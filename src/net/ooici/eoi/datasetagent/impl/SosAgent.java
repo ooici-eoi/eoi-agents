@@ -29,12 +29,12 @@ import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import ucar.nc2.dataset.NetcdfDataset;
 
-
 /**
  * The SosAgent class is designed to fulfill updates for datasets which originate from SOS services. Ensure the update context (
  * {@link EoiDataContextMessage}) to be passed to {@link #doUpdate(EoiDataContextMessage, HashMap)} has been constructed for SOS agents by
  * checking the result of {@link EoiDataContextMessage#getSourceType()}
- * 
+ *
+ * @author cmueller
  * @author tlarocque
  * @version 1.0
  * @see {@link EoiDataContextMessage#getSourceType()}
@@ -47,6 +47,7 @@ public class SosAgent extends AbstractAsciiAgent {
     private static long beginTime = Long.MAX_VALUE;
     private static long endTime = Long.MIN_VALUE;
     protected static final SimpleDateFormat sdf;
+    private String data_url;
 
     static {
         sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -139,8 +140,9 @@ public class SosAgent extends AbstractAsciiAgent {
 
 
 
-        log.debug("... built request: [" + result + "]");
-        return result.toString();
+        data_url = result.toString();
+        log.debug("... built request: [" + data_url + "]");
+        return data_url;
     }
 
     /**
@@ -181,7 +183,7 @@ public class SosAgent extends AbstractAsciiAgent {
      *            a <code>Reader</code> object linked to a stream of SOS ascii data
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
-    public static List<IObservationGroup> parseObservations(Reader rdr) {
+    public List<IObservationGroup> parseObservations(Reader rdr) {
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         IObservationGroup obs = null;
         BufferedReader csvReader = null;
@@ -199,16 +201,20 @@ public class SosAgent extends AbstractAsciiAgent {
             String[] tokens;
             tokens = line.split(",");
             List<Pair<Integer, VariableParams>> dataCols = new ArrayList<Pair<Integer, VariableParams>>();
+            String varName = "";
             for (int i = 6; i < tokens.length; i++) {
                 if (tokens[i].equalsIgnoreCase("\"sea_water_temperature (C)\"")) {
 //                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_TEMPERATURE));
                     dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
+                    varName += (varName.isEmpty()) ? VariableParams.SEA_WATER_TEMPERATURE.getStandardName() : "-" + VariableParams.SEA_WATER_TEMPERATURE.getStandardName();
                 } else if (tokens[i].equalsIgnoreCase("\"sea_water_salinity (psu)\"")) {
 //                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
                     dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_SALINITY, IObservationGroup.DataType.FLOAT)));
+                    varName = (varName.isEmpty()) ? VariableParams.SEA_WATER_SALINITY.getStandardName() : "-" + VariableParams.SEA_WATER_SALINITY.getStandardName();
                 } else if (tokens[i].equalsIgnoreCase("\"air_temperature (C)\"")) {
 //                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
                     dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
+                    varName = (varName.isEmpty()) ? VariableParams.AIR_TEMPERATURE.getStandardName() : "-" + VariableParams.AIR_TEMPERATURE.getStandardName();
                 }
             }
 
@@ -275,6 +281,44 @@ public class SosAgent extends AbstractAsciiAgent {
             if (obs != null) {
                 obsList.add(obs);
             }
+
+            /** Add Global Attributes to each observation group */
+            Map<String, String> globalAttributes = new HashMap<String, String>();
+
+            /* title */
+//        String queryUrl = "http://sdf.ndbc.noaa.gov/sos/";
+//        globalAttributes.put("title", "NDBC Sensor Observation Service data from \"" + queryUrl + "\"");
+            String title = "SOS (" + stnId + ") " + varName;
+            globalAttributes.put("title", title);
+
+            /* institution */
+//        globalAttributes.put("institution", "NOAA's National Data Buoy Center (http://www.ndbc.noaa.gov/)");
+            globalAttributes.put("institution", "NOAA NDBC");
+
+            /* history */
+//        globalAttributes.put("history", "Converted from CSV to OOI CDM compliant NC by " + SosAgent.class.getName());
+            globalAttributes.put("history", "Converted from CSV to OOI CDM by " + SosAgent.class.getName());
+
+            /* references */
+//        globalAttributes.put("references", "[" + queryUrl + "; http://www.ndbc.noaa.gov/; http://www.noaa.gov/]");
+            globalAttributes.put("references", "http://sdf.ndbc.noaa.gov/sos/");
+
+            /* conventions - from schema */
+//            globalAttributes.put("Conventions", "CF-1.5");
+
+            /* source */
+//        globalAttributes.put("source", "NDBC SOS");
+            globalAttributes.put("source", "Sensor Observation Service (http://sdf.ndbc.noaa.gov/sos/server.php?)");
+
+            /* data url */
+            globalAttributes.put("data_url", data_url);
+
+
+            /* Add each attribute */
+            for (IObservationGroup o : obsList) {
+                o.addAttributes(globalAttributes);
+            }
+
         } catch (MalformedURLException ex) {
             log.error("Given URL cannot be parsed:  + url", ex);
         } catch (IOException ex) {
@@ -296,44 +340,6 @@ public class SosAgent extends AbstractAsciiAgent {
         }
 
 
-        /** Grab Global Attributes and copy into each observation group */
-        Map<String, String> globalAttributes = new HashMap<String, String>();
-
-
-        /* Extract the Global Attributes */
-        /* title */
-        String queryUrl = "http://sdf.ndbc.noaa.gov/sos/";
-        globalAttributes.put("title", "NDBC Sensor Observation Service data from \"" + queryUrl + "\"");
-
-        /* history */
-        globalAttributes.put("history", "Converted from CSV to OOI CDM compliant NC by " + SosAgent.class.getName());
-
-        /* references */
-        globalAttributes.put("references", "[" + queryUrl + "; http://www.ndbc.noaa.gov/; http://www.noaa.gov/]");
-
-        /* conventions */
-        globalAttributes.put("Conventions", "CF-1.5");
-
-        /* institution */
-        globalAttributes.put("institution", "NOAA's National Data Buoy Center (http://www.ndbc.noaa.gov/)");
-
-        /* source */
-        globalAttributes.put("source", "NDBC SOS");
-
-
-        /* Add begin and end time attributes */
-        String beginAttrib = outSdf.format(new Date(beginTime));
-        String endAttrib = outSdf.format(new Date(endTime));
-
-        globalAttributes.put("utc_begin_time", beginAttrib);
-        globalAttributes.put("utc_end_time", endAttrib);
-
-
-        /* Add each attribute */
-        for (IObservationGroup o : obsList) {
-            o.addAttributes(globalAttributes);
-        }
-
         return obsList;
     }
 
@@ -353,7 +359,7 @@ public class SosAgent extends AbstractAsciiAgent {
     @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
-        
+
         NetcdfDataset ncds = obs2Ncds(obsList);
 
         /* Send this via the send dataset method of AbstractDatasetAgent */
@@ -375,7 +381,7 @@ public class SosAgent extends AbstractAsciiAgent {
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
         int switcher = 2;
-        switch(switcher) {
+        switch (switcher) {
             case 1: //test station
                 cBldr.setStartTime("2008-08-01T00:00:00Z");
                 cBldr.setEndTime("2008-08-02T00:00:00Z");
@@ -399,7 +405,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-//        agent.setTesting(true);
+        agent.setAgentRunType(AgentRunType.TEST_WRITE_DATA);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(50);//super-duper small

@@ -84,7 +84,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
-        TEST_WRITE_CDMPROTO,
+        TEST_WRITE_OOICDM,
     }
     /**
      * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
@@ -289,7 +289,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         String ret = null;
         switch (runType) {
-            case TEST_WRITE_CDMPROTO:
+            case TEST_WRITE_OOICDM:
                 ret = ncds.toString();
                 break;
             case TEST_WRITE_NC:
@@ -491,7 +491,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 case NORMAL:
                     sendDataChunkMsg(sbldr.build().toByteArray());
                     break;
-                case TEST_WRITE_CDMPROTO:
+                case TEST_WRITE_OOICDM:
                     writeChunkProto(sbldr.build().toByteArray());
                     break;
             }
@@ -547,7 +547,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
                 cl.sendMessage(dataMessage);
                 break;
-            case TEST_WRITE_CDMPROTO:
+            case TEST_WRITE_OOICDM:
                 writeDatasetProto(dataMessageContent);
                 break;
         }
@@ -573,7 +573,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 log.debug(printMessage("@@@--->>> NetcdfDataset data chunk (message) to eoi_ingest", dataMessage));
                 cl.sendMessage(dataMessage);
                 break;
-            case TEST_WRITE_CDMPROTO:
+            case TEST_WRITE_OOICDM:
                 writeChunkProto(dataMessageContent);
                 break;
         }

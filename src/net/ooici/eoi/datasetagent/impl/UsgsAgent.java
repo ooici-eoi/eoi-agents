@@ -904,26 +904,29 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 3;
+            int switcher = 4;
             switch (switcher) {
                 case 1://test temp
                     cBldr.setStartTime("2011-2-10T00:00:00Z");
                     cBldr.setEndTime("2011-2-11T00:00:00Z");
                     cBldr.addProperty("00010");
-                    cBldr.addStationId("01463500");
+//                    cBldr.addStationId("01463500");
+                    cBldr.addStationId("01646500");
                     break;
                 case 2://test discharge
                     cBldr.setStartTime("2011-4-10T00:00:00Z");
                     cBldr.setEndTime("2011-4-11T00:00:00Z");
                     cBldr.addProperty("00060");
-                    cBldr.addStationId("01463500");
+//                    cBldr.addStationId("01463500");
+                    cBldr.addStationId("01646500");
                     break;
                 case 3://test temp & discharge
                     cBldr.setStartTime("2011-2-10T00:00:00Z");
                     cBldr.setEndTime("2011-2-11T00:00:00Z");
                     cBldr.addProperty("00010");
                     cBldr.addProperty("00060");
-                    cBldr.addStationId("01463500");
+//                    cBldr.addStationId("01463500");
+                    cBldr.addStationId("01646500");
                     break;
                 case 4:
                     cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
@@ -931,7 +934,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     cBldr.setStartTime("2011-02-01T00:00:00Z");
                     cBldr.setEndTime("2011-03-01T00:00:00Z");
                     cBldr.addProperty("00060");
-                    cBldr.addStationId("01463500");
+//                    cBldr.addStationId("01463500");
+                    cBldr.addStationId("01646500");
                     break;
             }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");
@@ -940,7 +944,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
+            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
         }
     }
 

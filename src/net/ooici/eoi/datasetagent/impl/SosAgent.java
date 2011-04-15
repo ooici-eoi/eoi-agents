@@ -380,7 +380,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        int switcher = 2;
+        int switcher = 3;
         switch (switcher) {
             case 1: //test station
                 cBldr.setStartTime("2008-08-01T00:00:00Z");
@@ -405,7 +405,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
-        agent.setAgentRunType(AgentRunType.TEST_WRITE_NC);
+        agent.setAgentRunType(AgentRunType.TEST_WRITE_OOICDM);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(50);//super-duper small

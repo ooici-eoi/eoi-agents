@@ -34,7 +34,6 @@ import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
 import ucar.nc2.dataset.NetcdfDataset;
 
-
 /**
  * The NcAgent class is designed to fulfill updates for datasets which originate as Netcdf files (*.nc). Ensure the update context (
  * {@link EoiDataContextMessage}) to be passed to {@link #doUpdate(EoiDataContextMessage, HashMap)} has been constructed for NC agents by
@@ -79,9 +78,14 @@ public class NcAgent extends AbstractNcAgent {
             eTime = null;
         }
 
-        String ncmlPath = buildNcmlMask(ncmlTemplate, ncdsLoc);
-        log.debug(ncmlPath);
-        return ncmlPath;
+        String openLoc;
+        if (ncmlTemplate.isEmpty()) {
+            openLoc = ncdsLoc;
+        } else {
+            openLoc = buildNcmlMask(ncmlTemplate, ncdsLoc);
+        }
+        log.debug(openLoc);
+        return openLoc;
     }
 
     /**
@@ -210,11 +214,11 @@ public class NcAgent extends AbstractNcAgent {
             log.error("Error bootstrapping", ex);
         }
 
-//        manualTesting();
+        manualTesting();
 
 //        generateSamples();
 
-        generateMetadata();
+//        generateMetadata();
 
     }
 
@@ -427,10 +431,51 @@ public class NcAgent extends AbstractNcAgent {
 //        maxSize = 33554432;//for pfeg ==> all geospatial (1 time) = 32mb
 
         /* CODAR - marcoora */
-        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/codar/totals/macoora6km";
-        sTime = "2011-03-24T00:00:00Z";
-        eTime = "2011-03-27T00:00:00Z";
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><attribute name=\"title\" value=\"HFRADAR-CODAR\"/></netcdf>";
+//        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/cool/codar/totals/macoora6km";
+//        sTime = "2011-03-24T00:00:00Z";
+//        eTime = "2011-03-27T00:00:00Z";
+
+        /* UOP - NTAS 1 */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"AIRT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"ATMS\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RELH\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"LW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RAIT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"TEMP\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"SW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"UWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"VWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"PSAL\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable></netcdf>";
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+        ncmlmask = "";
+        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_NTAS_2010_R_M-1.nc";
+        sTime = "2011-04-01T00:00:00Z";
+        eTime = "2011-04-15T00:00:00Z";
+
+        /* UOP - NTAS 2 */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+        ncmlmask = "";
+        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_NTAS_2010_R_M-2.nc";
+        sTime = "2011-04-01T00:00:00Z";
+        eTime = "2011-04-15T00:00:00Z";
+
+        /* UOP - WHOTS 1 */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+        ncmlmask = "";
+        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-1.nc";
+        sTime = "2011-04-01T00:00:00Z";
+        eTime = "2011-04-15T00:00:00Z";
+
+        /* UOP - WHOTS 2 */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+        ncmlmask = "";
+        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-2.nc";
+        sTime = "2011-04-01T00:00:00Z";
+        eTime = "2011-04-15T00:00:00Z";
+
+
+        /* HYCOM */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv_agg_1time.ncml";
+
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_idp_EastCst1.nc";
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_sal_EastCst1.nc";
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_ssh_EastCst1.nc";
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_tem_EastCst1.nc";
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_uvl_EastCst1.nc";
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_vvl_EastCst1.nc";
 
         /* Local testing */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
@@ -439,10 +484,12 @@ public class NcAgent extends AbstractNcAgent {
 //        eTime = "2011-01-31T00:00:00Z";
 
         /* More Local testing */
-//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><attribute name=\"title\" value=\"NCOM-Sample\"/></netcdf>";
 //        dataurl = "/Users/cmueller/User_Data/Shared_Datasets/NCOM/ncom_glb_scs_2007050700.nc";
 //        sTime = "2007-05-07T00:00:00Z";
 //        eTime = "2007-05-09T00:00:00Z";
+
+
 
         /* Rutgers ROMS */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
@@ -455,7 +502,7 @@ public class NcAgent extends AbstractNcAgent {
         cBldr.setEndTime(eTime);
 
 
-        runAgent(cBldr.build(), AgentRunType.NORMAL);
+        runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
     }
 
     private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, AgentRunType agentRunType) throws IOException {

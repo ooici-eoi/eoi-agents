@@ -374,6 +374,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * The variable {@code var} is traversed by dimension (from outermost to innermost) using the class-level field, {@code maxSize} to determine upper-most size limit.
      * As each dimension is encountered, it is set to a length of 1 and the data size for the remaining dimensions is checked.
      * If the remaining data is still to big, another recursion is invoked to traverse the next dimension.
+     * Once the remaining data is < {@code maxSize}, the retrieval size of the outermost non-singleton dimension is incremented until the retrieval size is as close to {@code maxSize} as possible.
      * This is done until the remaining data is less than {@code maxSize}, or no more inner-dimensions remain (see text after example).
      * <p>
      * Example: assume a variable with dimensions {@code [5, 10, 10]}, that each of the 500 elements is 1 byte, and that the maximum size is 100 bytes.<br>
@@ -454,9 +455,18 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             } else {
                 rng = sec.getRange(depth);
                 iter = rng.getIterator();
+                int ii;
+                long ms;
                 while (iter.hasNext()) {
                     i = iter.next();
                     sec.replaceRange(depth, new Range(rng.getName(), i, i));
+                    size = sec.computeSize() * esize;
+                    ms = maxSize - size;
+                    while (size < ms & iter.hasNext()) {
+                        ii = iter.next();
+                        sec.replaceRange(depth, new Range(rng.getName(), i, ii));
+                        size = sec.computeSize() * esize;
+                    }
                     decompSendVariable(var, sec, depth + 1);
                 }
                 sec.replaceRange(depth, rng);

@@ -285,11 +285,12 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         ncds.finish();
 
         datasetName = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
-        datasetName = datasetName.replace(":", "_").replace(".nc", "");
+        datasetName = datasetName.replace(":", "_").replace(",", "").replace(".nc", "");
 
         String ret = null;
         switch (runType) {
             case TEST_WRITE_OOICDM:
+                outputDir += "ooicdm/";
                 ret = ncds.toString();
                 break;
             case TEST_WRITE_NC:

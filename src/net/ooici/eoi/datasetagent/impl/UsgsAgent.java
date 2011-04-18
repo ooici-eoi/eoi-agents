@@ -311,7 +311,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         return result.toString();
     }
-    
+
     /**
      * Parses the given <code>asciiData</code> for any signs of error
      * 
@@ -358,7 +358,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, Math.min(asciiData.length(), 40)) + "...]");
 
-        net.ooici.SysClipboard.copyString(asciiData);
+//        net.ooici.SysClipboard.copyString(asciiData);
 
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         StringReader srdr = new StringReader(asciiData);
@@ -851,6 +851,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
             result = VariableParams.WATER_TEMPERATURE;
         } else if ("00060".equals(variableCode)) {
             result = VariableParams.RIVER_STREAMFLOW;
+        } else if ("00065".equals(variableCode)) {
+            result = VariableParams.RIVER_GUAGE_HEIGHT;
+        } else if ("00045".equals(variableCode)) {
+            result = VariableParams.RIVER_PRECIPITATION;
         } else {
             throw new IllegalArgumentException("Given variable code is not known: " + variableCode);
         }
@@ -875,8 +879,12 @@ public class UsgsAgent extends AbstractAsciiAgent {
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
         NetcdfDataset ncds = obs2Ncds(obsList);
-        /* Send this via the send dataset method of AbstractDatasetAgent */
-        ret.add(this.sendNetcdfDataset(ncds, "ingest"));
+        if (ncds != null) {
+            /* Send this via the send dataset method of AbstractDatasetAgent */
+            ret.add(this.sendNetcdfDataset(ncds, "ingest"));
+        } else {
+            ret.add("ERROR");
+        }
         return ret.toArray(new String[0]);
     }
 
@@ -904,7 +912,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 4;
+            int switcher = 5;
             switch (switcher) {
                 case 1://test temp
                     cBldr.setStartTime("2011-2-10T00:00:00Z");
@@ -937,6 +945,16 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //                    cBldr.addStationId("01463500");
                     cBldr.addStationId("01646500");
                     break;
+                case 5://test temp & discharge for HiOOS
+                    cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
+                    cBldr.setStartTime("2011-04-05T00:00:00Z");
+                    cBldr.setEndTime("2011-04-07T00:00:00Z");
+//                    cBldr.addProperty("00010");
+                    cBldr.addProperty("00060");
+//                    cBldr.addProperty("00065");//guage height
+//                    cBldr.addProperty("00045");//precip
+                    cBldr.addStationId("16211600");
+                    break;
             }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");
 //            cBldr.setEndTime("2011-01-31T00:00:00Z");
@@ -944,7 +962,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
+            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
         }
     }
 

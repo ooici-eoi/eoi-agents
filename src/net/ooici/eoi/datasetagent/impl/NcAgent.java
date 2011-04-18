@@ -465,6 +465,12 @@ public class NcAgent extends AbstractNcAgent {
         sTime = "2011-04-01T00:00:00Z";
         eTime = "2011-04-15T00:00:00Z";
 
+        /* GFS */
+        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><attribute name=\"title\" value=\"NCEP GFS4\"/></netcdf>";
+        dataurl = "http://nomads.ncdc.noaa.gov/thredds/dodsC/gfs4/201104/20110417/gfs_4_20110417_0600_180.grb2";
+        sTime = "";//forecast, get it all
+        eTime = "";//forecast, get it all
+
 
         /* HYCOM */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";

@@ -296,6 +296,14 @@ public class Unidata2Ooi {
                 }
                 arrWrap = GPBWrapper.Factory(f64Bldr.build());
                 break;
+            case STRING:
+                Cdmarray.stringArray.Builder sBldr = Cdmarray.stringArray.newBuilder();
+                while (arrIter.hasNext()) {
+                    Object o = arrIter.next();
+                    sBldr.addValue(o.toString());
+                }
+                arrWrap = GPBWrapper.Factory(sBldr.build());
+                break;
             /* TODO: Implement other datatypes */
 
             default:

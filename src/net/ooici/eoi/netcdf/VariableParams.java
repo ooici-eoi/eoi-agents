@@ -20,6 +20,10 @@ public class VariableParams implements Comparable<VariableParams> {
 		"temperature at position, in degrees celcius.", "celcius");
 	public static final VariableParams RIVER_STREAMFLOW = new VariableParams("water_volume_transport_into_sea_water_from_rivers",
 		"streamflow", "water volume transport into sea water from rivers at position, in cubic meters per second.", "m3 s-1");
+	public static final VariableParams RIVER_GUAGE_HEIGHT = new VariableParams("guage_height",
+		"guage_height", "guage height in feet", "ft");
+	public static final VariableParams RIVER_PRECIPITATION = new VariableParams("precipitation_total",
+		"precipitation_total", "total precipitation at gauge location in feet", "ft");
 	public static final VariableParams SEA_WATER_TEMPERATURE = new VariableParams("sea_water_temperature", "temperature",
 		"water temperature at location", "degrees_celcius");
 	public static final VariableParams SEA_WATER_SALINITY = new VariableParams("sea_water_salinity", "salinity",

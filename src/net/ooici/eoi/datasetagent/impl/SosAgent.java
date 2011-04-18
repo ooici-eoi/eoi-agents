@@ -72,10 +72,10 @@ public class SosAgent extends AbstractAsciiAgent {
 
         log.debug("Localizing context...");
         String baseUrl = context.getBaseUrl();
-        String top = String.valueOf(context.getTop());
-        String bottom = String.valueOf(context.getBottom());
-        String left = String.valueOf(context.getLeft());
-        String right = String.valueOf(context.getRight());
+        String north = String.valueOf(context.getRequestBoundsNorth());
+        String south = String.valueOf(context.getRequestBoundsSouth());
+        String west = String.valueOf(context.getRequestBoundsWest());
+        String east = String.valueOf(context.getRequestBoundsEast());
         String sTimeString = context.getStartTime();
         String eTimeString = context.getEndTime();
         /* TODO: make these iterative */
@@ -114,8 +114,8 @@ public class SosAgent extends AbstractAsciiAgent {
 
         /** Configure the BBOX parameter (if avail) */
         String bbox = null;
-        if (null != top && null != bottom && null != left && null != right) {
-            bbox = new StringBuilder(left).append(',').append(bottom).append('.').append(right).append(',').append(top).append(',').toString();
+        if (null != north && null != south && null != west && null != east) {
+            bbox = new StringBuilder(west).append(',').append(south).append('.').append(east).append(',').append(north).append(',').toString();
         }
 
 

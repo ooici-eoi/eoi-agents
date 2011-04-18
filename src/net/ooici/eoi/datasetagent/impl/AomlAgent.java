@@ -68,10 +68,10 @@ public class AomlAgent extends AbstractAsciiAgent {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
-        String top = String.valueOf(context.getTop());
-        String bottom = String.valueOf(context.getBottom());
-        String left = String.valueOf(context.getLeft());
-        String right = String.valueOf(context.getRight());
+        String north = String.valueOf(context.getRequestBoundsNorth());
+        String south = String.valueOf(context.getRequestBoundsSouth());
+        String west = String.valueOf(context.getRequestBoundsWest());
+        String east = String.valueOf(context.getRequestBoundsEast());
         String sTimeString = context.getStartTime();
         String eTimeString = context.getEndTime();
         String id = (context.getStationIdCount() != 0) ? context.getStationId(0) : "";
@@ -137,10 +137,10 @@ public class AomlAgent extends AbstractAsciiAgent {
 
         /** Build the query URL */
         result.append(baseUrl);
-        result.append("latN=").append(top);
-        result.append("&latS=").append(bottom);
-        result.append("&lonW=").append(left);
-        result.append("&lonE=").append(right);
+        result.append("latN=").append(north);
+        result.append("&latS=").append(south);
+        result.append("&lonW=").append(west);
+        result.append("&lonE=").append(east);
         result.append("&year=").append(syy);
         result.append("&month=").append(smm);
         result.append("&day=").append(sdd);
@@ -384,10 +384,10 @@ public class AomlAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(SourceType.AOML);
         cBldr.setBaseUrl("http://www.aoml.noaa.gov/cgi-bin/trinanes/datosxbt.cgi?");
-        cBldr.setTop(47.0);
-        cBldr.setBottom(31.0);
-        cBldr.setRight(-60.0);
-        cBldr.setLeft(-82.0);
+        cBldr.setRequestBoundsNorth(47.0);
+        cBldr.setRequestBoundsSouth(31.0);
+        cBldr.setRequestBoundsWest(-60.0);
+        cBldr.setRequestBoundsEast(-82.0);
 //        cBldr.setTop(60.0);
 //        cBldr.setBottom(-60.0);
 //        cBldr.setRight(179.9);

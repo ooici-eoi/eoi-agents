@@ -45,7 +45,7 @@
             </url>
         	<!--***OLD*** OOICI Package Server
         	Still need this for the zz-ooici-netcdf-java.jar -->
-            <url name="ooici_repo" >
+            <url name="ooici_repo_old" >
             	<artifact pattern="${ooici.repo.base}/[artifact]-[revision].[ext]" />
             	<artifact pattern="${ooici.repo.base}/[artifact]_[revision].[ext]" />
             </url>

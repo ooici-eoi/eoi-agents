@@ -16,10 +16,11 @@
           the jar(s) are not removed from the 'lib' directory after re-running 'ant resolve'
          ================================= -->
     <target name="resolve" description="--> Retreive dependencies with ivy">
+    	<antcall target="clean-ionj-cache"/>
     	<mkdir dir="${override-repo.dir}" />
         <ivy:retrieve sync="true"/>
-    </target>    
-    
+    </target>
+       
     <!-- ================================= 
           target: report-deps              
          ================================= -->
@@ -70,6 +71,13 @@
          ================================= -->
 	<target name="clean-ooici-cache" description="--> Clean the ivy cache of the ooici dependencies only">
 		<delete dir="${ivy.cache.dir}/net.ooici" />
+	</target>
+	
+	<!-- ================================= 
+          target: clean-ionj-cache
+         ================================= -->
+	<target name="clean-ionj-cache" description="--> Clean the ivy cache of the ioncore-java dependency only">
+		<delete dir="${ivy.cache.dir}/net.ooici/ioncore-java" />
 	</target>
 	
 	<!-- ================================= 

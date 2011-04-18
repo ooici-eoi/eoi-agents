@@ -14,7 +14,7 @@
         
         <!-- ION project dependencies -->
         <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />
-        <dependency name="ioncore-java" rev="0.2.4" conf="*->*,!sources,!javadoc" />
+        <dependency name="ioncore-java" rev="0.2.5-dev" conf="*->*,!sources,!javadoc" />
         <!-- These come with the ioncore-java dependency -->
 <!--        
 		<dependency org="org.slf4j" name="slf4j-api" rev="1.6.1" conf="*->*,!sources,!javadoc" />

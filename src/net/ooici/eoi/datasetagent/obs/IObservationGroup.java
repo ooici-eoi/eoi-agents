@@ -82,6 +82,11 @@ public interface IObservationGroup {
 	 */
 	int getNumObs();
 
+    /**
+     * @return true if this group has zero observations; false otherwise
+     */
+    boolean isEmpty();
+
 	/**
 	 * @return an array of all unique timestamps for the observations in this IObservationGroup
 	 */

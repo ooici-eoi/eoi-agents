@@ -61,6 +61,13 @@ public abstract class AbstractObservationGroup implements IObservationGroup {
 		attributes = new HashMap<String, String>();
 	}
 
+    
+
+    @Override
+    public boolean isEmpty() {
+        return times.isEmpty();
+    }
+
     @Override
 	public String getStnid() {
 		return stnid;

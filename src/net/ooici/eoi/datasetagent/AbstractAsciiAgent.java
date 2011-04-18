@@ -205,7 +205,7 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         log.debug("Creating NC Dataset...");
         NetcdfDataset ncds = null;
 
-        if (obsList.length == 0 || (obsList.length == 1 & obsList[0] == null)) {
+        if (obsList.length == 0 || (obsList.length == 1  & obsList[0].isEmpty())) {
             return ncds;
         }
         IObservationGroup obs;

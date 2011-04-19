@@ -23,3 +23,5 @@ ivy-report
 ehthumbs.db
 Icon?
 Thumbs.db
+/.settings/ivy-publish/
+/bin/

@@ -65,6 +65,11 @@
                                      pattern="[organisation]/[type]s/[artifact]-[revision].[ext]"/>
              -->
         </chain>
+        
+        <!-- for publishing to local m2 since ibiblio doesn't support it -->
+		<filesystem name="maven-local-publish" m2compatible="true">
+				<artifact pattern="${ivy.pub.dir}/repository/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
+		</filesystem>
 
     </resolvers>
 

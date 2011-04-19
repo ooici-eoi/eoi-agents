@@ -15,23 +15,23 @@
           NOTE: may want this to depends="clean" because when a dependency is removed,
           the jar(s) are not removed from the 'lib' directory after re-running 'ant resolve'
          ================================= -->
-    <target name="resolve" description="--> Retreive dependencies with ivy">
+    <target name="resolve" description="==> Retreive dependencies with ivy">
     	<antcall target="clean-ionj-cache"/>
     	<mkdir dir="${override-repo.dir}" />
-        <ivy:retrieve sync="true"/>
+        <ivy:retrieve sync="true" overwriteMode="always"/>
     </target>
        
     <!-- ================================= 
           target: report-deps              
          ================================= -->
-    <target name="report-deps" depends="resolve" description="--> Generates a report of dependencies">
+    <target name="report-deps" depends="resolve" description="==> Generates a report of dependencies">
         <ivy:report todir="${ivy.report.dir}"/>
     </target>
 
     <!-- ================================= 
           target: compile
          ================================= -->
-    <target name="compile" depends="resolve" description="--> Compile the project">
+    <target name="compile" depends="resolve" description="==> Compile the project">
     	<antcall target="pre-compile" />
         <mkdir dir="${build.dir}" />
         <javac srcdir="${src.dir}" destdir="${build.dir}" >
@@ -40,14 +40,14 @@
         <antcall target="post-compile" />
     </target>
     
-    <target name="pre-compile" description="--> Called before javac compilation - empty by default, override in build.xml to use" />
+    <target name="pre-compile" description="==> Called before javac compilation - empty by default, override in build.xml to use" />
     
-	<target name="post-compile" description="--> Called after javac compilation - empty by default, override in build.xml to use" />
+	<target name="post-compile" description="==> Called after javac compilation - empty by default, override in build.xml to use" />
 	
     <!-- ================================= 
           target: clean              
          ================================= -->
-    <target name="clean" description="--> Clean the project">
+    <target name="clean" description="==> Clean the project">
     	<delete dir="${build.dir}" />
     	<delete dir="${lib.dir}" />
     	<delete dir="${dist.dir}" />
@@ -57,33 +57,33 @@
     	<antcall target="clean-more" />
     </target>
     
-    <target name="clean-more" description="--> Called at the end of 'clean' - empty by default, override in build.xml to use" />
+    <target name="clean-more" description="==> Called at the end of 'clean' - empty by default, override in build.xml to use" />
 	
     <!-- ================================= 
           target: clean-ivy-cache              
          ================================= -->
-	<target name="clean-ivy-cache" description="--> Clean the ivy cache">
+	<target name="clean-ivy-cache" description="==> Clean the ivy cache">
 		<ivy:cleancache />
 	</target>
 	
 	<!-- ================================= 
           target: clean-ooici-cache
          ================================= -->
-	<target name="clean-ooici-cache" description="--> Clean the ivy cache of the ooici dependencies only">
+	<target name="clean-ooici-cache" description="==> Clean the ivy cache of the ooici dependencies only">
 		<delete dir="${ivy.cache.dir}/net.ooici" />
 	</target>
 	
 	<!-- ================================= 
           target: clean-ionj-cache
          ================================= -->
-	<target name="clean-ionj-cache" description="--> Clean the ivy cache of the ioncore-java dependency only">
+	<target name="clean-ionj-cache" description="==> Clean the ivy cache of the ioncore-java dependency only">
 		<delete dir="${ivy.cache.dir}/net.ooici/ioncore-java" />
 	</target>
 	
 	<!-- ================================= 
           target: deep-clean
          ================================= -->
-    <target name="deep-clean" description="--> Cleans both this directory and the ivy cache">
+    <target name="deep-clean" description="==> Cleans both this directory and the ivy cache">
     	<antcall target="clean" />
     	<antcall target="clean-ivy-cache" />
 	</target>
@@ -91,7 +91,7 @@
 	<!-- ================================= 
           target: javadoc              
          ================================= -->
-	<target name="javadoc" depends="" description="--> Generate Javadoc">
+	<target name="javadoc" depends="" description="==> Generate Javadoc">
 		<javadoc sourcepath="${src.dir}"
 			classpathref="runtime.classpath"
 		   defaultexcludes="yes"
@@ -109,7 +109,7 @@
 	<!-- ================================= 
           target: dist              
          ================================= -->
-	<target name="dist" depends="clean,compile,javadoc" description="--> Package Distribution">
+	<target name="dist" depends="clean,compile,javadoc" description="==> Package Distribution">
 	    <!-- Create the distribution directory -->
 	    <mkdir dir="${dist.dir}" />
 	    <mkdir dir="${dist.dir}/lib"/>
@@ -123,7 +123,7 @@
 			<mapper>
    				<chainedmapper>
      				<flattenmapper/>
-     				<globmapper from="*.jar" to="lib/*.jar"/>
+     				<!-- <globmapper from="*.jar" to="lib/*.jar"/>-->
   				</chainedmapper>
   			</mapper>
 		</pathconvert>
@@ -158,22 +158,22 @@
 		/>		
 
 		<!-- Create ZIP file for the entire directory -->
-		<zip destfile="${dist.dir}/${project.name}-archive.zip"
+		<!-- <zip destfile="${dist.dir}/${project.name}-archive.zip"
 			basedir="."
 			excludes="${dist.dir}/${project.name}-archive.zip,${build}/**,.git/**"
-		/>
+		/>-->
 		
 		<!-- Remove the MANIFEST.MF file -->
 		<delete file="MANIFEST.MF" />
 		
 		<antcall target="post-dist" />
 	</target>
-	
-	<target name="pre-dist" description="--> Called before all actions in the dist target - empty by default, override in build.xml to use" />
+		
+	<target name="pre-dist" description="==> Called before all actions in the dist target - empty by default, override in build.xml to use" />
     
-	<target name="post-dist" description="--> Called after all actions in the dist target - empty by default, override in build.xml to use" />
+	<target name="post-dist" description="==> Called after all actions in the dist target - empty by default, override in build.xml to use" />
 	
-	<target name="test-all" description="--> Runs JUnit tests for all classes ending in 'Test.java')">
+	<target name="test-all" description="==> Runs JUnit tests for all classes ending in 'Test.java')">
 		<mkdir dir="test-report" />
 		<junit printsummary="yes" haltonfailure="no">
 			<classpath refid="runtime.classpath" />

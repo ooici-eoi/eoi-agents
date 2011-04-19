@@ -141,6 +141,7 @@ public class DatasetAgentController implements ControlListener {
 
                     context = net.ooici.services.sa.DataSource.EoiDataContextMessage.parseFrom(elementMap.entrySet().iterator().next().getValue().getValue());
                     log.debug("ProcThread:" + threadId + ":: Received context as:\n{\n" + context.toString() + "}\n");
+                    
 //                    if (log.isDebugEnabled()) {
 //                        log.debug("Checking localized context...");
 //                        StringBuilder sb = new StringBuilder("Dataset Context:\n{\n");
@@ -183,6 +184,7 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
+                    reply.getIonHeaders().put("performative", "failure");
                     
                     
 
@@ -190,6 +192,7 @@ public class DatasetAgentController implements ControlListener {
 
                     ((ControlProcess) source).send(reply);
                     /* TODO: should we return here? */
+                    return;
                 }
 
                 net.ooici.services.sa.DataSource.SourceType source_type = context.getSourceType();
@@ -210,6 +213,7 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
+                    reply.getIonHeaders().put("performative", "failure");
 
                     log.debug(printMessage("**Reply Message to Wrapper**", reply));
 
@@ -249,6 +253,7 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
+                    reply.getIonHeaders().put("performative", "failure");
 
                     log.debug(printMessage("**Reply Message to Wrapper**", reply));
 
@@ -266,6 +271,7 @@ public class DatasetAgentController implements ControlListener {
                 reply.getIonHeaders().put("status", "OK");
                 reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                 reply.getIonHeaders().put("response", "ION SUCCESS");
+                reply.getIonHeaders().put("performative", "inform_result");
 
                 log.debug(printMessage("**Reply Message to Wrapper**", reply));
 

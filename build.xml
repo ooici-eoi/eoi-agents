@@ -34,7 +34,7 @@
 	<!-- ================================= 
           target: test-all
          ================================= -->
-	<target name="test-all" description="--> Runs all tests">
+	<target name="test-all" description="==> Runs all tests">
 		<antcall target="test-sos"/>
 		<antcall target="test-usgs"/>
 		<antcall target="test-ncagent"/>
@@ -43,7 +43,7 @@
 	<!-- ================================= 
           target: test-sos
          ================================= -->
-    <target name="test-sos" depends="compile" description="--> Runs a canned sos test">
+    <target name="test-sos" depends="compile" description="==> Runs a canned sos test">
     	<property name="msg" value="Testing SosAgent..."/>
         <java classpathref="runtime.classpath" classname="net.ooici.eoi.datasetagent.impl.SosAgent" />
     </target>
@@ -51,7 +51,7 @@
 	<!-- ================================= 
           target: test-usgs
          ================================= -->
-    <target name="test-usgs" depends="compile" description="--> Runs a canned usgs test">
+    <target name="test-usgs" depends="compile" description="==> Runs a canned usgs test">
     	<property name="msg" value="Testing UsgsAgent..."/>
         <java classpathref="runtime.classpath" classname="net.ooici.eoi.datasetagent.impl.UsgsAgent" />
     </target>
@@ -59,7 +59,7 @@
 	<!-- ================================= 
           target: test-ncagent
          ================================= -->
-    <target name="test-ncagent" depends="compile" description="--> Runs a canned netcdf test">
+    <target name="test-ncagent" depends="compile" description="==> Runs a canned netcdf test">
     	<property name="msg" value="Testing NcAgent..."/>
         <java classpathref="runtime.classpath" classname="net.ooici.eoi.datasetagent.impl.NcAgent" />
     </target>

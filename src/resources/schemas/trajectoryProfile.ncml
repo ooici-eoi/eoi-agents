@@ -4,7 +4,7 @@
   <dimension name="z" length="1" />
   <dimension name="time" length="1" />
 
-  <attribute name="CF:featureType" value="trajectory" />
+  <attribute name="CF:featureType" value="trajectoryProfile" />
   <attribute name="Conventions" value="CF-1.5" />
   <!-- <attribute name="cdm_datatype" value="trajectory" /> -->
   

@@ -68,6 +68,7 @@
           target: ivy-publish-local
          ================================= -->
     <target name="ivy-publish-local" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ${ivy.pub.dir}">
+    	<delete dir="${ivy.pub.dir}"/>
 		<ivy:publish resolver="maven-local-publish" forcedeliver="true" overwrite="true" publishivy="true">
 				<artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
 		</ivy:publish>

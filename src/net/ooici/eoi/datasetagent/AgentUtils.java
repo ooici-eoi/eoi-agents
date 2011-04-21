@@ -73,9 +73,10 @@ public class AgentUtils {
         Cdmdatatype.DataType ret = null;
 
         switch (ucarDT) {
-            case BOOLEAN:
-                ret = Cdmdatatype.DataType.BOOLEAN;
-                break;
+            /* Boolean data type appears not to be handled by NCJ anyhow... */
+//            case BOOLEAN:
+//                ret = Cdmdatatype.DataType.BOOLEAN;
+//                break;
             case BYTE:
                 ret = Cdmdatatype.DataType.BYTE;
                 break;
@@ -124,9 +125,10 @@ public class AgentUtils {
         DataType ret = null;
 
         switch (ooiDT) {
-            case BOOLEAN:
-                ret = DataType.BOOLEAN;
-                break;
+            /* Boolean data type appears not to be handled by NCJ anyhow... */
+//            case BOOLEAN:
+//                ret = DataType.BOOLEAN;
+//                break;
             case BYTE:
                 ret = DataType.BYTE;
                 break;

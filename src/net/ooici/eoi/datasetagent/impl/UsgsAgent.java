@@ -912,18 +912,18 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 5;
+            int switcher = 4;
             switch (switcher) {
                 case 1://test temp
-                    cBldr.setStartTime("2011-2-10T00:00:00Z");
-                    cBldr.setEndTime("2011-2-11T00:00:00Z");
+                    cBldr.setStartTime("2011-2-20T00:00:00Z");
+                    cBldr.setEndTime("2011-4-19T00:00:00Z");
                     cBldr.addProperty("00010");
 //                    cBldr.addStationId("01463500");
                     cBldr.addStationId("01646500");
                     break;
                 case 2://test discharge
-                    cBldr.setStartTime("2011-4-10T00:00:00Z");
-                    cBldr.setEndTime("2011-4-11T00:00:00Z");
+                    cBldr.setStartTime("2011-2-20T00:00:00Z");
+                    cBldr.setEndTime("2011-4-19T00:00:00Z");
                     cBldr.addProperty("00060");
 //                    cBldr.addStationId("01463500");
                     cBldr.addStationId("01646500");
@@ -938,10 +938,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     break;
                 case 4:
                     cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
-//                    cBldr.setStartTime("2003-01-01T00:00:00Z");
-                    cBldr.setStartTime("2011-02-01T00:00:00Z");
-                    cBldr.setEndTime("2011-03-01T00:00:00Z");
-                    cBldr.addProperty("00060");
+                    cBldr.setStartTime("2003-01-01T00:00:00Z");
+//                    cBldr.setStartTime("2011-02-01T00:00:00Z");
+                    cBldr.setEndTime("2011-04-19T00:00:00Z");
+                    cBldr.addProperty("00010");
+//                    cBldr.addProperty("00060");
 //                    cBldr.addStationId("01463500");
                     cBldr.addStationId("01646500");
                     break;

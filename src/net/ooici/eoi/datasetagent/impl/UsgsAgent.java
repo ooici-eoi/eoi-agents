@@ -238,7 +238,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             }
         }
         if (propertiesString.length() > 0) {
-            propertiesString.deleteCharAt(propertiesString.length() - 1);
+            propertiesString.setLength(propertiesString.length() - 1);
         }
 
 
@@ -358,8 +358,6 @@ public class UsgsAgent extends AbstractAsciiAgent {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, Math.min(asciiData.length(), 40)) + "...]");
 
-//        net.ooici.SysClipboard.copyString(asciiData);
-
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         StringReader srdr = new StringReader(asciiData);
         try {
@@ -437,7 +435,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             if (cut >= 1) {
                 variableName = variableName.substring(0, cut);
             }
-            String title = siteName + " (" + locationParam + ") - " + variableName;
+            String title = siteName + " (" + locationParam + ") - Instantaneous Value";// + variableName;
             title = title.replace(",", "").replace(".", "");
             globalAttributes.put("title", title);
             globalAttributes.put("institution", "USGS NWIS");
@@ -455,8 +453,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
             /* conventions - from schema */
 //            globalAttributes.put("Conventions", "CF-1.5");
 
-            /* data url */
-            globalAttributes.put("data_url", data_url);
+            /* Data URL */
+            /* CAN'T have this because it changes every update and we don't have a way of merging attributes across multiple updates */
+//            globalAttributes.put("data_url", data_url);
 
 
             /** Get a list of provided time series */
@@ -530,12 +529,13 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     time = (int) (valueSdf.parse(datetime).getTime() * 0.001);
                     // data = Float.parseFloat(value);
                     name = getDataNameForVariableCode(variableCode);
-                    /* Only convert data if we are dealing with Steamflow) */
-                    if (name == VariableParams.RIVER_STREAMFLOW) {
-                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
-                    } else {
-                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
-                    }
+                    /* DON'T EVER CONVERT - Only convert data if we are dealing with Steamflow */
+//                    if (name == VariableParams.RIVER_STREAMFLOW) {
+//                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
+//                    } else {
+//                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
+//                    }
+                    data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
                     dpth = 0;
 
 
@@ -638,9 +638,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
             String siteName = xpathSafeSelectValue(root, "//ns1:sourceInfo/ns1:siteName", null);
             String locationParam = xpathSafeSelectValue(root, "//ns1:queryInfo/ns1:criteria/ns1:locationParam", null);
             locationParam = locationParam.substring(locationParam.indexOf(":") + 1, locationParam.indexOf("/"));
-            String variableName = xpathSafeSelectValue(root, "//ns1:variable/ns1:variableName", null);
-            String dataType = xpathSafeSelectValue(root, "//ns1:variable/ns1:dataType", null);
-            String title = siteName + " (" + locationParam + ") - Daily " + dataType + " " + variableName;
+//            String variableName = xpathSafeSelectValue(root, "//ns1:variable/ns1:variableName", null);
+//            String dataType = xpathSafeSelectValue(root, "//ns1:variable/ns1:dataType", null);
+            String title = siteName + " (" + locationParam + ") - Daily Values";// + dataType + " " + variableName;
             title = title.replace(",", "").replace(".", "");
             globalAttributes.put("title", title);
 
@@ -657,7 +657,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            globalAttributes.put("Conventions", "CF-1.5");
 
             /* Data URL */
-            globalAttributes.put("data_url", data_url);
+            /* CAN'T have this because it changes every update and we don't have a way of merging attributes across multiple updates */
+//            globalAttributes.put("data_url", data_url);
 
 
 
@@ -742,12 +743,13 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     time = (int) (dvInputSdf.parse(datetime).getTime() * 0.001);
                     // data = Float.parseFloat(value);
                     name = getDataNameForVariableCode(variableCode);
-                    /* Only convert data if we are dealing with Steamflow) */
-                    if (name == VariableParams.RIVER_STREAMFLOW) {
-                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
-                    } else {
-                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
-                    }
+                    /* DON'T EVER CONVERT - Only convert data if we are dealing with Steamflow) */
+//                    if (name == VariableParams.RIVER_STREAMFLOW) {
+//                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
+//                    } else {
+//                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
+//                    }
+                    data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
                     dpth = 0;
 
 
@@ -855,6 +857,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
             result = VariableParams.RIVER_GUAGE_HEIGHT;
         } else if ("00045".equals(variableCode)) {
             result = VariableParams.RIVER_PRECIPITATION;
+        } else if ("00095".equals(variableCode)) {
+            result = VariableParams.SEA_WATER_CONDUCTIVITY;
         } else {
             throw new IllegalArgumentException("Given variable code is not known: " + variableCode);
         }
@@ -899,11 +903,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
         }
 
         boolean dailyValues = false;
-        boolean makeSamples = false;
+        boolean makeRutgersSamples = false;
+        boolean makeUHSamples = false;
         boolean makeMetadataTable = false;
         boolean manual = true;
-        if (makeSamples) {
+        if (makeRutgersSamples) {
             generateRutgersSamples(dailyValues);
+        }
+        if (makeUHSamples) {
+            generateUHSamples(dailyValues);
         }
         if (makeMetadataTable) {
             generateRutgersMetadata(dailyValues);
@@ -912,7 +920,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 4;
+            int switcher = 5;
             switch (switcher) {
                 case 1://test temp
                     cBldr.setStartTime("2011-2-20T00:00:00Z");
@@ -946,15 +954,14 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //                    cBldr.addStationId("01463500");
                     cBldr.addStationId("01646500");
                     break;
-                case 5://test temp & discharge for HiOOS
-                    cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
+                case 5://test all supported parameters
                     cBldr.setStartTime("2011-04-05T00:00:00Z");
                     cBldr.setEndTime("2011-04-07T00:00:00Z");
-//                    cBldr.addProperty("00010");
+                    cBldr.addProperty("00010");
                     cBldr.addProperty("00060");
-//                    cBldr.addProperty("00065");//guage height
-//                    cBldr.addProperty("00045");//precip
-                    cBldr.addStationId("16211600");
+                    cBldr.addProperty("00065");//guage height
+                    cBldr.addProperty("00045");//precip
+                    cBldr.addStationId("01646500");
                     break;
             }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");
@@ -963,6 +970,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
+//            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
             runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
         }
     }
@@ -1136,61 +1144,108 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         /* Generates samples for near-realtime high-resolution data */
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
-        String sTime = sdf.format(new Date(now.getTime() - 86400000));//start 1 day before
+        String sTime = sdf.format(new Date(now.getTime() - 2592000000l));//start 30 days before
         String eTime = sdf.format(now);
 
         if (dailyValues) {
             /* Generates samples for "historical" low-resolution data */
             baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
-            sTime = "2003-01-01T00:00:00Z";
+            sTime = "2010-01-01T00:00:00Z";
         }
         String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
 //        String[] disNames = new String[]{"Connecticut", "Hudson", "Mohawk", "Passaic", "Raritan", "Delaware", "Susquehanna", "Potomac", "Patuxent", "Rappahannock", "Choptank", "James", "Appomattox", "Pamunkey", "Mattaponi"};
         String[] tempIds = new String[]{"01362500", "01463500", "01646500"};
 //        String[] tempNames = new String[]{"Hudson", "Delware", "Potomac"};
 
-        for (int i = 0; i < disIds.length; i++) {
+        String[] allIds = new String[]{"01184000", "01327750", "01357500", "01362500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
+
+        for (int i = 0; i < allIds.length; i++) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
             cBldr.setStartTime(sTime);
             cBldr.setEndTime(eTime);
-            cBldr.addProperty("00060");
-            cBldr.addStationId(disIds[i]);
+            cBldr.addProperty("00010").addProperty("00060").addProperty("00065").addProperty("00045").addProperty("00095");
+            cBldr.addStationId(allIds[i]);
             String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
-//            NetcdfDataset dsout = null;
-//            try {
-//                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-//                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + disNames[i] + "_discharge.nc");
-//            } catch (IOException ex) {
-//                log.error("Error writing netcdf file", ex);
-//            } finally {
-//                if (dsout != null) {
-//                    dsout.close();
-//                }
-//            }
+//            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
         }
 
-        for (int i = 0; i < tempIds.length; i++) {
+//        for (int i = 0; i < disIds.length; i++) {
+//            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+//            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
+//            cBldr.setBaseUrl(baseURL);
+//            cBldr.setStartTime(sTime);
+//            cBldr.setEndTime(eTime);
+//            cBldr.addProperty("00060");
+//            cBldr.addStationId(disIds[i]);
+//            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
+////            NetcdfDataset dsout = null;
+////            try {
+////                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
+////                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + disNames[i] + "_discharge.nc");
+////            } catch (IOException ex) {
+////                log.error("Error writing netcdf file", ex);
+////            } finally {
+////                if (dsout != null) {
+////                    dsout.close();
+////                }
+////            }
+//        }
+//
+//        for (int i = 0; i < tempIds.length; i++) {
+//            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+//            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
+//            cBldr.setBaseUrl(baseURL);
+//            cBldr.setStartTime(sTime);
+//            cBldr.setEndTime(eTime);
+//            cBldr.addProperty("00010");
+//            cBldr.addStationId(tempIds[i]);
+//            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
+////            NetcdfDataset dsout = null;
+////            try {
+////                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
+////                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + tempNames[i] + "_temp.nc");
+////            } catch (IOException ex) {
+////                log.error("Error writing netcdf file", ex);
+////            } finally {
+////                if (dsout != null) {
+////                    dsout.close();
+////                }
+////            }
+//        }
+
+        System.out.println("******FINISHED******");
+    }
+
+    private static void generateUHSamples(boolean dailyValues) throws IOException {
+        SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'00:00:00'Z'");
+        sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        Date now = new Date();
+
+        /* Generates samples for near-realtime high-resolution data */
+        String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
+        String sTime = sdf.format(new Date(now.getTime() - 86400000));//start 1 day before
+        String eTime = sdf.format(now);
+
+        if (dailyValues) {
+            /* Generates samples for "historical" low-resolution data */
+            baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
+            sTime = "2010-01-01T00:00:00Z";
+        }
+
+        String[] allIds = new String[]{"16211600", "16212800", "16213000", "16226200", "16226400", "16229000", "16238000", "16240500", "16242500", "16244000", "16247100", "211747157485601", "212359157502601", "212428157511201"};
+
+        for (int i = 0; i < allIds.length; i++) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
             cBldr.setStartTime(sTime);
             cBldr.setEndTime(eTime);
-            cBldr.addProperty("00010");
-            cBldr.addStationId(tempIds[i]);
-            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
-//            NetcdfDataset dsout = null;
-//            try {
-//                dsout = NetcdfDataset.openDataset("ooici:" + res[0]);
-//                ucar.nc2.FileWriter.writeToFile(dsout, output_prefix + tempNames[i] + "_temp.nc");
-//            } catch (IOException ex) {
-//                log.error("Error writing netcdf file", ex);
-//            } finally {
-//                if (dsout != null) {
-//                    dsout.close();
-//                }
-//            }
+            cBldr.addProperty("00010").addProperty("00060").addProperty("00065").addProperty("00045").addProperty("00095");
+            cBldr.addStationId(allIds[i]);
+//            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
+            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
         }
 
         System.out.println("******FINISHED******");

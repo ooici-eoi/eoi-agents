@@ -158,8 +158,6 @@ public class SosAgent extends AbstractAsciiAgent {
         log.debug("");
         log.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
 
-        net.ooici.SysClipboard.copyString(asciiData);
-
         List<IObservationGroup> obsList = null;
         StringReader srdr = new StringReader(asciiData);
         try {
@@ -203,18 +201,30 @@ public class SosAgent extends AbstractAsciiAgent {
             List<Pair<Integer, VariableParams>> dataCols = new ArrayList<Pair<Integer, VariableParams>>();
             String varName = "";
             for (int i = 6; i < tokens.length; i++) {
-                if (tokens[i].equalsIgnoreCase("\"sea_water_temperature (C)\"")) {
+                if (tokens[i].toLowerCase().contains("sea_water_temperature")) {
 //                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_TEMPERATURE));
                     dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
                     varName += (varName.isEmpty()) ? VariableParams.SEA_WATER_TEMPERATURE.getStandardName() : "-" + VariableParams.SEA_WATER_TEMPERATURE.getStandardName();
-                } else if (tokens[i].equalsIgnoreCase("\"sea_water_salinity (psu)\"")) {
+                } else if (tokens[i].toLowerCase().contains("sea_water_salinity")) {
 //                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
                     dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_SALINITY, IObservationGroup.DataType.FLOAT)));
                     varName = (varName.isEmpty()) ? VariableParams.SEA_WATER_SALINITY.getStandardName() : "-" + VariableParams.SEA_WATER_SALINITY.getStandardName();
-                } else if (tokens[i].equalsIgnoreCase("\"air_temperature (C)\"")) {
+                } else if (tokens[i].toLowerCase().contains("air_temperature")) {
 //                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
                     dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
                     varName = (varName.isEmpty()) ? VariableParams.AIR_TEMPERATURE.getStandardName() : "-" + VariableParams.AIR_TEMPERATURE.getStandardName();
+                } else if (tokens[i].toLowerCase().contains("air_pressure_at_sea_level")) {
+                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_PRESSURE_AT_SEA_LEVEL, IObservationGroup.DataType.FLOAT)));
+                } else if (tokens[i].toLowerCase().contains("waves")) {
+//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.WAVES, IObservationGroup.DataType.FLOAT)));
+
+                    log.debug("waves");
+                } else if (tokens[i].toLowerCase().contains("winds")) {
+//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.WINDS, IObservationGroup.DataType.FLOAT)));
+
+                    log.debug("winds");
+                } else {
+                    log.debug("Unknown token: " + tokens[i]);
                 }
             }
 
@@ -310,8 +320,9 @@ public class SosAgent extends AbstractAsciiAgent {
 //        globalAttributes.put("source", "NDBC SOS");
             globalAttributes.put("source", "Sensor Observation Service (http://sdf.ndbc.noaa.gov/sos/server.php?)");
 
-            /* data url */
-            globalAttributes.put("data_url", data_url);
+            /* Data URL */
+            /* CAN'T have this because it changes every update and we don't have a way of merging attributes across multiple updates */
+//            globalAttributes.put("data_url", data_url);
 
 
             /* Add each attribute */
@@ -380,7 +391,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        int switcher = 2;
+        int switcher = 1;
         switch (switcher) {
             case 1: //test station
                 cBldr.setStartTime("2008-08-01T00:00:00Z");
@@ -406,6 +417,7 @@ public class SosAgent extends AbstractAsciiAgent {
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
         agent.setAgentRunType(AgentRunType.TEST_WRITE_NC);
+//        agent.setAgentRunType(AgentRunType.TEST_WRITE_OOICDM);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(50);//super-duper small

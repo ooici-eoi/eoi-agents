@@ -209,10 +209,14 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         if (runType == AgentRunType.NORMAL) {
             initMsgBrokerClient(connectionInfo);
         }
-
-        String request = buildRequest(context);
-        Object data = acquireData(request);
-        String[] result = _processDataset(data);
+        String[] result = null;
+        try {
+            String request = buildRequest(context);
+            Object data = acquireData(request);
+            result = _processDataset(data);
+        } catch (Exception ex) {
+            result = new String[] {"failure", ex.getMessage()};
+        }
 
         closeMsgBrokerClient();
 
@@ -359,7 +363,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //            endMsgBldr.setResponseBody(respBody);
 //            GPBWrapper<IonMsg> msgWrap = GPBWrapper.Factory(endMsgBldr.build());
 //            log.debug(msgWrap.toString());
-            switch(runType) {
+            switch (runType) {
                 case NORMAL:
                     sendDataDoneMsg();
                     break;
@@ -651,7 +655,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         } catch (IOException ex) {
             log.error("Failed to write \"ooicdm\" file", ex);
         } finally {
-            if(fos != null) {
+            if (fos != null) {
                 try {
                     fos.close();
                 } catch (IOException ex) {

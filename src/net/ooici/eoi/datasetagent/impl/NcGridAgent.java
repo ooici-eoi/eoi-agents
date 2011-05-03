@@ -44,7 +44,7 @@ public class NcGridAgent extends AbstractNcAgent {
     private Date sTime = null;
     private Date eTime = null;
 
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+    public String buildRequest() {
         /* Store the sTime and eTime for later */
         String sTimeString = context.getStartTime();
         String eTimeString = context.getEndTime();

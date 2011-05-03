@@ -64,7 +64,7 @@ public class AomlAgent extends AbstractAsciiAgent {
      * @return A dataset update request URL built from the given <code>context</code> against an AOML service.
      */
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+    public String buildRequest() {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();

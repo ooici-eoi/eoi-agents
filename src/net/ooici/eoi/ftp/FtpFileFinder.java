@@ -31,18 +31,18 @@ import java.util.regex.Pattern;
 public class FtpFileFinder {
 
     /** Static Fields */
+    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FtpFileFinder.class);
     private static final String NEW_LINE = System.getProperty("line.separator");
     private static final String TAB_STR = "   ";
 
 
     public static void main(String[] args) throws IOException {
-        EasyFtp ftp = null;
 
 
         /* Testing FTP access */
         // ftp = new EasyFtp("podaac.jpl.nasa.gov");
         // ftp.cd("/allData/ghrsst/data/L2P/MODIS_A/JPL/");
-        // System.out.println(ftp.list("2011/001/", ".*A[0-9]+?0000.*\\.bz2$"));
+        // log.debug(ftp.list("2011/001/", ".*A[0-9]+?0000.*\\.bz2$"));
         // ftp.close();
 
 
@@ -50,14 +50,14 @@ public class FtpFileFinder {
         // String pattern = "%yyyy%/%DDD%/%yy%/%DD%/%dd%/%yyyy%";
         // List<Token> tokens = Token.getTokens(pattern);
         // for (Token t : tokens) {
-        // System.out.println(t);
+        // log.debug(t);
         // }
         //
-        // System.out.println("************************");
+        // log.debug("************************");
         //
         // Token.sort(tokens);
         // for (Token t : tokens) {
-        // System.out.println(t);
+        // log.debug(t);
         // }
 
         /* Testings GenerateDateFormatPattern() */
@@ -66,7 +66,7 @@ public class FtpFileFinder {
 
         /* Testing isParsablePattern */
         // String p = "%yyy%sss%ddd";
-        // System.out.println(TimeToken.isParsable(p));
+        // log.debug(TimeToken.isParsable(p));
         // System.exit(0);
 
 
@@ -75,9 +75,9 @@ public class FtpFileFinder {
         // String pattern = "%yyyy%/%MM%/(%DDD%|%dd%)%HH%.%mm%/";
         //
         // if (! TimeToken.isParsable(pattern)) {
-        // System.out.println("Pattern is invalid!");
+        // log.debug("Pattern is invalid!");
         // }
-        // System.out.println("\n\n*********************************\n\n");
+        // log.debug("\n\n*********************************\n\n");
         //
         //
         // Calendar startCal = createUtcCal();
@@ -91,17 +91,13 @@ public class FtpFileFinder {
         //
         // long debugStartTime = System.currentTimeMillis();
         // List<String> dirs = getTargetDirs(pattern, start, end);
-        // System.out.println("End Time = " + ((System.currentTimeMillis() - debugStartTime) / 1000.0));
+        // log.debug("End Time = " + ((System.currentTimeMillis() - debugStartTime) / 1000.0));
         // for (String dir : dirs) {
-        // System.out.println(">>>>  " + dir);
+        // log.debug(">>>>  " + dir);
         // }
 
 
-        // testGetTargetFiles();
-
-        // sandboxTest();
-
-        // testUnzipGz();
+//         testGetTargetFiles();
 
         testGenerateNcml();
 
@@ -127,37 +123,15 @@ public class FtpFileFinder {
 
 
 
-        System.out.println("Generating union/join NCML file...");
+        log.debug("Generating union/join NCML file...");
         generateNcml(output, filemap, "MT");
-        System.out.println("... COMPLETE!");
-
-        System.out.println("\n\nReference: " + output);
+        log.debug("... COMPLETE!");
+        log.debug("");
+        log.debug("");
+        log.debug("Reference: " + output);
     }
 
 
-    private static void testUnzipGz() throws IOException {
-
-        String filepath = "/Users/tlarocque/Downloads/p5000008.nc.gz";
-
-        List<String> outFiles = EasyFtp.unzip(filepath);
-
-        for (String outFile : outFiles) {
-
-            System.out.println(outFile);
-        }
-
-
-
-
-    }
-
-    
-    private static void sandboxTest() {
-
-
-    }
-
-    
     private static void testGetTargetFiles() throws IOException {
         /* Test getTargetFiles */
 
@@ -202,7 +176,7 @@ public class FtpFileFinder {
         Map<String, Long> remoteFiles = getTargetFiles(host, baseDir, filePattern, dirPattern, startTime, endTime);
 
 
-        System.out.println("\n\n\n*************************************************************\n\n\n");
+        log.debug("\n\n\n*************************************************************\n\n\n");
         // int minutes_ctr = 13 * 60 + 50;
         // int day_in_minutes = 24 * 60;
         // Format fmt = new DecimalFormat("#00");
@@ -211,7 +185,7 @@ public class FtpFileFinder {
         // Matcher m = null;
         // int totalError = 0;
         for (String file : remoteFiles.keySet()) {
-            System.out.println(file);
+            log.debug(file);
             //
             // m = p.matcher(file);
             // m.find();
@@ -235,11 +209,11 @@ public class FtpFileFinder {
             // if (minutes_ctr >= day_in_minutes)
             // minutes_ctr = 0;
         }
-        System.out.println("\n\n\n*************************************************************\n\n\n");
-        System.out.println("Total files: " + remoteFiles.size());
-        // System.out.println("Total extras: " + totalError);
+        log.debug("\n\n\n*************************************************************\n\n\n");
+        log.debug("Total files: " + remoteFiles.size());
+        // log.debug("Total extras: " + totalError);
 
-        System.out.println("\n\nDOWNLOADING...");
+        log.debug("\n\nDOWNLOADING...");
         EasyFtp ftp = new EasyFtp(host);
         ftp.cd(baseDir);
         Map<String, Long> localFiles = new TreeMap<String, Long>();
@@ -247,12 +221,12 @@ public class FtpFileFinder {
         for (String key : remoteFiles.keySet()) {
             /* Download the file */
             String download = ftp.download(key, "/Users/tlarocque/Downloads/ooici/");
-            System.out.println("\n\n" + download);
+            log.debug("\n\n" + download);
 
 
             /* Test unzipping... */
             String unzipped = EasyFtp.unzip(download).get(0);
-            System.out.println(unzipped);
+            log.debug(unzipped);
 
 
             /* Insert the new output name back into the map */
@@ -262,9 +236,9 @@ public class FtpFileFinder {
 
         /* Try generating an NCML (time aggregation) */
         String outputNcml = "/Users/tlarocque/Downloads/ooici/ncml/glider_temp.ncml";
-        generateNcml(outputNcml, localFiles, "MT");
+        generateNcml(outputNcml, localFiles, "time");
 
-        System.out.println("\n\nGenerated NCML aggregation...\n\t\"" + outputNcml + "\"");
+        log.debug("\n\nGenerated NCML aggregation...\n\t\"" + outputNcml + "\"");
 
     }
 
@@ -306,13 +280,13 @@ public class FtpFileFinder {
         String result = "";
         for (int k = 0; k < i; k++) {
             patterns[k] = TimeToken.toDateFormatPattern(patterns[k]);
-            System.out.println("\n--------------------------\n" + patterns[k]);
+            log.debug("\n--------------------------\n" + patterns[k]);
 
             df = new SimpleDateFormat(patterns[k]);
             result = df.format(cal.getTime());
 
             assert result.equals(answers[k]) : result + " != " + answers[k];
-            System.out.println(result + " = " + answers[k]);
+            log.debug(result + " = " + answers[k]);
         }
 
     }
@@ -353,12 +327,12 @@ public class FtpFileFinder {
 
         /* MATCHING: Start checking which filenames are within the time bounds */
         for (String dir : dirs) {
-            // System.out.println("Checking directory: " + dir + "\n******************************\n");
-            // System.out.println(ftp.nlist(dir));
+            // log.debug("Checking directory: " + dir + "\n******************************\n");
+            // log.debug(ftp.nlist(dir));
 
             filenames = Arrays.asList(ftp.nlist(dir, regex).split("[\r\n]+"));
             for (String filename : filenames) {
-                // System.out.println(filename);
+                // log.debug(filename);
 
                 Pattern p = Pattern.compile(regex);
                 Matcher m = p.matcher(filename);
@@ -383,7 +357,7 @@ public class FtpFileFinder {
                 DateFormat df = SimpleDateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL);
                 df.setTimeZone(TimeZone.getTimeZone("UTC"));
                 // String outputTime = df.format(cal.getTime());
-                // System.out.println(filename + "  is set to: " + outputTime);
+                // log.debug(filename + "  is set to: " + outputTime);
 
                 /* Check if this file's Date/Time is within the requested time range */
                 long fileTime = cal.getTimeInMillis();
@@ -411,8 +385,10 @@ public class FtpFileFinder {
 
         /* Get a list of all tokens in the pattern string */
         List<TimeToken> tokens = TimeToken.parseTokens(pattern);
-        for (TimeToken t : tokens) {
-            System.out.println("Character: " + t.getCharacter() + "\t\tCount: " + t.getLength());
+        if (log.isDebugEnabled()) {
+            for (TimeToken t : tokens) {
+                log.debug("Character: " + t.getCharacter() + "\t\tCount: " + t.getLength());
+            }
         }
 
         /* If there are no tokens, simply return pattern as our target directory */

@@ -34,41 +34,13 @@ import org.apache.commons.net.ftp.FTPReply;
  */
 public class EasyFtp {
 
-    private boolean DEBUG = false;
-
+    /** Static Fields */
+    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EasyFtp.class);
+    private static final String NEW_LINE = System.getProperty("line.separator");
+    
+    /** Instance Fields */
     private final FTPClient ftp;
     private String cddir = "/";
-    private static final String NEW_LINE = System.getProperty("line.separator");
-
-
-    public static void main(String... args) throws IOException {
-
-        // Calendar cal = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
-        // cal.setTimeInMillis(0);
-        // cal.set(1970, Calendar.JANUARY, 1);
-        //
-        // DateFormat fmt = SimpleDateFormat.getDateTimeInstance(DateFormat.FULL, DateFormat.FULL);
-        // fmt.setTimeZone(TimeZone.getTimeZone("UTC"));
-        // System.out.println(fmt.format(cal.getTime()));
-        //
-        //
-        // cal.add(Calendar.SECOND, 1301159480);
-        // cal.add(Calendar.MILLISECOND, 955);
-        // System.out.println(fmt.format(cal.getTime()));
-        //
-        // System.out.println(new SimpleDateFormat("'DAY OF YEAR: 'DDD").format(cal.getTime()));
-        //
-        //
-        // cal.add(Calendar.DAY_OF_YEAR, -489);
-        // System.out.println(fmt.format(cal.getTime()));
-        // System.out.println(new SimpleDateFormat("'DAY OF YEAR: 'DDD").format(cal.getTime()));
-
-
-        EasyFtp ftp = new EasyFtp("ftp7300.nrlssc.navy.mil");
-        ftp.cd("/pub/smedstad/ROMS/");
-        System.out.println(ftp.list(".", ".*sal.*"));
-
-    }
 
 
     public EasyFtp(final String host) throws IOException {
@@ -78,19 +50,19 @@ public class EasyFtp {
 
     public EasyFtp(final String host, final String user, final String pasw) throws IOException {
         ftp = new FTPClient();
-        if (DEBUG) {
+        if (log.isDebugEnabled()) {
             ftp.addProtocolCommandListener(new ProtocolCommandListener() {
 
                 @Override
                 public void protocolReplyReceived(ProtocolCommandEvent pce) {
-                    System.out.print(new StringBuilder("<<<---@@@ RECEIVE: ").append(pce.getCommand()).append(": ")
-                        .append(pce.getMessage()).toString());
+                    log.debug(new StringBuilder("<<<---@@@ RECEIVE: ").append(pce.getCommand()).append(": ")
+                        .append(pce.getMessage()).toString().trim());
                 }
 
                 @Override
                 public void protocolCommandSent(ProtocolCommandEvent pce) {
-                    System.out.print(new StringBuilder("<<<---@@@ RECEIVE: ").append(pce.getCommand()).append(": ")
-                        .append(pce.getMessage()).toString());
+                    log.debug(new StringBuilder("@@@--->>> SENT: ").append(pce.getCommand()).append(": ")
+                        .append(pce.getMessage()).toString().trim());
                 }
             });
         }
@@ -102,7 +74,9 @@ public class EasyFtp {
             ftp.enterLocalPassiveMode();
             ftp.login(user, pasw);
             ftp.setFileType(FTPClient.BINARY_FILE_TYPE);
-            System.out.println("reply: " + ftp.getReplyString());
+            if (log.isInfoEnabled()) {
+                log.info("reply: " + ftp.getReplyString());
+            }
             int reply = ftp.getReplyCode();
             if (!FTPReply.isPositiveCompletion(reply)) {
                 throw new IOException(new StringBuilder("FTP server refused connection.  Reply Code: ").append(reply).toString());
@@ -287,10 +261,10 @@ public class EasyFtp {
         while (e.hasMoreElements()) {
             ZipEntry entry = (ZipEntry) e.nextElement();
             if (entry.isDirectory()) {
-                System.out.println("Not recursing into directory: " + entry.getName());
+                log.warn("Not recursing into directory: " + entry.getName());
                 continue;
             }
-            System.out.println("Unzipping: " + entry.getName());
+            log.info("Unzipping: " + entry.getName());
 
             FileOutputStream fos = null;
             InputStream is = null;
@@ -330,7 +304,7 @@ public class EasyFtp {
     public static List<String> unzip_gzip(String filepath) throws IOException {
         List<String> result = new ArrayList<String>();
 
-        System.out.println("Uncompressing (gzip): " + filepath);
+        log.info("Uncompressing (gzip): " + filepath);
 
         OutputStream fos = null;
         InputStream is = null;
@@ -379,7 +353,7 @@ public class EasyFtp {
     public static List<String> unzip_bzip2(String filepath) throws IOException {
         List<String> result = new ArrayList<String>();
 
-        System.out.println("Uncompressing (bzip2): " + filepath);
+        log.info("Uncompressing (bzip2): " + filepath);
 
         OutputStream fos = null;
         InputStream is = null;

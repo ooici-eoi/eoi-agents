@@ -22,14 +22,28 @@ import java.util.regex.Pattern;
  */
 public class TimeToken implements Comparable<TimeToken> {
 
-    public static final String TOKEN_PATTERN = "%([^%])\\1*?%";
+    /** Static Fields */
+    public static final String TOKEN_REGEX = "%([^%])\\1*?%";
+    public static final Pattern TOKEN_PATTERN;
+    
+    static {
+        TOKEN_PATTERN = Pattern.compile(TOKEN_REGEX);
+    }
 
+    /** Instance Fields */
     private final char chr;
     private final int len;
     private final TokenType type;
     private String repr;
 
-
+    
+    /**
+     * 
+     * TODO Add class comments
+     * 
+     * @author tlarocque
+     * @version 1.0
+     */
     public enum TokenType {
         SECOND('s', Calendar.SECOND),
         MINUTE('m', Calendar.MINUTE),
@@ -74,22 +88,6 @@ public class TimeToken implements Comparable<TimeToken> {
 
 
     /**
-     * Main ONLY FOR TESTING
-     * 
-     * @param args
-     */
-    public static void main(String[] args) {
-        String filename = "20110505-MODIS_A-JPL-L2P-A2011125000000.L2_LAC_GHRSST_N-v01.nc.bz2";
-        String pattern = "20110505-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%.L2_LAC_GHRSST_N-v01.nc.bz2";
-
-        String regex = toRegexMatchPattern(pattern);
-
-        System.out.println(regex + "\nMatches? " + (filename.matches(regex) ? "TRUE" : "FALSE"));
-
-    }
-
-
-    /**
      * Creates a Token object from the given tokenized <code>String</code>
      * 
      * @param s
@@ -98,7 +96,7 @@ public class TimeToken implements Comparable<TimeToken> {
      *            that token represents.
      */
     public TimeToken(String s) {
-        if (!s.matches(TOKEN_PATTERN))
+        if (!s.matches(TOKEN_REGEX))
             throw new IllegalArgumentException("Invalid token string");
 
         chr = s.charAt(1);
@@ -147,8 +145,7 @@ public class TimeToken implements Comparable<TimeToken> {
 
         count = count / 2;
 
-        Pattern p = Pattern.compile(TOKEN_PATTERN);
-        Matcher m = p.matcher(s);
+        Matcher m = TOKEN_PATTERN.matcher(s);
         int i = 0;
         while (m.find())
             i++;
@@ -169,8 +166,7 @@ public class TimeToken implements Comparable<TimeToken> {
      */
     public static List<TimeToken> parseTokens(String s) {
         List<TimeToken> result = new ArrayList<TimeToken>();
-        Pattern p = Pattern.compile(TOKEN_PATTERN);
-        Matcher m = p.matcher(s);
+        Matcher m = TOKEN_PATTERN.matcher(s);
 
         while (m.find()) {
             TimeToken t = new TimeToken(s.substring(m.start(), m.end()));
@@ -251,8 +247,8 @@ public class TimeToken implements Comparable<TimeToken> {
         // pattern = pattern.replaceAll("([^a-zA-Z0-9\\s%])", "\\\\$1");
 
 
-        Pattern p = Pattern.compile(TOKEN_PATTERN);
-        Matcher m = p.matcher(pattern);
+        
+        Matcher m = TOKEN_PATTERN.matcher(pattern);
 
 
         /* Find each token in the pattern */

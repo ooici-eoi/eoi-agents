@@ -64,7 +64,7 @@ public class SosAgent extends AbstractAsciiAgent {
      * @return A dataset update request URL built from the given <code>context</code> against an SOS service.
      */
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+    public String buildRequest() {
         log.debug("");
         log.info("Building SOS Request for the given context:\n{\n" + context.toString() + "}\n");
 

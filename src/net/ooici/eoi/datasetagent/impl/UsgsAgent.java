@@ -91,7 +91,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      * @return A dataset update request URL built from the given <code>context</code> against a USGS service.
      */
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+    public String buildRequest() {
         log.debug("");
         log.info("Building Request for context [" + context.toString() + "...]");
 
@@ -464,7 +464,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
             /** Build an observation group for each unique sitecode */
             Object nextTimeseries = null;
             Iterator<?> iterTimeseries = timeseriesList.iterator();
+            boolean hasWaterSurface;
             while (iterTimeseries.hasNext()) {
+                hasWaterSurface = false;
+                
                 /* Grab the next element */
                 nextTimeseries = iterTimeseries.next();
                 if (null == nextTimeseries) {
@@ -529,45 +532,29 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     time = (int) (valueSdf.parse(datetime).getTime() * 0.001);
                     // data = Float.parseFloat(value);
                     name = getDataNameForVariableCode(variableCode);
+                    /* Check to see if this is the waterSurface var */
+                    hasWaterSurface = (!hasWaterSurface) ? name == VariableParams.RIVER_WATER_SURFACE_HEIGHT : hasWaterSurface;
+                    
                     /* DON'T EVER CONVERT - Only convert data if we are dealing with Steamflow */
 //                    if (name == VariableParams.RIVER_STREAMFLOW) {
 //                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
 //                    } else {
 //                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
 //                    }
+                    
                     data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
                     dpth = 0;
-
 
                     /* Add the observation data */
                     obs.addObservation(time, dpth, data, new VariableParams(name, DataType.FLOAT));
 
                     /* TODO: Add the data observation qualifier */
                     // og.addObservation(time, dpth, qualifier, new VariableParams(name, DataType.FLOAT));
-
                 }
-
-
-//                /** Grab attributes */
-//                Map<String, String> tsAttributes = new TreeMap<String, String>();
-//
-//
-//                /* Extract timeseries-specific attributes */
-//                String sitename = xpathSafeSelectValue(nextTimeseries, "//ns1:siteName", "[n/a]");
-//                String network = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@network", "[n/a]");
-//                String agency = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode/@agencyCode", "[n/a]");
-//                String sCode = xpathSafeSelectValue(nextTimeseries, "//ns1:siteCode", "[n/a]");
-//                tsAttributes.put("institution", new StringBuilder().append(sitename).append(" (network:").append(network).append("; agencyCode:").append(agency).append("; siteCode:").append(sCode).append(";)").toString());
-//
-//                String method = xpathSafeSelectValue(nextTimeseries, ".//ns1:values//ns1:methodDescription", "[n/a]");
-//                tsAttributes.put("source", method);
-//
-//
-//
-//                /** Add global and timeseries attributes */
-//                obs.addAttributes(tsAttributes);
-
-
+                /* If the group has waterSurface, add a the datum variable */
+                if(hasWaterSurface) {
+                    obs.addScalarVariable(new VariableParams(VariableParams.RIVER_WATER_SURFACE_REF_DATUM_ALTITUDE, DataType.FLOAT), 0f);
+                }
             }
             obs.addAttributes(globalAttributes);
 
@@ -854,7 +841,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         } else if ("00060".equals(variableCode)) {
             result = VariableParams.RIVER_STREAMFLOW;
         } else if ("00065".equals(variableCode)) {
-            result = VariableParams.RIVER_GUAGE_HEIGHT;
+            result = VariableParams.RIVER_WATER_SURFACE_HEIGHT;
         } else if ("00045".equals(variableCode)) {
             result = VariableParams.RIVER_PRECIPITATION;
         } else if ("00095".equals(variableCode)) {
@@ -903,10 +890,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
         }
 
         boolean dailyValues = false;
-        boolean makeRutgersSamples = false;
+        boolean makeRutgersSamples = true;
         boolean makeUHSamples = false;
         boolean makeMetadataTable = false;
-        boolean manual = true;
+        boolean manual = false;
         if (makeRutgersSamples) {
             generateRutgersSamples(dailyValues);
         }

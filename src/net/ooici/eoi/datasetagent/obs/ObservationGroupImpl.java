@@ -83,10 +83,6 @@ public class ObservationGroupImpl extends AbstractObservationGroup {
 
     @Override
     public List<VariableParams> getDataNames() {
-        List<VariableParams> ret = new ArrayList<VariableParams>();
-        for (VariableParams p : obsMap.keySet()) {
-            ret.add(p);
-        }
-        return ret;
+        return new ArrayList<VariableParams>(obsMap.keySet());
     }
 }

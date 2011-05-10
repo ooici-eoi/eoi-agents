@@ -38,6 +38,7 @@ public abstract class AbstractObservationGroup implements IObservationGroup {
 	protected DataType depthDataType = null;
     protected List<Number> times = new ArrayList<Number>();
 	protected List<Number> depths = new ArrayList<Number>();
+    protected HashMap<VariableParams, Number> scalarVarsMap = new HashMap<VariableParams, Number>();
 	
 
 	/**
@@ -109,6 +110,30 @@ public abstract class AbstractObservationGroup implements IObservationGroup {
         Collections.sort(depths, numComp);
 	    return depths.toArray(array);
 	}
+
+    @Override
+    public void addScalarVariable(VariableParams params, Number value) {
+        scalarVarsMap.put(params, value);
+    }
+
+    @Override
+    public List<VariableParams> getScalarNames() {
+        return new ArrayList<VariableParams>(scalarVarsMap.keySet());
+    }
+
+    @Override
+    public Number getScalarData(VariableParams dataAttribs) {
+        return getScalarData(dataAttribs, Float.NaN);
+    }
+
+    @Override
+    public Number getScalarData(VariableParams dataAttribs, Number missingVal) {
+        Number ret = scalarVarsMap.get(dataAttribs);
+        if(ret == null) {
+            ret = missingVal;
+        }
+        return ret;
+    }
 
     @Override
 	public final void addObservation(Number time, Number depth, Number data, VariableParams dataAttribs) {

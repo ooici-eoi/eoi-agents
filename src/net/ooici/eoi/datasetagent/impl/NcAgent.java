@@ -62,7 +62,7 @@ public class NcAgent extends AbstractNcAgent {
      * @see #buildNcmlMask(String, String)
      */
     @Override
-    public String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+    public String buildRequest() {
         String ncmlTemplate = context.getNcmlMask();
         String ncdsLoc = context.getDatasetUrl();
         try {
@@ -400,10 +400,10 @@ public class NcAgent extends AbstractNcAgent {
         /* the ncml mask to use*/
         /* for NAM - WARNING!!  This is a HUGE file... not fully supported on the ingest side yet... */
         String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"> <variable name=\"time\"> <attribute name=\"standard_name\" value=\"time\" /> </variable> <variable name=\"lat\"> <attribute name=\"standard_name\" value=\"latitude\" /> <attribute name=\"units\" value=\"degree_north\" /> </variable> <variable name=\"lon\"> <attribute name=\"standard_name\" value=\"longitude\" /> <attribute name=\"units\" value=\"degree_east\" /> </variable> </netcdf>";
-        String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110303/nam1hr_00z";
+        String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110502/nam1hr_00z";
         String sTime = "";
         String eTime = "";
-        long maxSize = -1;
+//        long maxSize = -1;
 
         /* for HiOOS Gliders */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"pressure\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"temp\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"conductivity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"salinity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"density\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable></netcdf>";
@@ -473,8 +473,8 @@ public class NcAgent extends AbstractNcAgent {
 
 
         /* HYCOM */
-        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv_agg_1time.ncml";
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
+//        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv_agg_1time.ncml";
 
 //        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_idp_EastCst1.nc";
 //        dataurl = "/Users/cmueller/Development/JAVA/workspace_nb/eoi-agents/out/ftp/909_archv.2011041118_2011041100_sal_EastCst1.nc";
@@ -496,10 +496,15 @@ public class NcAgent extends AbstractNcAgent {
 //        eTime = "2007-05-09T00:00:00Z";
 
         /* CGSN test */
-        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_SBE16.nc";
-
-
+        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"stnId\" shape=\"\" type=\"int\"><attribute name=\"standard_name\" value=\"station_id\"/><values>1</values></variable></netcdf>";
+//        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Timing.nc";
+//        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_SBE16.nc";
+        ncmlmask = "";
+        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Motion.nc";
+//        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Iridium.nc";
+//        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_ECO-VSF.nc";
+//        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_ECO-DFL.nc";
+//        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_CR1000.nc";
 
         /* Rutgers ROMS */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
@@ -513,6 +518,7 @@ public class NcAgent extends AbstractNcAgent {
 
 
         runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
+//        runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
     }
 
     private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, AgentRunType agentRunType) throws IOException {
@@ -543,7 +549,7 @@ public class NcAgent extends AbstractNcAgent {
         String[] result = agent.doUpdate(context, connInfo);
 //        log.debug("Response:");
         for (String s : result) {
-//            log.debug(s);
+            log.debug(s);
         }
         return result;
     }

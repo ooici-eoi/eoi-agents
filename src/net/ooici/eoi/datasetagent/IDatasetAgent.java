@@ -33,7 +33,7 @@ public interface IDatasetAgent {
      * @see #acquireData(String)
      * 
      */
-    String buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context);
+    public abstract String buildRequest();
 
     /**
      * Produces a response to the given <code>request</code>. Implementations may further define the format of the request and resultant

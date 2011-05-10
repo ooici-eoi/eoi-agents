@@ -9,7 +9,9 @@ import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.UUID;
 import net.ooici.cdm.syntactic.Cdmvariable;
+import net.ooici.core.container.Container;
 import net.ooici.core.message.IonMessage.ResponseCodes;
 import net.ooici.eoi.netcdf.AttributeFactory;
 import net.ooici.eoi.netcdf.NcUtils;
@@ -120,6 +122,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     /* Output directory when writing files during testing - must have trailing "/" */
     private String outputDir = "out/";
 
+    /* Instance storage of the EoiDataContext object - protected for availability from subclasses */
+    protected net.ooici.services.sa.DataSource.EoiDataContextMessage context = null;
+
     /*
      * (non-Javadoc)
      * @see net.ooici.eoi.datasetagent.IDatasetAgent#setTesting(boolean)
@@ -200,6 +205,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     @Override
     public final String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage context, java.util.HashMap<String, String> connectionInfo) {
         /* NOTE: Template method.  Do not reorder */
+        
+        /* Store the EoiDataContext object */
+        this.context = context;
 
         /* If the connectionInfo object is null, assume this is being called from a test */
         if (connectionInfo == null) {
@@ -211,11 +219,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         }
         String[] result = null;
         try {
-            String request = buildRequest(context);
+            String request = buildRequest();
             Object data = acquireData(request);
             result = _processDataset(data);
         } catch (Exception ex) {
-            result = new String[] {"failure", ex.getMessage()};
+            result = new String[]{"failure", ex.getMessage()};
         }
 
         closeMsgBrokerClient();
@@ -495,11 +503,17 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
             /* init the struct bldr */
             net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
-            /* add the supplement wrapper as the head */
-            ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+            /* add the supplement wrapper */
+//            ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+            ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement());
             /* add the bounded array and ndarray as items */
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, baWrap.getStructureElement());
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
+
+            /* Put in an IonMsg as the head pointing to the ds element */
+            net.ooici.core.message.IonMessage.IonMsg ionMsg = net.ooici.core.message.IonMessage.IonMsg.newBuilder().setIdentity(UUID.randomUUID().toString()).setMessageObject(supWrap.getCASRef()).build();
+            GPBWrapper ionMsgWrap = GPBWrapper.Factory(ionMsg);
+            ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);// Set as head
 
 //                sendDataMessage(sbldr.build().toByteArray());
             switch (runType) {
@@ -606,10 +620,20 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     protected void sendDataDoneMsg() {
         /* Build an container with an empty structure */
         /* TODO: find a better way to invoke this RPC -- the RPC requires no data.. */
-        net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
-        GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
+//        net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
+//        GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
+
+        /* Put in an IonMsg as the head pointing to the ds element */
+        net.ooici.core.message.IonMessage.IonMsg.Builder ionMsgBldr = net.ooici.core.message.IonMessage.IonMsg.newBuilder();
+        ionMsgBldr.setIdentity(UUID.randomUUID().toString());
+        ionMsgBldr.setResponseCode(net.ooici.core.message.IonMessage.ResponseCodes.OK);
+        /* MessageObject is an instance of DataAcquisitionComplete */
+//        ionMsgBldr.setMessageObject(null);
+        GPBWrapper ionMsgWrap = GPBWrapper.Factory(ionMsgBldr.build());
+
         net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
-        ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+//        ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+        ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);
 
         IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
         dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");

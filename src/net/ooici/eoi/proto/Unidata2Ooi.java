@@ -9,6 +9,7 @@ import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
 import java.io.IOException;
 import java.util.List;
+import java.util.UUID;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import net.ooici.core.container.Container;
@@ -112,7 +113,13 @@ public class Unidata2Ooi {
 
         /* Add the root group to the dataset - set the dataset as the head of the structure */
         GPBWrapper<Cdmdataset.Dataset> dsWrap = GPBWrapper.Factory(Cdmdataset.Dataset.newBuilder().setRootGroup(grpWrap.getCASRef()).build());
-        ProtoUtils.addStructureElementToStructureBuilder(structBldr, dsWrap.getStructureElement(), true);
+//        ProtoUtils.addStructureElementToStructureBuilder(structBldr, dsWrap.getStructureElement(), true);
+        ProtoUtils.addStructureElementToStructureBuilder(structBldr, dsWrap.getStructureElement());
+
+        /* Put in an IonMsg as the head pointing to the ds element */
+        net.ooici.core.message.IonMessage.IonMsg ionMsg = net.ooici.core.message.IonMessage.IonMsg.newBuilder().setIdentity(UUID.randomUUID().toString()).setMessageObject(dsWrap.getCASRef()).build();
+        GPBWrapper ionMsgWrap = GPBWrapper.Factory(ionMsg);
+        ProtoUtils.addStructureElementToStructureBuilder(structBldr, ionMsgWrap.getStructureElement(), true);// Set as head
 
         /* DONE!! */
     }
@@ -202,9 +209,9 @@ public class Unidata2Ooi {
                 ProtoUtils.addStructureElementToStructureBuilder(structBldr, arrWrap.getStructureElement());
                 bndArr = getBoundedArray(section, arrWrap.getCASRef());
             }
-        } else {
-            /* TODO: Ask David if this is right --> Build the bounded array for the section, but without an ndarray reference */
-            bndArr = getBoundedArray(section, null);
+//        } else {
+//            /* TODO: Ask David if this is right --> Build the bounded array for the section, but without an ndarray reference */
+//            bndArr = getBoundedArray(section, null);
         }
 
         if (bndArr != null) {
@@ -319,7 +326,7 @@ public class Unidata2Ooi {
             String ds = "/Users/cmueller/Dropbox/EOI_Shared/dataset_samples/rutgers/glider_20101008T0000_20101025T0000_njdep_ru16.nc";
 
             NetcdfDataset ncds = NetcdfDataset.openDataset(ds);
-//            byte[] data = Unidata2Ooi.ncdfToByteArray(ncds);
+//            byte[] data = Unidata2Ooi.ncdfToStruct(ncds);
 //            System.out.println(data);
 
             structBldr = Container.Structure.newBuilder();

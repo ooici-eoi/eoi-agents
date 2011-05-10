@@ -32,8 +32,11 @@ public class TimeToken implements Comparable<TimeToken> {
 
     public enum TokenType {
         SECOND('s', Calendar.SECOND),
-        DAY_OF_YEAR('D', Calendar.DAY_OF_YEAR),
+        MINUTE('m', Calendar.MINUTE),
+        HOUR_OF_DAY('H', Calendar.HOUR_OF_DAY),
         DAY_OF_MONTH('d', Calendar.DAY_OF_MONTH),
+        DAY_OF_YEAR('D', Calendar.DAY_OF_YEAR),
+        MONTH('M', Calendar.MONTH),
         YEAR('y', Calendar.YEAR);
 
         private final char chr;
@@ -67,6 +70,22 @@ public class TimeToken implements Comparable<TimeToken> {
 
             return result;
         }
+    }
+
+
+    /**
+     * Main ONLY FOR TESTING
+     * 
+     * @param args
+     */
+    public static void main(String[] args) {
+        String filename = "20110505-MODIS_A-JPL-L2P-A2011125000000.L2_LAC_GHRSST_N-v01.nc.bz2";
+        String pattern = "20110505-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%.L2_LAC_GHRSST_N-v01.nc.bz2";
+
+        String regex = toRegexMatchPattern(pattern);
+
+        System.out.println(regex + "\nMatches? " + (filename.matches(regex) ? "TRUE" : "FALSE"));
+
     }
 
 
@@ -116,6 +135,28 @@ public class TimeToken implements Comparable<TimeToken> {
     }
 
 
+    public static boolean isParsable(String s) {
+        int count = 0;
+        for (char c : s.toCharArray()) {
+            if (c == '%')
+                ++count;
+        }
+
+        if (count % 2 != 0)
+            return false;
+
+        count = count / 2;
+
+        Pattern p = Pattern.compile(TOKEN_PATTERN);
+        Matcher m = p.matcher(s);
+        int i = 0;
+        while (m.find())
+            i++;
+
+        return i == count;
+    }
+
+
     /**
      * Extracts all token substrings from <code>s</code> and creates a list of Token objects from those symbols.
      * 
@@ -142,10 +183,124 @@ public class TimeToken implements Comparable<TimeToken> {
 
 
     /**
-     * Sorts a list of tokens according to the ordinal of the Token's TokenType. Since TokenTypes are a representation of
-     * a time quantity (ex: days, months, years), this ordinal arrangement will sort the tokens from least influential to most influential.
-     * That is to say: given two tokens, one representing days and another representing years, the token representing days would be least
-     * influential.
+     * Generates a pattern <code>String</code> to be used as the pattern for a DateFormat instance which is representative of the Datasource
+     * Pattern given by <code>s</code>.
+     * 
+     * @param pattern
+     * @return
+     */
+    public static String toDateFormatPattern(String pattern) {
+
+        /* NOTE: This code makes the assumption that the token characters we
+         *       are using are synonomous with the pattern characters in the
+         *       DateFormat class.
+         *       
+         *       This assumption's truth can only be maintained by ensuring that
+         *       the token character's for each TimeToken are properly mapped to
+         *       a Calendar Field in its respective TokenType.
+         *       
+         */
+
+        /* If the length of s is less than 3 it cannot represent a pattern
+         * and we can therefore return s in quoted form as the pattern.
+         * 
+         * This also prevents IOOB exceptions when the following code would
+         * otherwise try to access characters at fixed locations
+         */
+        if (pattern.length() < 3) {
+            return new StringBuilder("'").append(pattern).append("'").toString();
+        }
+
+
+        /* FIXME: This creates a lot of strings; rewrite for memory efficiency */
+        pattern = pattern.replace("'", "''");
+        if (!pattern.startsWith("%"))
+            pattern = "'" + pattern;
+        else
+            pattern = pattern.substring(1);
+
+        if (!pattern.endsWith("%"))
+            pattern = pattern + "'";
+        else
+            pattern = pattern.substring(0, pattern.length() - 1);
+
+        pattern = pattern.replace("%%", "");
+        pattern = pattern.replace("%", "'");
+
+
+
+
+        return pattern;
+    }
+
+
+    /**
+     * 
+     * @param pattern
+     * @return
+     */
+    public static String toRegexMatchPattern(String pattern) {
+
+        if (!isParsable(pattern)) {
+            throw new IllegalArgumentException("Cannot parse the given pattern");
+        }
+
+        /* Prefix each symbol in the string with an escape character
+         * (but do not prefix the % character)
+         */
+        // pattern = pattern.replaceAll("([^a-zA-Z0-9\\s%])", "\\\\$1");
+
+
+        Pattern p = Pattern.compile(TOKEN_PATTERN);
+        Matcher m = p.matcher(pattern);
+
+
+        /* Find each token in the pattern */
+        StringBuilder result = new StringBuilder(pattern);
+        TimeToken t = null;
+        StringBuilder replacement = new StringBuilder();
+        int offset = 0;
+        while (m.find()) {
+            /* Clear the replacement string */
+            replacement.delete(0, replacement.length());
+
+            /* Find each token */
+            t = new TimeToken(pattern.substring(m.start(), m.end()));
+
+            /* Create a regex replacement for that token */
+            replacement.append("([0-9]{");
+            replacement.append(t.len);
+            replacement.append("})");
+
+            /* Replace the tokenized portion of the string with regex.. */
+            result.replace(m.start() + offset, m.end() + offset, replacement.toString());
+
+            /* Adjust the offset so that our index into the resultant string stays
+             * in lines up correctly.
+             */
+            offset += (replacement.length() - t.toString().length());
+        }
+
+
+
+        return result.toString();
+    }
+
+    public static String repeat(String s, int n) {
+        StringBuilder sb = new StringBuilder(s.length() * n);
+
+        while (n-- > 0) {
+            sb.append(s);
+        }
+
+        return sb.toString();
+    }
+
+
+    /**
+     * Sorts a list of tokens according to the ordinal of the Token's TokenType. Since TokenTypes are a representation of a time quantity
+     * (ex: days, months, years), this ordinal arrangement will sort the tokens from least influential to most influential. That is to say:
+     * given two tokens, one representing days and another representing years, the token representing days would be least influential.
      * 
      * @param tokens
      *            an unsorted list of Token objects
@@ -163,81 +318,7 @@ public class TimeToken implements Comparable<TimeToken> {
 
         });
     }
-    
-    
-    /**
-     * Generates a pattern <code>String</code> to be used as the pattern for a DateFormat instance
-     * which is representative of the Datasource Pattern given by <code>s</code>.
-     * 
-     * @param s
-     * @return
-     */
-    public static String generateDateFormatPattern(String s) {
-       
-        /* NOTE: This code makes the assumption that the token characters we
-         *       are using are synonomous with the pattern characters in the
-         *       DateFormat class.
-         *       
-         *       This assumption's truth can only be maintained by ensuring that
-         *       the token character's for each TimeToken are properly mapped to
-         *       a Calendar Field in its respective TokenType.
-         *       
-         */
-        
-        /* If the length of s is less than 3 it cannot represent a pattern
-         * and we can therefore return s in quoted form as the pattern.
-         * 
-         * This also prevents IOOB exceptions when the following code would
-         * otherwise try to access characters at fixed locations
-         */
-        if (s.length() < 3) {
-            return new StringBuilder("'").append(s).append("'").toString();
-        }
-        
-        
-        /* FIXME: This creates a lot of strings; rewrite for memory efficiency */
-        s = s.replace("'", "''");
-        if (! s.startsWith("%"))
-            s = "'" + s;
-        else
-            s = s.substring(1);
-        
-        if (! s.endsWith("%"))
-            s = s + "'";
-        else
-            s = s.substring(0, s.length() - 1);
-        
-        s = s.replace("%%", "");
-        s = s.replace("%", "'");
-        
-        
-        
-        
-        return s;
-    }
 
-    
-    public static boolean isParsablePattern(String s) {
-        int count = 0;
-        for (char c : s.toCharArray()) {
-            if (c == '%')
-                ++count;
-        }
-        
-        if (count % 2 != 0)
-            return false;
-        
-        count = count / 2;
-
-        Pattern p = Pattern.compile(TOKEN_PATTERN);
-        Matcher m = p.matcher(s);
-        int i = 0;
-        while (m.find())
-            i++;
-        
-        return i == count;
-    }
-    
 
     /*
      * (non-Javadoc)

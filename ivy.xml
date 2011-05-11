@@ -9,7 +9,8 @@
         <dependency org="jaxen" name="jaxen" rev="1.1.1" conf="*->*,!sources,!javadoc" transitive="false"/>
         <dependency org="colt" name="colt" rev="1.2.0" conf="*->*,!sources,!javadoc" />
         <dependency org="commons-net" name="commons-net" rev="1.4.1" conf="*->*,!sources"/>
-        
+        <dependency org="org.apache.commons" name="commons-compress" rev="1.0"/>
+
         <!-- ION project dependencies -->
         <dependency org="net.ooici" name="ioncore-java" rev="0.2.6-dev" conf="*->*,!sources,!javadoc" />
         <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />

@@ -135,6 +135,15 @@ public class NcdsFactory {
                 }
             }
 
+            /* Add the scalar variables */
+            for (VariableParams dn : obsGroup.getScalarNames()) {
+                DataType ncdtData = getNcDataType(dn.getDataType());
+                VariableDS dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "", dn.getUnits(), dn.getDescription());
+                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                dvar.setCachedData(getNcScalar(obsGroup.getScalarData(dn), dn.getDataType()));
+                ncds.addVariable(null, dvar);
+            }
+
             /* Add global attributes */
             String value;
             for (String key : allAttributes.keySet()) {

@@ -60,7 +60,7 @@ public interface IDatasetAgent {
      * @return TODO:
      * 
      */
-    String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage context, java.util.HashMap<String, String> connectionInfo);
+    String[] doUpdate(net.ooici.core.container.Container.Structure structure, java.util.HashMap<String, String> connectionInfo);
 
     /**
      * Determines the "runType" for the agent instance. In all cases, updates are produced.  However, only with <code>AgentRunType.NORMAL</code> are

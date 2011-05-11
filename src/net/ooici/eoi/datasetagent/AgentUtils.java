@@ -4,6 +4,8 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import ion.core.utils.GPBWrapper;
+import ion.core.utils.ProtoUtils;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -171,6 +173,25 @@ public class AgentUtils {
         return ret;
     }
 
+    public static net.ooici.core.container.Container.Structure getUpdateInitStructure(GPBWrapper<net.ooici.services.sa.DataSource.EoiDataContextMessage> contextWrap) {
+        return getUpdateInitStructure(contextWrap, null);
+    }
+    public static net.ooici.core.container.Container.Structure getUpdateInitStructure(GPBWrapper<net.ooici.services.sa.DataSource.EoiDataContextMessage> contextWrap, GPBWrapper<net.ooici.services.sa.DataSource.ThreddsAuthentication> tdsWrap) {
+        /* Generate an ionMsg with the context as the messageBody */
+        net.ooici.core.message.IonMessage.IonMsg ionMsg = net.ooici.core.message.IonMessage.IonMsg.newBuilder().setIdentity(java.util.UUID.randomUUID().toString()).setMessageObject(contextWrap.getCASRef()).build();
+        /* Create a Structure and add the objects */
+        net.ooici.core.container.Container.Structure.Builder sBldr = net.ooici.core.container.Container.Structure.newBuilder();
+        /* Add the eoi context */
+        ProtoUtils.addStructureElementToStructureBuilder(sBldr, contextWrap.getStructureElement());
+        /* If applicable, add the auth object */
+        if(tdsWrap != null) {
+            ProtoUtils.addStructureElementToStructureBuilder(sBldr, tdsWrap.getStructureElement());
+        }
+        /* Add the IonMsg as the head */
+        ProtoUtils.addStructureElementToStructureBuilder(sBldr, GPBWrapper.Factory(ionMsg).getStructureElement(), true);
+        
+        return sBldr.build();
+    }
 
     /**
 	 * SimpleDateFormat used for parsing incoming values mapped to START_TIME and END_TIME. This date format complies to the ISO 8601

@@ -46,18 +46,18 @@ public class NcGridAgent extends AbstractNcAgent {
 
     public String buildRequest() {
         /* Store the sTime and eTime for later */
-        String sTimeString = context.getStartTime();
-        String eTimeString = context.getEndTime();
-        try {
-            sTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(sTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
-        }
-        try {
-            eTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(eTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
-        }
+//        String sTimeString = context.getStartTime();
+//        String eTimeString = context.getEndTime();
+//        try {
+//            sTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(sTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+//        }
+//        try {
+//            eTime = DataSourceRequestKeys.ISO8601_FORMAT.parse(eTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        }
         /* Return the dataset URL */
         return context.getDatasetUrl();
     }
@@ -391,8 +391,8 @@ public class NcGridAgent extends AbstractNcAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_C);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/thredds/dodsC/hfradar_usegc_6km");
-        cBldr.setStartTime("2011-01-26T00:00:00Z");
-        cBldr.setEndTime("2011-01-26T20:00:00Z");
+//        cBldr.setStartTime("2011-01-26T00:00:00Z");
+//        cBldr.setEndTime("2011-01-26T20:00:00Z");
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
 
         net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
@@ -403,7 +403,7 @@ public class NcGridAgent extends AbstractNcAgent {
         connInfo.put("service", "eoi_ingest");
         connInfo.put("server", "macpro");
         connInfo.put("topic", "magnet.topic");
-        String[] result = agent.doUpdate(context, connInfo);
+        String[] result = agent.doUpdate(null,connInfo);
         log.debug("Response:");
         for (String s : result) {
             log.debug(s);

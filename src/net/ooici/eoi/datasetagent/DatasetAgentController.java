@@ -10,6 +10,7 @@ import ion.core.IonBootstrap;
 import ion.core.PollingProcess;
 import ion.core.messaging.IonMessage;
 import ion.core.messaging.MessagingName;
+import ion.core.utils.StructureManager;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -126,8 +127,9 @@ public class DatasetAgentController implements ControlListener {
                 log.debug("Processing Thread ID: " + threadId);
 //                Map<String, String[]> context = convertToStringStringArrayMap(((HashMap<?, ?>) msg.getContent()));
                 net.ooici.services.sa.DataSource.EoiDataContextMessage context = null;
+                net.ooici.core.container.Container.Structure struct = null;
                 try {
-                    net.ooici.core.container.Container.Structure struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
+                    struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
                     HashMap<ByteString, Container.StructureElement> elementMap = new HashMap<ByteString, Container.StructureElement>();
                     for (Container.StructureElement se : struct.getItemsList()) {
                         elementMap.put(se.getKey(), se);
@@ -240,7 +242,7 @@ public class DatasetAgentController implements ControlListener {
                 log.debug("ProcThread:" + threadId + ":: Perform update");
                 String[] ooiDsId = null;
                 try {
-                    ooiDsId = agent.doUpdate(context, connInfo);
+                    ooiDsId = agent.doUpdate(struct, connInfo);
                 } catch (Exception ex) {
                     /* Send a reply_err message back to caller */
                     log.error("ProcThread:" + threadId + ":: Received could not perform update", ex);

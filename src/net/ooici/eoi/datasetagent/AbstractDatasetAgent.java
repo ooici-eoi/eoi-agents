@@ -7,21 +7,22 @@ package net.ooici.eoi.datasetagent;
 import ion.core.messaging.IonMessage;
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
+import ion.core.utils.StructureManager;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.UUID;
 import net.ooici.cdm.syntactic.Cdmvariable;
-import net.ooici.core.container.Container;
+import net.ooici.core.message.IonMessage.IonMsg;
 import net.ooici.core.message.IonMessage.ResponseCodes;
 import net.ooici.eoi.netcdf.AttributeFactory;
 import net.ooici.eoi.netcdf.NcUtils;
 import net.ooici.eoi.proto.Unidata2Ooi;
+import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
-import ucar.nc2.NetcdfFile;
 import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.NetcdfDataset;
 
@@ -125,6 +126,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     /* Instance storage of the EoiDataContext object - protected for availability from subclasses */
     protected net.ooici.services.sa.DataSource.EoiDataContextMessage context = null;
 
+    /* Instance storage of the Container.Structure as a StructureManager - protected for availability from subclasses */
+    protected StructureManager structManager = null;
+
     /*
      * (non-Javadoc)
      * @see net.ooici.eoi.datasetagent.IDatasetAgent#setTesting(boolean)
@@ -203,11 +207,16 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see #initMsgBrokerClient(HashMap)
      */
     @Override
-    public final String[] doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage context, java.util.HashMap<String, String> connectionInfo) {
+    public final String[] doUpdate(net.ooici.core.container.Container.Structure structure, java.util.HashMap<String, String> connectionInfo) {
         /* NOTE: Template method.  Do not reorder */
-        
+
+        /* Load the structure into the structManager field */
+        structManager = StructureManager.Factory(structure);
+
+
         /* Store the EoiDataContext object */
-        this.context = context;
+        IonMsg msg = (IonMsg) structManager.getObjectWrapper(structManager.getHeadId()).getObjectValue();
+        this.context = (EoiDataContextMessage) structManager.getObjectWrapper(msg.getMessageObject()).getObjectValue();
 
         /* If the connectionInfo object is null, assume this is being called from a test */
         if (connectionInfo == null) {
@@ -333,11 +342,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 /** Send the full dataset */
                 /* TODO: zDeal with subRanges when sending full datasets */
                 /* TODO: Do we even want this option anymore?!?! Should we ALWAYS send the data "by variable"?? */
-                dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds);
+                dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, subRanges);
                 sendDatasetMsg(dataMessageContent);
             } else {
                 /** Send a "shell" of the dataset */
-                dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, false);
+                dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, subRanges, false);
                 sendDatasetMsg(dataMessageContent);
                 // IonMessage reply = rpcDataMessage(op, dataMessageContent);
                 // ret = reply.getContent().toString();
@@ -511,7 +520,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
 
             /* Put in an IonMsg as the head pointing to the ds element */
-            net.ooici.core.message.IonMessage.IonMsg ionMsg = net.ooici.core.message.IonMessage.IonMsg.newBuilder().setIdentity(UUID.randomUUID().toString()).setMessageObject(supWrap.getCASRef()).build();
+            IonMsg ionMsg = IonMsg.newBuilder().setIdentity(UUID.randomUUID().toString()).setMessageObject(supWrap.getCASRef()).build();
             GPBWrapper ionMsgWrap = GPBWrapper.Factory(ionMsg);
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);// Set as head
 
@@ -624,7 +633,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //        GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
 
         /* Put in an IonMsg as the head pointing to the ds element */
-        net.ooici.core.message.IonMessage.IonMsg.Builder ionMsgBldr = net.ooici.core.message.IonMessage.IonMsg.newBuilder();
+        IonMsg.Builder ionMsgBldr = IonMsg.newBuilder();
         ionMsgBldr.setIdentity(UUID.randomUUID().toString());
         ionMsgBldr.setResponseCode(net.ooici.core.message.IonMessage.ResponseCodes.OK);
         /* MessageObject is an instance of DataAcquisitionComplete */

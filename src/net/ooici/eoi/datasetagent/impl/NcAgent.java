@@ -4,6 +4,9 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import ion.core.utils.GPBWrapper;
+import ion.core.utils.IonUtils;
+import ion.core.utils.ProtoUtils;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -25,6 +28,12 @@ import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.datasetagent.IDatasetAgent;
 import net.ooici.eoi.netcdf.NcDumpParse;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
+import org.apache.commons.httpclient.Credentials;
+import org.apache.commons.httpclient.UsernamePasswordCredentials;
+import org.apache.commons.httpclient.auth.AuthScheme;
+import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
+import org.apache.commons.httpclient.auth.CredentialsProvider;
+import org.apache.commons.httpclient.auth.RFC2617Scheme;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,6 +42,7 @@ import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
 import ucar.nc2.dataset.NetcdfDataset;
+import ucar.nc2.util.net.HttpClientManager;
 
 /**
  * The NcAgent class is designed to fulfill updates for datasets which originate as Netcdf files (*.nc). Ensure the update context (
@@ -65,18 +75,24 @@ public class NcAgent extends AbstractNcAgent {
     public String buildRequest() {
         String ncmlTemplate = context.getNcmlMask();
         String ncdsLoc = context.getDatasetUrl();
-        try {
-            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getStartTime());
-        } catch (ParseException ex) {
-            //log.error("Error parsing start time - first available time will be used", ex);
-            sTime = null;
+        if (context.hasStartDatetimeMillis()) {
+            sTime = new Date(context.getStartDatetimeMillis());
         }
-        try {
-            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getEndTime());
-        } catch (ParseException ex) {
-            //log.error("Error parsing end time - last available time will be used", ex);
-            eTime = null;
+        if (context.hasEndDatetimeMillis()) {
+            eTime = new Date(context.getEndDatetimeMillis());
         }
+//        try {
+//            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getStartTime());
+//        } catch (ParseException ex) {
+//            //log.error("Error parsing start time - first available time will be used", ex);
+//            sTime = null;
+//        }
+//        try {
+//            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getEndTime());
+//        } catch (ParseException ex) {
+//            //log.error("Error parsing end time - last available time will be used", ex);
+//            eTime = null;
+//        }
 
         String openLoc;
         if (ncmlTemplate.isEmpty()) {
@@ -106,6 +122,31 @@ public class NcAgent extends AbstractNcAgent {
     public Object acquireData(String request) {
         NetcdfDataset ncds = null;
         try {
+            if (context.hasAuthentication()) {
+                /* Get the authentication object from the structure */
+                final net.ooici.services.sa.DataSource.ThreddsAuthentication tdsAuth = (net.ooici.services.sa.DataSource.ThreddsAuthentication) structManager.getObjectWrapper(context.getAuthentication()).getObjectValue();
+
+                CredentialsProvider provider = new CredentialsProvider() {
+
+                    @Override
+                    public Credentials getCredentials(AuthScheme scheme, String host, int port, boolean proxy) throws CredentialsNotAvailableException {
+                        if (scheme == null) {
+                            throw new CredentialsNotAvailableException("Null authentication scheme");
+                        }
+
+                        if (!(scheme instanceof RFC2617Scheme)) {
+                            throw new CredentialsNotAvailableException("Unsupported authentication scheme: "
+                                    + scheme.getSchemeName());
+                        }
+
+                        return new UsernamePasswordCredentials(tdsAuth.getName(), tdsAuth.getPassword());
+                    }
+                };
+
+                /*  */
+                HttpClientManager.init(provider, "OOICI-ION");
+            }
+
             ncds = NetcdfDataset.openDataset(request);
         } catch (IOException ex) {
             log.error("Error opening dataset \"" + request + "\"", ex);
@@ -129,7 +170,7 @@ public class NcAgent extends AbstractNcAgent {
      */
     @Override
     public String[] processDataset(NetcdfDataset ncds) {
-        if (sTime != null & eTime != null) {
+        if (sTime != null | eTime != null) {
             /** TODO: Figure out how to deal with sTime and eTime.
              * Ideally, we'd find a way to 'remove' the unwanted times from the dataset, but not sure if this is possible
              * This would allow the 'sendNetcdfDataset' method to stay very generic (since obs requests will already have dealt with time)
@@ -154,8 +195,16 @@ public class NcAgent extends AbstractNcAgent {
                 }
                 if (cat != null) {
                     tdim = cat.getName();
-                    sti = cat.findTimeIndexFromDate(sTime);
-                    eti = cat.findTimeIndexFromDate(eTime);
+                    if (sTime != null) {
+                        sti = cat.findTimeIndexFromDate(sTime);
+                    } else {
+                        sti = 0;
+                    }
+                    if (eTime != null) {
+                        eti = cat.findTimeIndexFromDate(eTime);
+                    } else {
+                        eti = cat.findTimeIndexFromDate(new Date());
+                    }
                     try {
                         trng = new ucar.ma2.Range(tdim, sti, eti);
                     } catch (InvalidRangeException ex) {
@@ -297,12 +346,23 @@ public class NcAgent extends AbstractNcAgent {
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_S);
 //            cBldr.setDatasetUrl(dsUrl).setNcmlMask(ncmlmask);
             cBldr.setDatasetUrl(url).setNcmlMask(ncmlmask);
-            cBldr.setStartTime("");
-            cBldr.setEndTime("");
+//            cBldr.setStartTime("");
+//            cBldr.setEndTime("");
+
+            /* Wrapperize the context object */
+            GPBWrapper contextWrap = GPBWrapper.Factory(cBldr.build());
+            /* Generate an ionMsg with the context as the messageBody */
+            net.ooici.core.message.IonMessage.IonMsg ionMsg = net.ooici.core.message.IonMessage.IonMsg.newBuilder().setIdentity(java.util.UUID.randomUUID().toString()).setMessageObject(contextWrap.getCASRef()).build();
+            /* Create a Structure and add the objects */
+            net.ooici.core.container.Container.Structure.Builder sBldr = net.ooici.core.container.Container.Structure.newBuilder();
+            /* Add the eoi context */
+            ProtoUtils.addStructureElementToStructureBuilder(sBldr, contextWrap.getStructureElement());
+            /* Add the IonMsg as the head */
+            ProtoUtils.addStructureElementToStructureBuilder(sBldr, GPBWrapper.Factory(ionMsg).getStructureElement(), true);
 
             String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE);
+                resp = runAgent(sBldr.build(), AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(src + " (FAILED)", null);
@@ -403,6 +463,8 @@ public class NcAgent extends AbstractNcAgent {
         String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110502/nam1hr_00z";
         String sTime = "";
         String eTime = "";
+        String uname = null;
+        String pass = null;
 //        long maxSize = -1;
 
         /* for HiOOS Gliders */
@@ -460,9 +522,9 @@ public class NcAgent extends AbstractNcAgent {
 
         /* UOP - WHOTS 2 */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-//        ncmlmask = "";
-//        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-2.nc";
-//        sTime = "2011-04-01T00:00:00Z";
+        ncmlmask = "";
+        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-2.nc";
+        sTime = "2011-05-04T03:00:00Z";
 //        eTime = "2011-04-15T00:00:00Z";
 
         /* GFS */
@@ -496,11 +558,13 @@ public class NcAgent extends AbstractNcAgent {
 //        eTime = "2007-05-09T00:00:00Z";
 
         /* CGSN test */
-        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"stnId\" shape=\"\" type=\"int\"><attribute name=\"standard_name\" value=\"station_id\"/><values>1</values></variable></netcdf>";
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"stnId\" shape=\"\" type=\"int\"><attribute name=\"standard_name\" value=\"station_id\"/><values>1</values></variable></netcdf>";
+//        uname = "cgsn";
+//        pass = "ISMT2!!";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Timing.nc";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_SBE16.nc";
-        ncmlmask = "";
-        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Motion.nc";
+//        ncmlmask = "";
+//        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Motion.nc";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Iridium.nc";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_ECO-VSF.nc";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_ECO-DFL.nc";
@@ -510,19 +574,37 @@ public class NcAgent extends AbstractNcAgent {
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2009_da/his";
 
+
+        GPBWrapper tdsWrap = null;
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
-        cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.NETCDF_S);
+        net.ooici.services.sa.DataSource.SourceType sourceType = net.ooici.services.sa.DataSource.SourceType.NETCDF_S;
+        cBldr.setSourceType(sourceType);
         cBldr.setDatasetUrl(dataurl).setNcmlMask(ncmlmask);
-        cBldr.setStartTime(sTime);
-        cBldr.setEndTime(eTime);
-
-
-        runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
-//        runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
+        try {
+            if (sTime != null && !sTime.isEmpty()) {
+                long st = AgentUtils.ISO8601_DATE_FORMAT.parse(sTime).getTime();
+                cBldr.setStartDatetimeMillis(st);
+            }
+            if (eTime != null && !eTime.isEmpty()) {
+                long et = AgentUtils.ISO8601_DATE_FORMAT.parse(eTime).getTime();
+                cBldr.setEndDatetimeMillis(et);
+            }
+        } catch (ParseException ex) {
+            throw new IOException("Error parsing time strings", ex);
+        }
+        if (uname != null & pass != null) {
+            /* Add ThreddsAuthentication */
+            net.ooici.services.sa.DataSource.ThreddsAuthentication tdsAuth = net.ooici.services.sa.DataSource.ThreddsAuthentication.newBuilder().setName(uname).setPassword(pass).build();
+            tdsWrap = GPBWrapper.Factory(tdsAuth);
+            cBldr.setAuthentication(tdsWrap.getCASRef());
+        }
+        net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()), tdsWrap);
+//        runAgent(struct, AgentRunType.TEST_WRITE_NC);
+        runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
     }
 
-    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, AgentRunType agentRunType) throws IOException {
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
+    private static String[] runAgent(net.ooici.core.container.Container.Structure structure, AgentRunType agentRunType) throws IOException {
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(net.ooici.services.sa.DataSource.SourceType.NETCDF_S);
         agent.setAgentRunType(agentRunType);
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
@@ -541,12 +623,12 @@ public class NcAgent extends AbstractNcAgent {
 //        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = net.ooici.IonUtils.parseProperties();
+            connInfo = IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);
         }
-        String[] result = agent.doUpdate(context, connInfo);
+        String[] result = agent.doUpdate(structure, connInfo);
 //        log.debug("Response:");
         for (String s : result) {
             log.debug(s);

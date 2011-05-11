@@ -4,12 +4,13 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import ion.core.utils.GPBWrapper;
+import ion.core.utils.IonUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
 import java.io.StringReader;
 import java.net.MalformedURLException;
-import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -76,8 +77,8 @@ public class SosAgent extends AbstractAsciiAgent {
         String south = String.valueOf(context.getRequestBoundsSouth());
         String west = String.valueOf(context.getRequestBoundsWest());
         String east = String.valueOf(context.getRequestBoundsEast());
-        String sTimeString = context.getStartTime();
-        String eTimeString = context.getEndTime();
+//        String sTimeString = context.getStartTime();
+//        String eTimeString = context.getEndTime();
         /* TODO: make these iterative */
         String property = context.getPropertyList().get(0);
         String stnId = context.getStationIdList().get(0);
@@ -87,28 +88,36 @@ public class SosAgent extends AbstractAsciiAgent {
         /** Configure the date-time parameter (if avail) */
         log.debug("Configuring date-time");
         String eventTime = null;
-        if (null != sTimeString && null != eTimeString && !sTimeString.isEmpty() && !eTimeString.isEmpty()) {
-            Date sTime = null;
-            Date eTime = null;
-            try {
-                sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
-            } catch (ParseException e) {
-                log.error("Error parsing start time - the start time will not be specified", e);
-//                throw new IllegalArgumentException("Could not convert DATE string for context start_time:: Unparsable value = " + sTimeString, e);
-            }
-            try {
-                eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
-            } catch (ParseException e) {
-                log.error("Error parsing end time - the end time will not be specified", e);
-//                throw new IllegalArgumentException("Could not convert DATE string for context end_time:: Unparsable value = " + eTimeString, e);
-            }
-            DateFormat sosUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
-            sosUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-            sTimeString = sosUrlSdf.format(sTime);
-            eTimeString = sosUrlSdf.format(eTime);
 
-            eventTime = new StringBuilder(sTimeString).append('/').append(eTimeString).toString();
+        if (context.hasStartDatetimeMillis() && context.hasEndDatetimeMillis()) {
+            SimpleDateFormat sosUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+            sosUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+
+            eventTime = new StringBuilder(sosUrlSdf.format(new Date(context.getStartDatetimeMillis()))).append('/').append(sosUrlSdf.format(new Date(context.getStartDatetimeMillis()))).toString();
         }
+
+//        if (null != sTimeString && null != eTimeString && !sTimeString.isEmpty() && !eTimeString.isEmpty()) {
+//            Date sTime = null;
+//            Date eTime = null;
+//            try {
+//                sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
+//            } catch (ParseException e) {
+//                log.error("Error parsing start time - the start time will not be specified", e);
+////                throw new IllegalArgumentException("Could not convert DATE string for context start_time:: Unparsable value = " + sTimeString, e);
+//            }
+//            try {
+//                eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
+//            } catch (ParseException e) {
+//                log.error("Error parsing end time - the end time will not be specified", e);
+////                throw new IllegalArgumentException("Could not convert DATE string for context end_time:: Unparsable value = " + eTimeString, e);
+//            }
+//            DateFormat sosUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
+//            sosUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+//            sTimeString = sosUrlSdf.format(sTime);
+//            eTimeString = sosUrlSdf.format(eTime);
+//
+//            eventTime = new StringBuilder(sTimeString).append('/').append(eTimeString).toString();
+//        }
 
 
 
@@ -382,7 +391,7 @@ public class SosAgent extends AbstractAsciiAgent {
     /*****************************************************************************************************************/
     /* Testing                                                                                                       */
     /*****************************************************************************************************************/
-    public static void main(String[] args) {
+    public static void main(String[] args) throws IOException {
         try {
             ion.core.IonBootstrap.bootstrap();
         } catch (Exception ex) {
@@ -392,25 +401,29 @@ public class SosAgent extends AbstractAsciiAgent {
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
         int switcher = 1;
-        switch (switcher) {
-            case 1: //test station
-                cBldr.setStartTime("2008-08-01T00:00:00Z");
-                cBldr.setEndTime("2008-08-02T00:00:00Z");
-                cBldr.addProperty("sea_water_temperature");
-                cBldr.addStationId("41012");
-                break;
-            case 2: //test glider
-                cBldr.setStartTime("2010-07-26T00:00:00Z");
-                cBldr.setEndTime("2010-07-27T00:00:00Z");
-                cBldr.addProperty("salinity");
-                cBldr.addStationId("48900");
-                break;
-            case 3: //test UOP
-                cBldr.setStartTime("2011-02-23T00:00:00Z");
-                cBldr.setEndTime("2011-02-24T00:00:00Z");
-                cBldr.addProperty("air_temperature");
-                cBldr.addStationId("41NT0");
-                break;
+        try {
+            switch (switcher) {
+                case 1: //test station
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2008-08-01T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2008-08-02T00:00:00Z").getTime());
+                    cBldr.addProperty("sea_water_temperature");
+                    cBldr.addStationId("41012");
+                    break;
+                case 2: //test glider
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2010-07-26T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2010-07-27T00:00:00Z").getTime());
+                    cBldr.addProperty("salinity");
+                    cBldr.addStationId("48900");
+                    break;
+                case 3: //test UOP
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-02-23T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-02-24T00:00:00Z").getTime());
+                    cBldr.addProperty("air_temperature");
+                    cBldr.addStationId("41NT0");
+                    break;
+            }
+        } catch (ParseException ex) {
+            throw new IOException("Error parsing time strings", ex);
         }
 
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
@@ -429,12 +442,13 @@ public class SosAgent extends AbstractAsciiAgent {
 //        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = net.ooici.IonUtils.parseProperties();
+            connInfo = IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);
         }
-        String[] result = agent.doUpdate(context, connInfo);
+        net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+        String[] result = agent.doUpdate(struct, connInfo);
         log.debug("Response:");
         for (String s : result) {
             log.debug(s);

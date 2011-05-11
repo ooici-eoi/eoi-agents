@@ -4,9 +4,10 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import ion.core.utils.GPBWrapper;
+import ion.core.utils.IonUtils;
 import java.io.IOException;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
@@ -30,7 +31,6 @@ import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import net.ooici.services.sa.DataSource.RequestType;
 import net.ooici.services.sa.DataSource.SourceType;
 import ucar.nc2.dataset.NetcdfDataset;
-
 
 /**
  * The AomlAgent class is designed to fulfill updates for datasets which originate from AOML services. Ensure the update context (
@@ -72,8 +72,8 @@ public class AomlAgent extends AbstractAsciiAgent {
         String south = String.valueOf(context.getRequestBoundsSouth());
         String west = String.valueOf(context.getRequestBoundsWest());
         String east = String.valueOf(context.getRequestBoundsEast());
-        String sTimeString = context.getStartTime();
-        String eTimeString = context.getEndTime();
+//        String sTimeString = context.getStartTime();
+//        String eTimeString = context.getEndTime();
         String id = (context.getStationIdCount() != 0) ? context.getStationId(0) : "";
         //TODO: Replace with the RequestType enum
         String type = context.getRequestType().name();
@@ -84,13 +84,13 @@ public class AomlAgent extends AbstractAsciiAgent {
             throw new IllegalArgumentException("Missing key/value mapping for key: " + DataSourceRequestKeys.BASE_URL + ".  Cannot create data acquisition URL.");
         }
 
-        if (null == eTimeString) {
-            throw new IllegalArgumentException("Missing key/value mapping for key: " + DataSourceRequestKeys.START_TIME + ".  Cannot create data acquisition URL.");
-        }
-
-        if (null == sTimeString) {
-            throw new IllegalArgumentException("Missing key/value mapping for key: " + DataSourceRequestKeys.END_TIME + ".  Cannot create data acquisition URL.");
-        }
+//        if (null == eTimeString) {
+//            throw new IllegalArgumentException("Missing key/value mapping for key: " + DataSourceRequestKeys.START_TIME + ".  Cannot create data acquisition URL.");
+//        }
+//
+//        if (null == sTimeString) {
+//            throw new IllegalArgumentException("Missing key/value mapping for key: " + DataSourceRequestKeys.END_TIME + ".  Cannot create data acquisition URL.");
+//        }
 
         if (null == type) {
             throw new IllegalArgumentException("Missing key/value mapping for key: " + DataSourceRequestKeys.TYPE + ".  Cannot create data acquisition URL.");
@@ -100,16 +100,22 @@ public class AomlAgent extends AbstractAsciiAgent {
         /** Pull the dates apart so year/month/day values can be stored */
         Date sTime = null;
         Date eTime = null;
-        try {
-            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+        if (context.hasStartDatetimeMillis()) {
+            sTime = new Date(context.getStartDatetimeMillis());
         }
-        try {
-            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        try {
+//            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+//        }
+        if (context.hasEndDatetimeMillis()) {
+            eTime = new Date(context.getEndDatetimeMillis());
         }
+//        try {
+//            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        }
         DateFormat aomlUrlSdf = new SimpleDateFormat("yy:MM:dd");
         aomlUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
@@ -398,8 +404,10 @@ public class AomlAgent extends AbstractAsciiAgent {
         java.util.GregorianCalendar startTime = (java.util.GregorianCalendar) endTime.clone();
         startTime.add(java.util.Calendar.DAY_OF_MONTH, -1);
 
-        cBldr.setStartTime(AgentUtils.ISO8601_DATE_FORMAT.format(startTime.getTime()));
-        cBldr.setEndTime(AgentUtils.ISO8601_DATE_FORMAT.format(endTime.getTime()));
+//        cBldr.setStartTime(AgentUtils.ISO8601_DATE_FORMAT.format(startTime.getTime()));
+//        cBldr.setEndTime(AgentUtils.ISO8601_DATE_FORMAT.format(endTime.getTime()));
+        cBldr.setStartDatetimeMillis(startTime.getTimeInMillis());
+        cBldr.setEndDatetimeMillis(endTime.getTimeInMillis());
         cBldr.setRequestType(RequestType.CTD);
 
         net.ooici.services.sa.DataSource.EoiDataContextMessage context = cBldr.build();
@@ -414,12 +422,13 @@ public class AomlAgent extends AbstractAsciiAgent {
 //        connInfo.put("topic", "magnet.topic");
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = net.ooici.IonUtils.parseProperties();
+            connInfo = IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);
         }
-        String[] result = agent.doUpdate(context, connInfo);
+        net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+        String[] result = agent.doUpdate(struct, connInfo);
         log.debug("Response:");
         for (String s : result) {
             log.debug(s);

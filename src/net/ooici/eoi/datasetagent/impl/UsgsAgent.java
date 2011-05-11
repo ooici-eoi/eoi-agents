@@ -4,6 +4,8 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import ion.core.utils.GPBWrapper;
+import ion.core.utils.IonUtils;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.Reader;
@@ -20,7 +22,6 @@ import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
 
-import net.ooici.eoi.datasetagent.DataSourceRequestKeys;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
@@ -99,7 +100,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         String baseurl = context.getBaseUrl();
         if (baseurl.endsWith("nwis/iv?")) {
-            result = buildWaterServicesRequest(context);
+            result = buildWaterServicesRequest();
         } else if (baseurl.endsWith("NWISQuery/GetDV1?")) {
             result = buildDailyValuesRequest(context);
             isDailyValue = true;
@@ -199,12 +200,12 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return data_url;
     }
 
-    private String buildWaterServicesRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+    private String buildWaterServicesRequest() {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
-        String sTimeString = context.getStartTime();
-        String eTimeString = context.getEndTime();
+//        String sTimeString = context.getStartTime();
+//        String eTimeString = context.getEndTime();
         String properties[] = context.getPropertyList().toArray(new String[0]);
         String siteCodes[] = context.getStationIdList().toArray(new String[0]);
 
@@ -213,22 +214,26 @@ public class UsgsAgent extends AbstractAsciiAgent {
         /** Configure the date-time parameter */
         Date sTime = null;
         Date eTime = null;
-        try {
-            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+        if (context.hasStartDatetimeMillis()) {
+            sTime = new Date(context.getStartDatetimeMillis());
         }
-        try {
-            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        try {
+//            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+//        }
+        if (context.hasEndDatetimeMillis()) {
+            eTime = new Date(context.getEndDatetimeMillis());
         }
+//        try {
+//            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        }
         DateFormat usgsUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
         usgsUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        sTimeString = usgsUrlSdf.format(sTime);
-        eTimeString = usgsUrlSdf.format(eTime);
-
-
+        String sTimeString = usgsUrlSdf.format(sTime);
+        String eTimeString = usgsUrlSdf.format(eTime);
 
         /** Build the propertiesString*/
         StringBuilder propertiesString = new StringBuilder();
@@ -270,8 +275,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
-        String sTimeString = context.getStartTime();
-        String eTimeString = context.getEndTime();
+//        String sTimeString = context.getStartTime();
+//        String eTimeString = context.getEndTime();
         String properties[] = context.getPropertyList().toArray(new String[0]);
         String siteCodes[] = context.getStationIdList().toArray(new String[0]);
 
@@ -280,20 +285,26 @@ public class UsgsAgent extends AbstractAsciiAgent {
         /** Configure the date-time parameter */
         Date sTime = null;
         Date eTime = null;
-        try {
-            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+        if (context.hasStartDatetimeMillis()) {
+            sTime = new Date(context.getStartDatetimeMillis());
         }
-        try {
-            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
-        } catch (ParseException e) {
-            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        try {
+//            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+//        }
+        if (context.hasEndDatetimeMillis()) {
+            eTime = new Date(context.getEndDatetimeMillis());
         }
+//        try {
+//            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        }
         DateFormat usgsUrlSdf = new SimpleDateFormat("yyyy-MM-dd");
         usgsUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
-        sTimeString = usgsUrlSdf.format(sTime);
-        eTimeString = usgsUrlSdf.format(eTime);
+        String sTimeString = usgsUrlSdf.format(sTime);
+        String eTimeString = usgsUrlSdf.format(eTime);
 
         //TODO: If eTimeString is empty/null, set to "now"
 
@@ -467,7 +478,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             boolean hasWaterSurface;
             while (iterTimeseries.hasNext()) {
                 hasWaterSurface = false;
-                
+
                 /* Grab the next element */
                 nextTimeseries = iterTimeseries.next();
                 if (null == nextTimeseries) {
@@ -534,14 +545,14 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     name = getDataNameForVariableCode(variableCode);
                     /* Check to see if this is the waterSurface var */
                     hasWaterSurface = (!hasWaterSurface) ? name == VariableParams.RIVER_WATER_SURFACE_HEIGHT : hasWaterSurface;
-                    
+
                     /* DON'T EVER CONVERT - Only convert data if we are dealing with Steamflow */
 //                    if (name == VariableParams.RIVER_STREAMFLOW) {
 //                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
 //                    } else {
 //                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
 //                    }
-                    
+
                     data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
                     dpth = 0;
 
@@ -552,7 +563,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     // og.addObservation(time, dpth, qualifier, new VariableParams(name, DataType.FLOAT));
                 }
                 /* If the group has waterSurface, add a the datum variable */
-                if(hasWaterSurface) {
+                if (hasWaterSurface) {
                     obs.addScalarVariable(new VariableParams(VariableParams.RIVER_WATER_SURFACE_REF_DATUM_ALTITUDE, DataType.FLOAT), 0f);
                 }
             }
@@ -890,10 +901,10 @@ public class UsgsAgent extends AbstractAsciiAgent {
         }
 
         boolean dailyValues = false;
-        boolean makeRutgersSamples = true;
+        boolean makeRutgersSamples = false;
         boolean makeUHSamples = false;
         boolean makeMetadataTable = false;
-        boolean manual = false;
+        boolean manual = true;
         if (makeRutgersSamples) {
             generateRutgersSamples(dailyValues);
         }
@@ -908,48 +919,58 @@ public class UsgsAgent extends AbstractAsciiAgent {
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
             int switcher = 5;
-            switch (switcher) {
-                case 1://test temp
-                    cBldr.setStartTime("2011-2-20T00:00:00Z");
-                    cBldr.setEndTime("2011-4-19T00:00:00Z");
-                    cBldr.addProperty("00010");
+            try {
+                switch (switcher) {
+                    case 1://test temp
+//                    cBldr.setStartTime("2011-2-20T00:00:00Z");
+//                    cBldr.setEndTime("2011-4-19T00:00:00Z");
+                        //test temp
+                        //                    cBldr.setStartTime("2011-2-20T00:00:00Z");
+                        //                    cBldr.setEndTime("2011-4-19T00:00:00Z");
+                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-2-20T00:00:00Z").getTime());
+                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-4-19T00:00:00Z").getTime());
+                        cBldr.addProperty("00010");
 //                    cBldr.addStationId("01463500");
-                    cBldr.addStationId("01646500");
-                    break;
-                case 2://test discharge
-                    cBldr.setStartTime("2011-2-20T00:00:00Z");
-                    cBldr.setEndTime("2011-4-19T00:00:00Z");
-                    cBldr.addProperty("00060");
+                        cBldr.addStationId("01646500");
+                        break;
+                    case 2://test discharge
+                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-2-20T00:00:00Z").getTime());
+                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-4-19T00:00:00Z").getTime());
+                        cBldr.addProperty("00060");
 //                    cBldr.addStationId("01463500");
-                    cBldr.addStationId("01646500");
-                    break;
-                case 3://test temp & discharge
-                    cBldr.setStartTime("2011-2-10T00:00:00Z");
-                    cBldr.setEndTime("2011-2-11T00:00:00Z");
-                    cBldr.addProperty("00010");
-                    cBldr.addProperty("00060");
+                        cBldr.addStationId("01646500");
+                        break;
+                    case 3://test temp & discharge
+                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-2-10T00:00:00Z").getTime());
+                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-2-11T00:00:00Z").getTime());
+                        cBldr.addProperty("00010");
+                        cBldr.addProperty("00060");
 //                    cBldr.addStationId("01463500");
-                    cBldr.addStationId("01646500");
-                    break;
-                case 4:
-                    cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
-                    cBldr.setStartTime("2003-01-01T00:00:00Z");
+                        cBldr.addStationId("01646500");
+                        break;
+                    case 4:
+                        cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
+                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2003-01-01T00:00:00Z").getTime());
 //                    cBldr.setStartTime("2011-02-01T00:00:00Z");
-                    cBldr.setEndTime("2011-04-19T00:00:00Z");
-                    cBldr.addProperty("00010");
+                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-04-19T00:00:00Z").getTime());
+                        cBldr.addProperty("00010");
 //                    cBldr.addProperty("00060");
 //                    cBldr.addStationId("01463500");
-                    cBldr.addStationId("01646500");
-                    break;
-                case 5://test all supported parameters
-                    cBldr.setStartTime("2011-04-05T00:00:00Z");
-                    cBldr.setEndTime("2011-04-07T00:00:00Z");
-                    cBldr.addProperty("00010");
-                    cBldr.addProperty("00060");
-                    cBldr.addProperty("00065");//guage height
-                    cBldr.addProperty("00045");//precip
-                    cBldr.addStationId("01646500");
-                    break;
+                        cBldr.addStationId("01646500");
+                        break;
+                    case 5://test all supported parameters
+                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-02-15T00:00:00Z").getTime());
+                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-11T00:00:00Z").getTime());
+                        cBldr.addProperty("00010");
+                        cBldr.addProperty("00060");
+                        cBldr.addProperty("00065");//gauge height
+                        cBldr.addProperty("00045");//precip
+//                        cBldr.addStationId("01646500");
+                        cBldr.addStationId("01184000");
+                        break;
+                }
+            } catch (ParseException ex) {
+                throw new IOException("Error parsing time strings", ex);
             }
 //            cBldr.setStartTime("2011-01-29T00:00:00Z");
 //            cBldr.setEndTime("2011-01-31T00:00:00Z");
@@ -957,8 +978,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addProperty("00060");
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
-//            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
-            runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
+            net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+            runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
+//            runAgent(struct, AgentRunType.TEST_WRITE_NC);
         }
     }
 
@@ -1000,14 +1022,18 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         /* For now, don't add anything - this process will help us figure out what needs to be added *//* Generates samples for near-realtime high-resolution data */
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
-        String sTime = "2011-03-01T00:00:00Z";
-        String eTime = "2011-03-10T00:00:00Z";
+        long sTime, eTime;
+        try {
+            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse("2011-03-01T00:00:00Z").getTime();
+            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse("2011-03-10T00:00:00Z").getTime();
 
-        /* Generates samples for "historical" low-resolution data */
-        baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
-        sTime = "2003-01-01T00:00:00Z";
-        eTime = "2011-03-17T00:00:00Z";
-
+            /* Generates samples for "historical" low-resolution data */
+            baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
+            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse("2003-01-01T00:00:00Z").getTime();
+            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse("2011-03-17T00:00:00Z").getTime();
+        } catch (ParseException ex) {
+            throw new IOException("Error parsing time string(s)", ex);
+        }
         String prefix = (baseURL.endsWith("NWISQuery/GetDV1?")) ? "USGS-DV " : "USGS-WS ";
 
         String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
@@ -1016,18 +1042,19 @@ public class UsgsAgent extends AbstractAsciiAgent {
         String[] tempNames = new String[]{"Hudson", "Delware", "Potomac"};
 
         String dsName;
+        String[] resp;
         for (int i = 0; i < disIds.length; i++) {
-            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
-            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
-            cBldr.setBaseUrl(baseURL);
-            cBldr.setStartTime(sTime);
-            cBldr.setEndTime(eTime);
-            cBldr.addProperty("00060");
-            cBldr.addStationId(disIds[i]);
             dsName = prefix + disNames[i] + "[" + disIds[i] + "]";
-            String[] resp = null;
             try {
-                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE);
+                net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+                cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
+                cBldr.setBaseUrl(baseURL);
+                cBldr.setStartDatetimeMillis(sTime);
+                cBldr.setEndDatetimeMillis(eTime);
+                cBldr.addProperty("00060");
+                cBldr.addStationId(disIds[i]);
+                net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+                resp = runAgent(struct, AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(dsName + " (FAILED)", null);
@@ -1049,17 +1076,17 @@ public class UsgsAgent extends AbstractAsciiAgent {
         }
 
         for (int i = 0; i < tempIds.length; i++) {
-            net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
-            cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
-            cBldr.setBaseUrl(baseURL);
-            cBldr.setStartTime(sTime);
-            cBldr.setEndTime(eTime);
-            cBldr.addProperty("00010");
-            cBldr.addStationId(tempIds[i]);
-            dsName = prefix + tempNames[i] + "[" + tempIds[i] + "]";
-            String[] resp = null;
+            dsName = prefix + disNames[i] + "[" + disIds[i] + "]";
             try {
-                resp = runAgent(cBldr.build(), AgentRunType.TEST_NO_WRITE);
+                net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+                cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
+                cBldr.setBaseUrl(baseURL);
+                cBldr.setStartDatetimeMillis(sTime);
+                cBldr.setEndDatetimeMillis(eTime);
+                cBldr.addProperty("00010");
+                cBldr.addStationId(disIds[i]);
+                net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+                resp = runAgent(struct, AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
                 e.printStackTrace();
                 datasets.put(dsName + " (FAILED)", null);
@@ -1129,15 +1156,25 @@ public class UsgsAgent extends AbstractAsciiAgent {
         sdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         Date now = new Date();
 
+        try {
+            now = AgentUtils.ISO8601_DATE_FORMAT.parse("2011-04-29T00:00:00Z");
+        } catch (ParseException ex) {
+            throw new IOException("Error parsing time string", ex);
+        }
+
         /* Generates samples for near-realtime high-resolution data */
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
-        String sTime = sdf.format(new Date(now.getTime() - 2592000000l));//start 30 days before
-        String eTime = sdf.format(now);
+        long sTime = now.getTime() - 2592000000l;//start 30 days before
+        long eTime = now.getTime();
 
         if (dailyValues) {
             /* Generates samples for "historical" low-resolution data */
             baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
-            sTime = "2010-01-01T00:00:00Z";
+            try {
+                sTime = AgentUtils.ISO8601_DATE_FORMAT.parse("2010-01-01T00:00:00Z").getTime();
+            } catch (ParseException ex) {
+                throw new IOException("Error parsing time string", ex);
+            }
         }
         String[] disIds = new String[]{"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500"};
 //        String[] disNames = new String[]{"Connecticut", "Hudson", "Mohawk", "Passaic", "Raritan", "Delaware", "Susquehanna", "Potomac", "Patuxent", "Rappahannock", "Choptank", "James", "Appomattox", "Pamunkey", "Mattaponi"};
@@ -1150,12 +1187,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
-            cBldr.setStartTime(sTime);
-            cBldr.setEndTime(eTime);
+            cBldr.setStartDatetimeMillis(sTime);
+            cBldr.setEndDatetimeMillis(eTime);
             cBldr.addProperty("00010").addProperty("00060").addProperty("00065").addProperty("00045").addProperty("00095");
             cBldr.addStationId(allIds[i]);
-            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
-//            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
+
+            net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+
+            String[] res = runAgent(struct, AgentRunType.TEST_WRITE_NC);
+//            String[] res = runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
         }
 
 //        for (int i = 0; i < disIds.length; i++) {
@@ -1212,13 +1252,17 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         /* Generates samples for near-realtime high-resolution data */
         String baseURL = "http://waterservices.usgs.gov/nwis/iv?";
-        String sTime = sdf.format(new Date(now.getTime() - 86400000));//start 1 day before
-        String eTime = sdf.format(now);
+        long sTime = now.getTime() - 86400000;//start 1 day before
+        long eTime = now.getTime();
 
         if (dailyValues) {
             /* Generates samples for "historical" low-resolution data */
             baseURL = "http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?";
-            sTime = "2010-01-01T00:00:00Z";
+            try {
+                sTime = AgentUtils.ISO8601_DATE_FORMAT.parse("2010-01-01T00:00:00Z").getTime();
+            } catch (ParseException ex) {
+                throw new IOException("Error parsing time string", ex);
+            }
         }
 
         String[] allIds = new String[]{"16211600", "16212800", "16213000", "16226200", "16226400", "16229000", "16238000", "16240500", "16242500", "16244000", "16247100", "211747157485601", "212359157502601", "212428157511201"};
@@ -1227,29 +1271,31 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl(baseURL);
-            cBldr.setStartTime(sTime);
-            cBldr.setEndTime(eTime);
+            cBldr.setStartDatetimeMillis(sTime);
+            cBldr.setEndDatetimeMillis(eTime);
             cBldr.addProperty("00010").addProperty("00060").addProperty("00065").addProperty("00045").addProperty("00095");
             cBldr.addStationId(allIds[i]);
-//            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_NC);
-            String[] res = runAgent(cBldr.build(), AgentRunType.TEST_WRITE_OOICDM);
+
+            net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+//            String[] res = runAgent(struct, AgentRunType.TEST_WRITE_NC);
+            String[] res = runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
         }
 
         System.out.println("******FINISHED******");
     }
 
-    private static String[] runAgent(net.ooici.services.sa.DataSource.EoiDataContextMessage context, AgentRunType agentRunType) throws IOException {
-        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(context.getSourceType());
+    private static String[] runAgent(net.ooici.core.container.Container.Structure struct, AgentRunType agentRunType) throws IOException {
+        net.ooici.eoi.datasetagent.IDatasetAgent agent = net.ooici.eoi.datasetagent.AgentFactory.getDatasetAgent(net.ooici.services.sa.DataSource.SourceType.USGS);
         agent.setAgentRunType(agentRunType);
 
         java.util.HashMap<String, String> connInfo = null;
         try {
-            connInfo = net.ooici.IonUtils.parseProperties();
+            connInfo = IonUtils.parseProperties();
         } catch (IOException ex) {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);
         }
-        String[] result = agent.doUpdate(context, connInfo);
+        String[] result = agent.doUpdate(struct, connInfo);
         log.debug("Response:");
         for (String s : result) {
             log.debug(s);

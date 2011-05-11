@@ -8,6 +8,7 @@ import ion.core.IonBootstrap;
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
 import java.io.IOException;
+import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
 import java.util.logging.Level;
@@ -21,6 +22,7 @@ import net.ooici.cdm.syntactic.Cdmgroup;
 import net.ooici.cdm.syntactic.Cdmvariable;
 import net.ooici.core.link.Link.CASRef;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import net.ooici.eoi.netcdf.NcUtils;
 import ucar.ma2.Array;
 import ucar.ma2.DataType;
 import ucar.ma2.IndexIterator;
@@ -40,15 +42,15 @@ public class Unidata2Ooi {
 
     private static Container.Structure.Builder structBldr = null;
 
-    public static byte[] ncdfToByteArray(NetcdfDataset dataset) throws IOException {
-        return ncdfToByteArray(dataset, true);
+    public static byte[] ncdfToByteArray(NetcdfDataset dataset, HashMap<String, Range> subRanges) throws IOException {
+        return ncdfToByteArray(dataset, subRanges, true);
     }
 
-    public static byte[] ncdfToByteArray(NetcdfDataset dataset, boolean includeData) throws IOException {
+    public static byte[] ncdfToByteArray(NetcdfDataset dataset, HashMap<String, Range> subRanges, boolean includeData) throws IOException {
         /* Initialize the Structure Builder */
         structBldr = Container.Structure.newBuilder();
         if (dataset != null) {
-            packDataset(dataset, includeData);
+            packDataset(dataset, subRanges, includeData);
         }
         Container.Structure struct = structBldr.build();
 //        ion.core.utils.StructureManager sm = ion.core.utils.StructureManager.Factory(struct);
@@ -78,11 +80,11 @@ public class Unidata2Ooi {
 //        /* Build and return the Structure object */
 //        return structBldr.build();
 //    }
-    private static void packDataset(NetcdfDataset ncds) throws java.io.IOException {
-        packDataset(ncds, true);
+    private static void packDataset(NetcdfDataset ncds, HashMap<String, Range> subRanges) throws java.io.IOException {
+        packDataset(ncds, subRanges, true);
     }
 
-    private static void packDataset(NetcdfDataset ncds, boolean includeData) throws java.io.IOException {
+    private static void packDataset(NetcdfDataset ncds, HashMap<String, Range> subRanges, boolean includeData) throws java.io.IOException {
         /* Instantiate the Root Group builder */
         Cdmgroup.Group.Builder grpBldr = Cdmgroup.Group.newBuilder().setName("root");
 
@@ -95,7 +97,11 @@ public class Unidata2Ooi {
 
         /* Add all of the Variables to the structure */
         for (Variable ncVar : ncds.getVariables()) {
-            GPBWrapper<Cdmvariable.Variable> varWrap = getOoiVariable(ncVar, null, includeData);
+            Section sec = null;
+            if(subRanges != null) {
+                sec = NcUtils.getSubRangedSection(ncVar, subRanges);
+            }
+            GPBWrapper<Cdmvariable.Variable> varWrap = getOoiVariable(ncVar, sec, includeData);
             ProtoUtils.addStructureElementToStructureBuilder(structBldr, varWrap.getStructureElement());
             grpBldr.addVariables(varWrap.getCASRef());
         }
@@ -242,9 +248,9 @@ public class Unidata2Ooi {
         }
 
         Cdmvariable.BoundedArray.Builder baBldr = Cdmvariable.BoundedArray.newBuilder();
-        Cdmvariable.BoundedArray.Bounds bnds;
+        Cdmvariable.Bounds bnds;
         for (Range rng : ranges) {
-            bnds = Cdmvariable.BoundedArray.Bounds.newBuilder().setOrigin(rng.first()).setSize(rng.length()).build();
+            bnds = Cdmvariable.Bounds.newBuilder().setOrigin(rng.first()).setSize(rng.length()).build();
             baBldr.addBounds(bnds);
         }
         if (arrRef != null) {
@@ -332,7 +338,7 @@ public class Unidata2Ooi {
             structBldr = Container.Structure.newBuilder();
 
 
-            packDataset(ncds);
+            packDataset(ncds, null);
 
 
             Container.Structure struct = structBldr.build();

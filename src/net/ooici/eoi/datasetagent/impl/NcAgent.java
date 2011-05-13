@@ -26,14 +26,19 @@ import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.datasetagent.IDatasetAgent;
+import net.ooici.eoi.ftp.EasyFtp;
+import net.ooici.eoi.ftp.FtpFileFinder;
+import net.ooici.eoi.ftp.FtpFileFinder.UrlParser;
 import net.ooici.eoi.netcdf.NcDumpParse;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
+
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
 import org.apache.commons.httpclient.auth.AuthScheme;
 import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.auth.RFC2617Scheme;
+import net.ooici.services.sa.DataSource.RequestType;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -73,6 +78,27 @@ public class NcAgent extends AbstractNcAgent {
      */
     @Override
     public String buildRequest() {
+        
+        String result = null;
+        
+        RequestType type = context.getRequestType();
+        switch (type) {
+            case FTP:
+                result = buildRequest_ftpMask();
+                break;
+            case DAP:
+                /* FALL_THROUGH */
+            case NONE:
+                /* FALL_THROUGH */
+            default:
+                result = buildRequest_dapMask();
+        }
+
+        return result;
+    }
+    
+    
+    public String buildRequest_dapMask() {
         String ncmlTemplate = context.getNcmlMask();
         String ncdsLoc = context.getDatasetUrl();
         if (context.hasStartDatetimeMillis()) {
@@ -81,18 +107,6 @@ public class NcAgent extends AbstractNcAgent {
         if (context.hasEndDatetimeMillis()) {
             eTime = new Date(context.getEndDatetimeMillis());
         }
-//        try {
-//            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getStartTime());
-//        } catch (ParseException ex) {
-//            //log.error("Error parsing start time - first available time will be used", ex);
-//            sTime = null;
-//        }
-//        try {
-//            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(context.getEndTime());
-//        } catch (ParseException ex) {
-//            //log.error("Error parsing end time - last available time will be used", ex);
-//            eTime = null;
-//        }
 
         String openLoc;
         if (ncmlTemplate.isEmpty()) {
@@ -102,6 +116,98 @@ public class NcAgent extends AbstractNcAgent {
         }
         log.debug(openLoc);
         return openLoc;
+    }
+    
+    
+    public String buildRequest_ftpMask() {
+        /** Get data from the context to build a the "request" */
+        /* -- with the FTP client, the request is actually the resultant
+         *    data after it has been downloaded, unzipped, and aggregated.
+         *    In the eyes of OOICI, the data being request is a pointer to
+         *    the aggregation NCML after this process completes -- this
+         *    will be the result of buildRequest()
+         */
+        long startTime = context.getStartDatetimeMillis();
+        long endTime = context.getEndDatetimeMillis();
+
+        /* Get the host and directory from the base_url field */
+        UrlParser p = new UrlParser(context.getBaseUrl());
+        String host = p.getHost();
+        String baseDir = p.getDirectory();
+        
+        /* Get the pattern parameters from the search_pattern field (CASRef) */
+        String filePattern = "";
+        String dirPattern = "";
+        String joinDim = "";
+        if (context.hasSearchPattern()) {
+            final net.ooici.services.sa.DataSource.SearchPattern pattern = (net.ooici.services.sa.DataSource.SearchPattern) structManager.getObjectWrapper(context.getSearchPattern()).getObjectValue();
+
+            filePattern = pattern.getFilePattern();
+            dirPattern = pattern.getDirPattern();
+            joinDim = pattern.getJoinName();
+        }
+
+        
+        /** Get a list of files at the FTP host between the start and end times */
+        Map<String, Long> remoteFiles = null;
+        try {
+            remoteFiles = FtpFileFinder.getTargetFiles(host, baseDir, filePattern, dirPattern, startTime, endTime);
+        } catch (IOException e) {
+            // TODO handle this -- failure to gather target files for time range and datasource
+            e.printStackTrace();
+        }
+
+        
+        /** Download all necessary files */
+        log.debug("\n\nDOWNLOADING...");
+        Map<String, Long> localFiles = new TreeMap<String, Long>();
+        try {
+            EasyFtp ftp = new EasyFtp(host);
+            ftp.cd(baseDir);
+    
+            File tempFile = File.createTempFile("prefix", "");
+            final String TEMP_DIR = tempFile.getParent() + File.separatorChar;
+            for (String key : remoteFiles.keySet()) {
+                String unzipped = null;
+                try {
+                    /* Download the file */
+                    String download = ftp.download(key, TEMP_DIR);
+                    log.debug("\n\n" + download);
+        
+        
+                    /* Test unzipping... */
+                    unzipped = EasyFtp.unzip(download).get(0);
+                    log.debug(unzipped);
+                } catch (IOException ex) {
+                    // TODO: handle this -- failure to download file 
+                }
+    
+                /* Insert the new output name back into the map */
+                Long val = remoteFiles.get(key);
+                localFiles.put(unzipped, val);
+            }
+        } catch (IOException ex) {
+            // TODO: handle this -- total failure to download files from ftp site
+            ex.printStackTrace();
+        }
+
+        
+        /** Generating an NCML to aggregate all files (via unions/joins) */
+        File temp = null;
+        try {
+            temp = File.createTempFile("ooi-", ".ncml");
+            FtpFileFinder.generateNcml(temp, localFiles, joinDim);
+        } catch (IOException ex) {
+            // TODO: handle this -- failure to generate NCML aggregation for FTP files..
+            ex.printStackTrace();
+        }
+        
+        String filepath = temp.getAbsolutePath();
+        log.debug("\n\nGenerated NCML aggregation...\n\t\"" + filepath + "\"");
+        
+        
+        
+        return filepath;
     }
 
     /**
@@ -461,12 +567,23 @@ public class NcAgent extends AbstractNcAgent {
         /* for NAM - WARNING!!  This is a HUGE file... not fully supported on the ingest side yet... */
         String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"> <variable name=\"time\"> <attribute name=\"standard_name\" value=\"time\" /> </variable> <variable name=\"lat\"> <attribute name=\"standard_name\" value=\"latitude\" /> <attribute name=\"units\" value=\"degree_north\" /> </variable> <variable name=\"lon\"> <attribute name=\"standard_name\" value=\"longitude\" /> <attribute name=\"units\" value=\"degree_east\" /> </variable> </netcdf>";
         String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110502/nam1hr_00z";
+        String baseUrl = "";
         String sTime = "";
         String eTime = "";
         String uname = null;
         String pass = null;
+        String filePattern = null;
+        String dirPattern  = null;
+        String joinName    = null;
+        net.ooici.services.sa.DataSource.RequestType requestType = net.ooici.services.sa.DataSource.RequestType.DAP;
 //        long maxSize = -1;
 
+        
+        /** ******************** */
+        /*  DAP Request Testing  */
+        /** ******************** */
+
+        
         /* for HiOOS Gliders */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"pressure\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"temp\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"conductivity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"salinity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"density\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable></netcdf>";
 //        dataurl = "http://oos.soest.hawaii.edu/thredds/dodsC/hioos/glider/sg139_8/p1390001.nc";
@@ -522,9 +639,9 @@ public class NcAgent extends AbstractNcAgent {
 
         /* UOP - WHOTS 2 */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
-        ncmlmask = "";
-        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-2.nc";
-        sTime = "2011-05-04T03:00:00Z";
+//        ncmlmask = "";
+//        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-2.nc";
+//        sTime = "2011-05-04T03:00:00Z";
 //        eTime = "2011-04-15T00:00:00Z";
 
         /* GFS */
@@ -574,12 +691,52 @@ public class NcAgent extends AbstractNcAgent {
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2009_da/his";
 
+        
+        /** ******************** */
+        /*  FTP Request Testing  */
+        /** ******************** */
 
-        GPBWrapper tdsWrap = null;
+
+        /* MODIS A test (pull 15 minutes of data -- 3 files) */
+//        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+//        sTime = "2011-04-20T12:00:00Z";
+//        eTime = "2011-04-20T12:15:00Z";
+//        baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_A/JPL/";
+//        dirPattern = "%yyyy%/%DDD%/";
+//        filePattern = "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
+//        joinName = "time";
+        /*
+            dir_pattern:    "%yyyy%/%DDD%/"
+            file_pattern:   "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2"
+            Base URL:       ftp://podaac.jpl.nasa.gov
+            Base Dir:       ./allData/ghrsst/data/L2P/MODIS_A/JPL/
+         */
+        
+        /* OSTIA test (pull 3 days of data -- 3 files) */
+        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+        sTime = "2011-04-20T12:30:00Z";
+        eTime = "2011-04-23T12:30:00Z";
+        baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L4/GLOB/UKMO/OSTIA/";
+        dirPattern = "%yyyy%/%DDD%/";
+        filePattern = "%yyyy%%MM%%dd%-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA\\.nc\\.bz2";
+        joinName = "time";
+        
+        /*
+            Base URL:       ftp://podaac.jpl.nasa.gov
+            Base Dir:       /allData/ghrsst/data/L4/GLOB/UKMO/OSTIA
+            Native Format:  .nc.bz2
+            dir_pattern:    "%yyyy%/%DDD%/"
+            file_pattern:   "%yyyy%%MM%%dd%-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA\\.nc\\.bz2"
+            join_dimension: "time"
+         */
+        
+        
+        List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         net.ooici.services.sa.DataSource.SourceType sourceType = net.ooici.services.sa.DataSource.SourceType.NETCDF_S;
         cBldr.setSourceType(sourceType);
-        cBldr.setDatasetUrl(dataurl).setNcmlMask(ncmlmask);
+        cBldr.setRequestType(requestType);
+        cBldr.setDatasetUrl(dataurl).setNcmlMask(ncmlmask).setBaseUrl(baseUrl);
         try {
             if (sTime != null && !sTime.isEmpty()) {
                 long st = AgentUtils.ISO8601_DATE_FORMAT.parse(sTime).getTime();
@@ -592,13 +749,29 @@ public class NcAgent extends AbstractNcAgent {
         } catch (ParseException ex) {
             throw new IOException("Error parsing time strings", ex);
         }
-        if (uname != null & pass != null) {
+        if (uname != null && pass != null) {
             /* Add ThreddsAuthentication */
             net.ooici.services.sa.DataSource.ThreddsAuthentication tdsAuth = net.ooici.services.sa.DataSource.ThreddsAuthentication.newBuilder().setName(uname).setPassword(pass).build();
-            tdsWrap = GPBWrapper.Factory(tdsAuth);
+            GPBWrapper tdsWrap = GPBWrapper.Factory(tdsAuth);
+            addlObjects.add(tdsWrap);
             cBldr.setAuthentication(tdsWrap.getCASRef());
         }
-        net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()), tdsWrap);
+        if (null != dirPattern && null != filePattern && null != joinName) {
+            /* Add SearchPattern */
+            net.ooici.services.sa.DataSource.SearchPattern pattern = null;
+            net.ooici.services.sa.DataSource.SearchPattern.Builder patternBldr = net.ooici.services.sa.DataSource.SearchPattern.newBuilder();
+            
+            patternBldr.setDirPattern(dirPattern);
+            patternBldr.setFilePattern(filePattern);
+            patternBldr.setJoinName(joinName);
+            
+            pattern = patternBldr.build();
+            
+            GPBWrapper<?> patternWrap = GPBWrapper.Factory(pattern);
+            addlObjects.add(patternWrap);
+            cBldr.setSearchPattern(patternWrap.getCASRef());
+        }
+        net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()), addlObjects.toArray(new GPBWrapper<?>[] {}));
 //        runAgent(struct, AgentRunType.TEST_WRITE_NC);
         runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
     }

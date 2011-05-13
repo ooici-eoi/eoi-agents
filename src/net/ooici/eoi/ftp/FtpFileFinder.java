@@ -5,6 +5,7 @@
 package net.ooici.eoi.ftp;
 
 
+import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -12,6 +13,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.List;
 import java.util.Map;
@@ -99,14 +101,15 @@ public class FtpFileFinder {
 
 //         testGetTargetFiles();
 
-        testGenerateNcml();
+//        testGenerateNcml_hycom();
+
+        testGenerateNcml_ostia();
 
     }
 
 
-    private static void testGenerateNcml() throws IOException {
+    private static void testGenerateNcml_hycom() throws IOException {
 
-        String output = "/Users/tlarocque/Downloads/ooici/ncml/hycom-union-and-join.ncml";
         Map<String, Long> filemap = new TreeMap<String, Long>();
         filemap.put("/Users/tlarocque/Downloads/ooici/hycom/909_archv.2011050818_2011050700_idp_EastCst1.nc", 7L);
         filemap.put("/Users/tlarocque/Downloads/ooici/hycom/909_archv.2011050818_2011050700_sal_EastCst1.nc", 7L);
@@ -124,11 +127,32 @@ public class FtpFileFinder {
 
 
         log.debug("Generating union/join NCML file...");
-        generateNcml(output, filemap, "MT");
+        File temp = File.createTempFile("ooi-", ".ncml");
+//        temp.deleteOnExit();
+        generateNcml(temp, filemap, "MT");
         log.debug("... COMPLETE!");
         log.debug("");
         log.debug("");
-        log.debug("Reference: " + output);
+        log.debug("Reference: " + temp.getAbsolutePath());
+    }
+
+    
+    private static void testGenerateNcml_ostia() throws IOException {
+        
+        Map<String, Long> filemap = new TreeMap<String, Long>();
+        filemap.put("/Users/tlarocque/Downloads/20110102-MODIS_A-JPL-L2P-A2011002134000.L2_LAC_GHRSST_N-v01.nc", 1L);
+        filemap.put("/Users/tlarocque/Downloads/20110102-MODIS_A-JPL-L2P-A2011002134000.L2_LAC_GHRSST_D-v01.nc", 1L);
+        
+        
+        
+        log.debug("Generating union/join NCML file...");
+        File temp = File.createTempFile("ooi-", ".ncml");
+//        temp.deleteOnExit();
+        generateNcml(temp, filemap, "time");
+        log.debug("... COMPLETE!");
+        log.debug("");
+        log.debug("");
+        log.debug("Reference: " + temp.getAbsolutePath());
     }
 
 
@@ -316,7 +340,7 @@ public class FtpFileFinder {
         throws IOException {
 
         List<String> dirs = getTargetDirs(dirPattern, startTime, endTime);
-        ;
+        
 
         /* Gather inputs to the matching mechanism */
         Map<String, Long> result = new TreeMap<String, Long>();
@@ -426,9 +450,14 @@ public class FtpFileFinder {
 
         return results;
     }
-
-
+    
+    
     public static void generateNcml(String output, Map<String, Long> filemap, String dimension) throws IOException {
+        generateNcml(new File(output), filemap, dimension);
+    }
+
+
+    public static void generateNcml(File outFile, Map<String, Long> filemap, String dimension) throws IOException {
 
         /* Restructure the filelist so we can see what files have equal values (timesteps) */
         Map<Long, List<String>> groupings = new TreeMap<Long, List<String>>();
@@ -469,7 +498,7 @@ public class FtpFileFinder {
 
 
         /* Write the output */
-        FileWriter fw = new FileWriter(output);
+        FileWriter fw = new FileWriter(outFile);
         try {
             fw.write(applyNcmlHeadersFooters(ncml));
             fw.flush();
@@ -566,6 +595,13 @@ public class FtpFileFinder {
     public static Calendar createUtcCal(long millis) {
         Calendar result = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
         result.setTimeInMillis(millis);
+        return result;
+    }
+    
+    
+    public static Calendar createUtcCal(Date time) {
+        Calendar result = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+        result.setTime(time);
         return result;
     }
 

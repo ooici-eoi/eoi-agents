@@ -99,12 +99,28 @@ public class FtpFileFinder {
         // }
 
 
-//         testGetTargetFiles();
+        // testGetTargetFiles();
 
-//        testGenerateNcml_hycom();
+        // testGenerateNcml_hycom();
 
-        testGenerateNcml_ostia();
+        // testGenerateNcml_ostia();
 
+        testUrlParser();
+    }
+
+
+    private static void testUrlParser() {
+        // String s = "ftp://www.google.com/stuff/here.nc";
+        String s = "http://www.google.com";
+
+
+        UrlParser p = new UrlParser(s);
+
+        System.out.println('"' + p.fullUrl + '"');
+        System.out.println('"' + p.protocol + '"');
+        System.out.println('"' + p.host + '"');
+        System.out.println('"' + p.directory + '"');
+        System.out.println('"' + p.file + '"');
     }
 
 
@@ -128,7 +144,7 @@ public class FtpFileFinder {
 
         log.debug("Generating union/join NCML file...");
         File temp = File.createTempFile("ooi-", ".ncml");
-//        temp.deleteOnExit();
+        // temp.deleteOnExit();
         generateNcml(temp, filemap, "MT");
         log.debug("... COMPLETE!");
         log.debug("");
@@ -136,18 +152,18 @@ public class FtpFileFinder {
         log.debug("Reference: " + temp.getAbsolutePath());
     }
 
-    
+
     private static void testGenerateNcml_ostia() throws IOException {
-        
+
         Map<String, Long> filemap = new TreeMap<String, Long>();
         filemap.put("/Users/tlarocque/Downloads/20110102-MODIS_A-JPL-L2P-A2011002134000.L2_LAC_GHRSST_N-v01.nc", 1L);
         filemap.put("/Users/tlarocque/Downloads/20110102-MODIS_A-JPL-L2P-A2011002134000.L2_LAC_GHRSST_D-v01.nc", 1L);
-        
-        
-        
+
+
+
         log.debug("Generating union/join NCML file...");
         File temp = File.createTempFile("ooi-", ".ncml");
-//        temp.deleteOnExit();
+        // temp.deleteOnExit();
         generateNcml(temp, filemap, "time");
         log.debug("... COMPLETE!");
         log.debug("");
@@ -244,12 +260,12 @@ public class FtpFileFinder {
 
         for (String key : remoteFiles.keySet()) {
             /* Download the file */
-            String download = ftp.download(key, "/Users/tlarocque/Downloads/ooici/");
+            String download = ftp.download(key, "/Users/tlarocque/Downloads/ooici/", !log.isDebugEnabled());
             log.debug("\n\n" + download);
 
 
             /* Test unzipping... */
-            String unzipped = EasyFtp.unzip(download).get(0);
+            String unzipped = EasyFtp.unzip(download, !log.isDebugEnabled()).get(0);
             log.debug(unzipped);
 
 
@@ -340,7 +356,13 @@ public class FtpFileFinder {
         throws IOException {
 
         List<String> dirs = getTargetDirs(dirPattern, startTime, endTime);
-        
+
+        if (log.isDebugEnabled()) {
+            log.debug("***Receieved dirs:");
+            for (String dir : dirs) {
+                log.debug("\t" + dir);
+            }
+        }
 
         /* Gather inputs to the matching mechanism */
         Map<String, Long> result = new TreeMap<String, Long>();
@@ -350,6 +372,7 @@ public class FtpFileFinder {
 
 
         /* MATCHING: Start checking which filenames are within the time bounds */
+        Pattern p = Pattern.compile(regex);
         for (String dir : dirs) {
             // log.debug("Checking directory: " + dir + "\n******************************\n");
             // log.debug(ftp.nlist(dir));
@@ -358,7 +381,6 @@ public class FtpFileFinder {
             for (String filename : filenames) {
                 // log.debug(filename);
 
-                Pattern p = Pattern.compile(regex);
                 Matcher m = p.matcher(filename);
 
                 // if (null == m || !m.matches()) {
@@ -366,13 +388,23 @@ public class FtpFileFinder {
                 // }
 
                 /* Determine what Date/Time this file represents */
-                Calendar cal = createUtcCal();
+                /* Start the calendar at startTime so that if fields are missing
+                 * from the given filename we assume that those fields are within
+                 * an acceptable range */
+                Calendar cal = createUtcCal(startTime);
                 while (m.find()) {
                     for (int i = 1; i <= m.groupCount(); i++) {
                         String stime = filename.substring(m.start(i), m.end(i));
                         int itime = Integer.parseInt(stime);
 
-                        cal.set(tokens.get(i - 1).getType().getCalendarField(), itime);
+                        /* Since months are indexed by 0 - subtract 1 from itime if
+                         * the calendar field is MONTHS
+                         */
+                        int calField = tokens.get(i - 1).getType().getCalendarField();
+                        if (calField == Calendar.MONTH) {
+                            --itime;
+                        }
+                        cal.set(calField, itime);
                     }
                 }
 
@@ -394,6 +426,12 @@ public class FtpFileFinder {
         }
 
 
+        if (log.isDebugEnabled()) {
+            log.debug("***Receieved files:");
+            for (String file : result.keySet()) {
+                log.debug("\t" + file);
+            }
+        }
 
         return result;
     }
@@ -450,8 +488,8 @@ public class FtpFileFinder {
 
         return results;
     }
-    
-    
+
+
     public static void generateNcml(String output, Map<String, Long> filemap, String dimension) throws IOException {
         generateNcml(new File(output), filemap, dimension);
     }
@@ -573,7 +611,7 @@ public class FtpFileFinder {
         return sb.toString();
     }
 
-    
+
     private static String applyNcmlHeadersFooters(String ncml) {
         /* Put a tab before every line in the given string
          * -- "^" means line begining in regex -- */
@@ -597,8 +635,8 @@ public class FtpFileFinder {
         result.setTimeInMillis(millis);
         return result;
     }
-    
-    
+
+
     public static Calendar createUtcCal(Date time) {
         Calendar result = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
         result.setTime(time);
@@ -615,5 +653,56 @@ public class FtpFileFinder {
         return filepath.replaceFirst("/[^/]+$", "/");
     }
 
+    public static class UrlParser {
+        private final String fullUrl;
+        private final String protocol;
+        private final String host;
+        private final String directory;
+        private final String file;
+
+        /**
+         * 
+         */
+        public UrlParser(String url) {
+            Pattern p = Pattern.compile("([a-zA-Z]+)://([^/]+)(/?.*?/?)([^/]*$)");
+            Matcher m = p.matcher(url);
+
+            if (m.find()) {
+
+                fullUrl = url;
+                protocol = m.group(1);
+                host = m.group(2);
+                directory = m.group(3);
+                file = m.group(4);
+
+            } else {
+                throw new IllegalArgumentException("Not Parsable: The given URL is not in the expected format");
+            }
+        }
+
+        public String getFullUrl() {
+            return fullUrl;
+        }
+
+        public String getProtocol() {
+            return protocol;
+        }
+
+        public String getHost() {
+            return host;
+        }
+
+        public String getDirectory() {
+            return directory;
+        }
+
+        public String getFile() {
+            return file;
+        }
+
+
+
+
+    }
 
 }

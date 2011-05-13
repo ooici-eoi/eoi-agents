@@ -6,6 +6,7 @@ package net.ooici.eoi.datasetagent;
 
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
+
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
@@ -172,11 +173,11 @@ public class AgentUtils {
         }
         return ret;
     }
-
+    
     public static net.ooici.core.container.Container.Structure getUpdateInitStructure(GPBWrapper<net.ooici.services.sa.DataSource.EoiDataContextMessage> contextWrap) {
-        return getUpdateInitStructure(contextWrap, null);
+        return getUpdateInitStructure(contextWrap);
     }
-    public static net.ooici.core.container.Container.Structure getUpdateInitStructure(GPBWrapper<net.ooici.services.sa.DataSource.EoiDataContextMessage> contextWrap, GPBWrapper<net.ooici.services.sa.DataSource.ThreddsAuthentication> tdsWrap) {
+    public static net.ooici.core.container.Container.Structure getUpdateInitStructure(GPBWrapper<net.ooici.services.sa.DataSource.EoiDataContextMessage> contextWrap, GPBWrapper<?>... addlObjects) {
         /* Generate an ionMsg with the context as the messageBody */
         net.ooici.core.message.IonMessage.IonMsg ionMsg = net.ooici.core.message.IonMessage.IonMsg.newBuilder().setIdentity(java.util.UUID.randomUUID().toString()).setMessageObject(contextWrap.getCASRef()).build();
         /* Create a Structure and add the objects */
@@ -184,8 +185,8 @@ public class AgentUtils {
         /* Add the eoi context */
         ProtoUtils.addStructureElementToStructureBuilder(sBldr, contextWrap.getStructureElement());
         /* If applicable, add the auth object */
-        if(tdsWrap != null) {
-            ProtoUtils.addStructureElementToStructureBuilder(sBldr, tdsWrap.getStructureElement());
+        for (GPBWrapper<?> addlObject : addlObjects) {
+                ProtoUtils.addStructureElementToStructureBuilder(sBldr, addlObject.getStructureElement());
         }
         /* Add the IonMsg as the head */
         ProtoUtils.addStructureElementToStructureBuilder(sBldr, GPBWrapper.Factory(ionMsg).getStructureElement(), true);

@@ -184,6 +184,11 @@ public class EasyFtp {
 
 
     public String download(String fileLoc, String outDir) throws IOException {
+        return download(fileLoc, outDir, false);
+    }
+    
+        
+    public String download(String fileLoc, String outDir, boolean deleteOnExit) throws IOException {
 
         if (fileLoc.endsWith("/")) {
             throw new IllegalArgumentException("Given fileLoc specifies a directory");
@@ -204,6 +209,9 @@ public class EasyFtp {
         outPath.append(fileName);
 
         File out = new File(outPath.toString());
+        if (deleteOnExit) {
+            out.deleteOnExit();
+        }
         download(fileLoc, out);
 
 
@@ -236,24 +244,24 @@ public class EasyFtp {
     }
 
 
-    public static List<String> unzip(String filepath) throws IOException {
+    public static List<String> unzip(String filepath, boolean deleteOnExit) throws IOException {
         List<String> results = new ArrayList<String>();
 
         if (filepath.endsWith(".zip")) {
-            results.addAll(unzip_zip(filepath));
+            results.addAll(unzip_zip(filepath, deleteOnExit));
         } else if (filepath.endsWith(".gz") || filepath.endsWith(".gzip")) {
-            results.addAll(unzip_gzip(filepath));
+            results.addAll(unzip_gzip(filepath, deleteOnExit));
         } else if (filepath.endsWith(".bz2") || filepath.endsWith(".bzip2")) {
-            results.addAll(unzip_bzip2(filepath));
+            results.addAll(unzip_bzip2(filepath, deleteOnExit));
         } else {
             results.add(filepath);
         }
 
         return results;
     }
+    
 
-
-    public static List<String> unzip_zip(String filepath) throws IOException {
+    public static List<String> unzip_zip(String filepath, boolean deleteOnExit) throws IOException {
         List<String> result = new ArrayList<String>();
         ZipFile zf = new ZipFile(filepath);
         Enumeration<? extends ZipEntry> e = zf.entries();
@@ -269,18 +277,16 @@ public class EasyFtp {
             FileOutputStream fos = null;
             InputStream is = null;
             try {
-                /* TODO: change outfile to the same dir as the input file */
-                String outfile = "/Users/tlarocque/Downloads/ooici/" + entry.getName();
+                String outFilepath = chooseUnzipFilepath(filepath);
+                File outfile = new File(outFilepath);
+                if (deleteOnExit) {
+                    outfile.deleteOnExit();
+                }
                 fos = new FileOutputStream(outfile);
                 is = new BufferedInputStream(zf.getInputStream(entry));
 
-                final int BUFFER = 1024;
-                byte[] bytes = new byte[BUFFER];
-                int len = 0;
-                while (-1 != (len = is.read(bytes, 0, BUFFER))) {
-                    fos.write(bytes, 0, len);
-                }
-                result.add(outfile);
+                copyStream(is, fos, 1024);
+                result.add(outFilepath);
 
             } finally {
                 if (null != fos)
@@ -301,31 +307,72 @@ public class EasyFtp {
     }
 
 
-    public static List<String> unzip_gzip(String filepath) throws IOException {
+    public static List<String> unzip_gzip(String filepath, boolean deleteOnExit) throws IOException {
         List<String> result = new ArrayList<String>();
 
         log.info("Uncompressing (gzip): " + filepath);
 
         OutputStream fos = null;
         InputStream is = null;
-        GZIPInputStream bzip = null;
+        GZIPInputStream gzip = null;
         try {
-            /* TODO: change outfile to the same dir as the input file */
-            String outfile = filepath.replaceFirst("(\\.gz|\\.gzip)?$", "");
-            if (outfile.equals(filepath)) {
-                outfile = outfile + "(0)";
+            String outFilepath = chooseUnzipFilepath(filepath);
+            File outfile = new File(outFilepath);
+            if (deleteOnExit) {
+                outfile.deleteOnExit();
             }
+            
             fos = new FileOutputStream(outfile);
             is = new FileInputStream(filepath);
-            bzip = new GZIPInputStream(is);
+            gzip = new GZIPInputStream(is);
 
-            final int BUFFER = 1024;
-            byte[] bytes = new byte[BUFFER];
-            int len = 0;
-            while (-1 != (len = bzip.read(bytes, 0, BUFFER))) {
-                fos.write(bytes, 0, len);
+            copyStream(gzip, fos, 1024);
+            result.add(outFilepath);
+
+        } finally {
+            if (null != fos)
+                try {
+                    fos.flush();
+                    fos.close();
+                } catch (IOException ex) { /* NO-OP */
+                }
+            if (null != gzip)
+                try {
+                    gzip.close();
+                } catch (IOException ex) { /* NO-OP */
+                }
+            if (null != is)
+                try {
+                    is.close();
+                } catch (IOException ex) { /* NO-OP */
+                }
+        }
+
+        return result;
+    }
+
+
+    public static List<String> unzip_bzip2(String filepath, boolean deleteOnExit) throws IOException {
+        List<String> result = new ArrayList<String>();
+
+        log.info("Uncompressing (bzip2): " + filepath);
+
+        OutputStream fos = null;
+        InputStream is = null;
+        BZip2CompressorInputStream bzip = null;
+        try {
+            String outFilepath = chooseUnzipFilepath(filepath);
+            File outfile = new File(outFilepath);
+            if (deleteOnExit) {
+                outfile.deleteOnExit();
             }
-            result.add(outfile);
+            
+            fos = new FileOutputStream(outfile);
+            is = new FileInputStream(filepath);
+            bzip = new BZip2CompressorInputStream(is);
+
+            copyStream(bzip, fos, 1024);
+            result.add(outFilepath);
 
         } finally {
             if (null != fos)
@@ -348,54 +395,30 @@ public class EasyFtp {
 
         return result;
     }
-
-
-    public static List<String> unzip_bzip2(String filepath) throws IOException {
-        List<String> result = new ArrayList<String>();
-
-        log.info("Uncompressing (bzip2): " + filepath);
-
-        OutputStream fos = null;
-        InputStream is = null;
-        BZip2CompressorInputStream bzip = null;
-        try {
-            /* TODO: change outfile to the same dir as the input file */
-            String outfile = filepath.replaceFirst("(\\.bz2|\\.bzip2)?$", "");
-            if (outfile.equals(filepath)) {
-                outfile = outfile + "(0)";
+    
+    
+    private static String chooseUnzipFilepath(String filepath) {
+        String outFilepath = filepath.replaceFirst("(\\.bz2|\\.bzip2)?$", "");
+        int ctr = 0;
+        
+        if (new File(outFilepath).exists()) {
+            while (new File(new StringBuilder(outFilepath).append('(').append(ctr).append(')').toString()).exists()) {
+                ++ctr;
             }
-            fos = new FileOutputStream(outfile);
-            is = new FileInputStream(filepath);
-            bzip = new BZip2CompressorInputStream(is);
+            outFilepath = new StringBuilder(outFilepath).append('(').append(ctr).append(')').toString();
+        }
+        return outFilepath;
+    }
 
-            final int BUFFER = 1024;
-            byte[] bytes = new byte[BUFFER];
-            int len = 0;
-            while (-1 != (len = bzip.read(bytes, 0, BUFFER))) {
-                fos.write(bytes, 0, len);
-            }
-            result.add(outfile);
+    
+    private static void copyStream(final InputStream is, final OutputStream os, final int buffer) throws IOException {
 
-        } finally {
-            if (null != fos)
-                try {
-                    fos.flush();
-                    fos.close();
-                } catch (IOException ex) { /* NO-OP */
-                }
-            if (null != bzip)
-                try {
-                    bzip.close();
-                } catch (IOException ex) { /* NO-OP */
-                }
-            if (null != is)
-                try {
-                    is.close();
-                } catch (IOException ex) { /* NO-OP */
-                }
+        byte[] bytes = new byte[buffer];
+        int len = 0;
+        while (-1 != (len = is.read(bytes, 0, buffer))) {
+            os.write(bytes, 0, len);
         }
 
-        return result;
     }
 
 

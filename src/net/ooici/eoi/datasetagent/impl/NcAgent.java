@@ -7,6 +7,7 @@ package net.ooici.eoi.datasetagent.impl;
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.IonUtils;
 import ion.core.utils.ProtoUtils;
+
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -16,11 +17,11 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
-
 
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
@@ -31,6 +32,7 @@ import net.ooici.eoi.ftp.FtpFileFinder;
 import net.ooici.eoi.ftp.FtpFileFinder.UrlParser;
 import net.ooici.eoi.netcdf.NcDumpParse;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
+import net.ooici.services.sa.DataSource.RequestType;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -38,10 +40,9 @@ import org.apache.commons.httpclient.auth.AuthScheme;
 import org.apache.commons.httpclient.auth.CredentialsNotAvailableException;
 import org.apache.commons.httpclient.auth.CredentialsProvider;
 import org.apache.commons.httpclient.auth.RFC2617Scheme;
-import net.ooici.services.sa.DataSource.RequestType;
-
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
 import ucar.ma2.InvalidRangeException;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
@@ -166,7 +167,8 @@ public class NcAgent extends AbstractNcAgent {
             ftp.cd(baseDir);
     
             File tempFile = File.createTempFile("prefix", "");
-            final String TEMP_DIR = tempFile.getParent() + File.separatorChar;
+            String TEMP_DIR = tempFile.getParent() + File.separatorChar;
+            tempFile.delete();
             for (String key : remoteFiles.keySet()) {
                 String unzipped = null;
                 try {
@@ -176,7 +178,7 @@ public class NcAgent extends AbstractNcAgent {
         
         
                     /* Test unzipping... */
-                    unzipped = EasyFtp.unzip(download).get(0);
+                    unzipped = EasyFtp.unzip(download, !log.isDebugEnabled()).get(0);
                     log.debug(unzipped);
                 } catch (IOException ex) {
                     // TODO: handle this -- failure to download file 
@@ -196,6 +198,9 @@ public class NcAgent extends AbstractNcAgent {
         File temp = null;
         try {
             temp = File.createTempFile("ooi-", ".ncml");
+            if (!log.isDebugEnabled()) {
+                temp.deleteOnExit();
+            }
             FtpFileFinder.generateNcml(temp, localFiles, joinDim);
         } catch (IOException ex) {
             // TODO: handle this -- failure to generate NCML aggregation for FTP files..
@@ -698,29 +703,44 @@ public class NcAgent extends AbstractNcAgent {
 
 
         /* MODIS A test (pull 15 minutes of data -- 3 files) */
-//        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-//        sTime = "2011-04-20T12:00:00Z";
-//        eTime = "2011-04-20T12:15:00Z";
-//        baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_A/JPL/";
-//        dirPattern = "%yyyy%/%DDD%/";
-//        filePattern = "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
-//        joinName = "time";
+        // requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+        // sTime = "2011-04-20T12:00:00Z";
+        // eTime = "2011-04-20T12:15:00Z";
+        // baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_A/JPL/";
+        // dirPattern = "%yyyy%/%DDD%/";
+        // filePattern = "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
+        // joinName = "time";
         /*
             dir_pattern:    "%yyyy%/%DDD%/"
             file_pattern:   "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2"
             Base URL:       ftp://podaac.jpl.nasa.gov
             Base Dir:       ./allData/ghrsst/data/L2P/MODIS_A/JPL/
          */
-        
+
+        /* MODIS T test (pull 15 minutes of data -- 3 files) */
+        // requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+        // sTime = "2011-04-20T12:00:00Z";
+        // eTime = "2011-04-20T12:10:00Z";
+        // baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_T/JPL/";
+        // dirPattern = "%yyyy%/%DDD%/";
+        // filePattern = "%yyyy%%MM%%dd%-MODIS_T-JPL-L2P-T%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
+        // joinName = "time";
+        /*
+            dir_pattern:    "%yyyy%/%DDD%/"
+            file_pattern:   "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2"
+            Base URL:       ftp://podaac.jpl.nasa.gov
+            Base Dir:       ./allData/ghrsst/data/L2P/MODIS_A/JPL/
+         */
+
         /* OSTIA test (pull 3 days of data -- 3 files) */
-        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-        sTime = "2011-04-20T12:30:00Z";
-        eTime = "2011-04-23T12:30:00Z";
-        baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L4/GLOB/UKMO/OSTIA/";
-        dirPattern = "%yyyy%/%DDD%/";
-        filePattern = "%yyyy%%MM%%dd%-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA\\.nc\\.bz2";
-        joinName = "time";
-        
+        // requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+        // sTime = "2011-04-20T12:30:00Z";
+        // eTime = "2011-04-23T12:30:00Z";
+        // baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L4/GLOB/UKMO/OSTIA/";
+        // dirPattern = "%yyyy%/%DDD%/";
+        // filePattern = "%yyyy%%MM%%dd%-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA\\.nc\\.bz2";
+        // joinName = "time";
+
         /*
             Base URL:       ftp://podaac.jpl.nasa.gov
             Base Dir:       /allData/ghrsst/data/L4/GLOB/UKMO/OSTIA
@@ -730,6 +750,27 @@ public class NcAgent extends AbstractNcAgent {
             join_dimension: "time"
          */
         
+        /* AVHRR test (pull 15 mins of data -- ~2 files) */
+        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+        sTime = "2011-01-09T04:25:00Z";
+        eTime = "2011-01-09T04:40:00Z";
+        baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR19_L/NAVO/";
+        dirPattern = "%yyyy%/%DDD%/";
+        filePattern = "%yyyy%%MM%%dd%-AVHRR19_L-NAVO-L2P-SST_s%HH%%mm%_e[0-9]{4}-v01\\.nc\\.bz2";
+        joinName = "time";
+        
+        /*
+            Base URL:      ftp://podaac.jpl.nasa.gov
+            Base Dir:      /allData/ghrsst/data/L2P/AVHRR19_L/NAVO/
+            Native Format:  .nc.bz2
+            dir_pattern:    "%yyyy%/%DDD%/"
+            file_pattern:   "%yyyy%%MM%%dd%-AVHRR19_L-NAVO-L2P-SST_s%HH%%mm%_e[0-9]{4}-v01\\.nc\\.bz2"
+            join_dimension: "time"
+         
+            %yyyy%%MM%%dd%-AVHRR19_L-NAVO-L2P-SST_s%HH%%mm%_e[0-9]{4}-v01\\.nc\\.bz2
+             2011  01  09 -AVHRR19_L-NAVO-L2P-SST_s 01  01 _e0109-v01.nc.bz2
+         
+         */
         
         List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();

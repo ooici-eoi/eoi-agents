@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ivy-module version="2.0">
-    <info module="eoi-agents" organisation="net.ooici" revision="0.3.3"/>
+    <info module="eoi-agents" organisation="net.ooici" revision="0.3.4" />
     <configurations>
         <conf name="compile"/>
     </configurations>

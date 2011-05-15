@@ -17,6 +17,7 @@ import net.ooici.core.message.IonMessage.ResponseCodes;
 import net.ooici.eoi.netcdf.AttributeFactory;
 import net.ooici.eoi.netcdf.NcUtils;
 import net.ooici.eoi.proto.Unidata2Ooi;
+import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 
 import org.slf4j.Logger;
@@ -87,8 +88,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
-        TEST_WRITE_OOICDM,
-    }
+        TEST_WRITE_OOICDM,}
     /**
      * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
      */
@@ -353,7 +353,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
                 /** Send the variables in "chunks" */
                 for (ucar.nc2.Variable v : ncds.getVariables()) {
-                    log.debug("Processing Variable: " + v.getName());
+                    if (log.isDebugEnabled()) {
+                        log.debug("Processing Variable: " + v.getName());
+                    }
                     try {
 
                         /* Get the section for the complete variable - with subranges applied */
@@ -448,7 +450,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         long esize = var.getElementSize();
         long size = sec.computeSize() * esize;
-        log.debug(indent + "decomp-depth = " + depth + " :: sec-size = " + size);
+        if (log.isDebugEnabled()) {
+            log.debug(indent + "decomp-depth = " + depth + " :: sec-size = " + size);
+        }
         if (size > maxSize) {
             Range rng;
             Range.Iterator iter;
@@ -494,7 +498,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 sec.replaceRange(depth, rng);
             }
         } else {
-            log.debug(indent + "--> proc-sec: " + sec.toString());
+            if (log.isDebugEnabled()) {
+                log.debug(indent + "--> proc-sec: " + sec.toString());
+            }
 //            if (!runType) {//Not necessary - can't get here if runType (see "sendNetcdfDataset")
                 /* Build the array and the bounded array */
             ion.core.utils.GPBWrapper arrWrap = Unidata2Ooi.getOoiArray(var, sec);
@@ -582,7 +588,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             case NORMAL:
                 IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent);
                 dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-                log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
+                if (log.isDebugEnabled()) {
+                    log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
+                }
                 cl.sendMessage(dataMessage);
                 break;
             case TEST_WRITE_OOICDM:
@@ -627,26 +635,51 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
      */
     protected void sendDataDoneMsg() {
-        /* Build an container with an empty structure */
-        /* TODO: find a better way to invoke this RPC -- the RPC requires no data.. */
-//        net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
-//        GPBWrapper<net.ooici.services.dm.IngestionService.SupplementMessage> supWrap = GPBWrapper.Factory(supMsgBldr.build());
-
         /* Put in an IonMsg as the head pointing to the ds element */
         IonMsg.Builder ionMsgBldr = IonMsg.newBuilder();
         ionMsgBldr.setIdentity(UUID.randomUUID().toString());
         ionMsgBldr.setResponseCode(net.ooici.core.message.IonMessage.ResponseCodes.OK);
         /* MessageObject is an instance of DataAcquisitionComplete */
-//        ionMsgBldr.setMessageObject(null);
+        GPBWrapper<DataAcquisitionCompleteMessage> dacmWrap = GPBWrapper.Factory(DataAcquisitionCompleteMessage.newBuilder().setStatus(DataAcquisitionCompleteMessage.StatusCode.OK).setStatusBody("Data acquisition completed normally").build());
+        ionMsgBldr.setMessageObject(dacmWrap.getCASRef());
         GPBWrapper ionMsgWrap = GPBWrapper.Factory(ionMsgBldr.build());
 
         net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
-//        ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
+        ProtoUtils.addStructureElementToStructureBuilder(sbldr, dacmWrap.getStructureElement());
         ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);
 
         IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
         dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-        log.debug(printMessage("@@@--->>> NetcdfDataset data \"DONE\" message to eoi_ingest", dataMessage));
+        if (log.isDebugEnabled()) {
+            log.debug(printMessage("@@@--->>> NetcdfDataset data \"DONE\" message to eoi_ingest", dataMessage));
+        }
+        cl.sendMessage(dataMessage);
+    }
+
+    /**
+     * Sends a <code>DataAcquisitionCompleteMessage</code> to the ingest service indicating that an error occurred while processing the supplement
+     * @param status the <code>DataAcquisitionCompleteMessage.StatusCode</code> that indicates the reason for failure
+     * @param statusBody a statement describing the reason for failure
+     */
+    protected void sendDataErrorMsg(DataAcquisitionCompleteMessage.StatusCode status, String statusBody) {
+        /* Put in an IonMsg as the head pointing to the ds element */
+        IonMsg.Builder ionMsgBldr = IonMsg.newBuilder();
+        ionMsgBldr.setIdentity(UUID.randomUUID().toString());
+        ionMsgBldr.setResponseCode(net.ooici.core.message.IonMessage.ResponseCodes.OK);
+        /* MessageObject is an instance of DataAcquisitionComplete */
+        GPBWrapper<DataAcquisitionCompleteMessage> dacmWrap = GPBWrapper.Factory(DataAcquisitionCompleteMessage.newBuilder().setStatus(status).setStatusBody(statusBody).build());
+        ionMsgBldr.setMessageObject(dacmWrap.getCASRef());
+        GPBWrapper ionMsgWrap = GPBWrapper.Factory(ionMsgBldr.build());
+
+        net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
+        ProtoUtils.addStructureElementToStructureBuilder(sbldr, dacmWrap.getStructureElement());
+        ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);
+
+        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
+        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+        if (log.isDebugEnabled()) {
+            log.debug(printMessage("@@@--->>> NetcdfDataset data \"ERROR\" message to eoi_ingest", dataMessage));
+        }
         cl.sendMessage(dataMessage);
     }
 

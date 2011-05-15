@@ -93,7 +93,7 @@ public class SosAgent extends AbstractAsciiAgent {
             SimpleDateFormat sosUrlSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm'Z'");
             sosUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
 
-            eventTime = new StringBuilder(sosUrlSdf.format(new Date(context.getStartDatetimeMillis()))).append('/').append(sosUrlSdf.format(new Date(context.getStartDatetimeMillis()))).toString();
+            eventTime = new StringBuilder(sosUrlSdf.format(new Date(context.getStartDatetimeMillis()))).append('/').append(sosUrlSdf.format(new Date(context.getEndDatetimeMillis()))).toString();
         }
 
 //        if (null != sTimeString && null != eTimeString && !sTimeString.isEmpty() && !eTimeString.isEmpty()) {

@@ -175,7 +175,7 @@ public class AgentUtils {
     }
     
     public static net.ooici.core.container.Container.Structure getUpdateInitStructure(GPBWrapper<net.ooici.services.sa.DataSource.EoiDataContextMessage> contextWrap) {
-        return getUpdateInitStructure(contextWrap);
+        return getUpdateInitStructure(contextWrap, new GPBWrapper[0]);
     }
     public static net.ooici.core.container.Container.Structure getUpdateInitStructure(GPBWrapper<net.ooici.services.sa.DataSource.EoiDataContextMessage> contextWrap, GPBWrapper<?>... addlObjects) {
         /* Generate an ionMsg with the context as the messageBody */

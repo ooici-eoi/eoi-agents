@@ -400,7 +400,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        int switcher = 1;
+        int switcher = 2;
         try {
             switch (switcher) {
                 case 1: //test station
@@ -447,7 +447,7 @@ public class SosAgent extends AbstractAsciiAgent {
             log.error("Error parsing \"ooici-conn.properties\" cannot continue.", ex);
             System.exit(1);
         }
-        net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
+        net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(context));
         String[] result = agent.doUpdate(struct, connInfo);
         log.debug("Response:");
         for (String s : result) {

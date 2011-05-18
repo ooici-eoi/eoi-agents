@@ -147,10 +147,13 @@
 	    	manifest="MANIFEST.MF" /> -->
 
 	    <!-- Create JAR file with all library classes -->
-		<jar jarfile="${dist.dir}/lib/${project.name}-${version}.jar" 
-	    	basedir="${build.dir}"
-	    	excludes="ion/example/**" 
-	    	manifest="MANIFEST.MF" />
+        <jar jarfile="${dist.dir}/lib/${project.name}-${version}.jar" 
+	    	manifest="MANIFEST.MF" >
+            <fileset dir="${build.dir}">
+                <exclude name="**/log4j.properties"/>
+                <exclude name="ooici/**"/>
+            </fileset>
+        </jar>
 
 	    <!-- Create ZIP file with the javadoc -->
 		<zip destfile="${dist.dir}/docs/${project.name}-${version}-javadoc.zip"

@@ -9,6 +9,11 @@ ivy-report
 output
 MANIFEST.MF
 
+########################################################
+# untracked "testing" package - also ignored from builds
+########################################################
+src/ooici
+
 ######################################
 # Transient settings sub-directories #
 ######################################

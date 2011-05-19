@@ -181,9 +181,13 @@ public class AttributeFactory {
                     }
                 }
             default:
-                min = Double.NaN;
-                max = Double.NaN;
-                break;
+                ca = ncds.findCoordinateAxis(atype);
+                /* NOTE: if 'ca' is null, "nan" will be returned */
+                if (ca != null) {
+                    max = ca.getMaxValue();
+                    min = ca.getMinValue();
+                    break;
+                }
         }
         return new Number[]{min, max};
     }

@@ -17,7 +17,7 @@ public class VariableParams implements Comparable<VariableParams> {
 
 	/** Static Fields */
 	public static final VariableParams WATER_TEMPERATURE = new VariableParams("water_temperature", "temperature",
-		"temperature at position, in degrees celcius.", "celcius");
+		"temperature at position, in degrees celsius.", "degree_Celsius");
 	public static final VariableParams RIVER_STREAMFLOW = new VariableParams("water_volume_transport_into_sea_water_from_rivers",
 		"streamflow", "water volume transport into sea water from rivers at position, in cubic feet per second.", "ft3 s-1");
 	public static final VariableParams RIVER_WATER_SURFACE_HEIGHT = new VariableParams("water_surface_height_above_reference_datum",
@@ -29,13 +29,13 @@ public class VariableParams implements Comparable<VariableParams> {
 	public static final VariableParams SEA_WATER_CONDUCTIVITY = new VariableParams("sea_water_electrical_conductivity",
 		"specific_conductance", "specific conductance of water at 25 degrees C", "S cm-1");
 	public static final VariableParams SEA_WATER_TEMPERATURE = new VariableParams("sea_water_temperature", "temperature",
-		"water temperature at location", "degrees_celcius");
+		"water temperature at location", "degree_Celsius");
 	public static final VariableParams SEA_WATER_SALINITY = new VariableParams("sea_water_salinity", "salinity",
-		"water salinity at location", "psu");
+		"water salinity at location", "1");
 	public static final VariableParams SEA_SURFACE_HEIGHT = new VariableParams("sea_surface_height", "ssh",
 		"sea surface height above sea level at location (originally 'sea level anomaly'", "m");
     public static VariableParams AIR_TEMPERATURE = new VariableParams("air_temperature", "air temp",
-		"air temperature", "deg c");
+		"air temperature", "degree_Celsius");
     public static VariableParams AIR_PRESSURE_AT_SEA_LEVEL = new VariableParams("air_pressure_at_sea_level", "air pressure",
 		"air pressure at sea level", "Pa");
 

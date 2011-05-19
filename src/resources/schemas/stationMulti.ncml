@@ -15,8 +15,9 @@
     <attribute name="long_name" value="latitude" />
     <attribute name="units" value="degrees_north" />
   </variable>
-  <variable name="stationId" shape="station" type="int">
-    <attribute name="standard_name" value="station_id" />
+  <variable name="stnId" shape="station" type="int">
+    <attribute name="long name" value="station id" />
+    <attribute name="cf_role" value="timeseries_id" />
   </variable>
   
   <variable name="time" shape="station time" type="int">

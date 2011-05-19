@@ -16,8 +16,9 @@
     <attribute name="long_name" value="latitude" />
     <attribute name="units" value="degrees_north" />
   </variable>
-  <variable name="Id" shape="prof" type="int">
-    <attribute name="standard_name" value="profile_id" />
+  <variable name="prof_id" shape="prof" type="int">
+    <attribute name="long name" value="profile id" />
+    <attribute name="cf_role" value="profile_id"/>
   </variable>
   <variable name="profileAlt" shape="prof" type="int">
     <attribute name="standard_name" value="base_altitude" />

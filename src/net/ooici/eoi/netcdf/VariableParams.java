@@ -31,7 +31,7 @@ public class VariableParams implements Comparable<VariableParams> {
 	public static final VariableParams SEA_WATER_TEMPERATURE = new VariableParams("sea_water_temperature", "temperature",
 		"water temperature at location", "degree_Celsius");
 	public static final VariableParams SEA_WATER_SALINITY = new VariableParams("sea_water_salinity", "salinity",
-		"water salinity at location", "1");
+		"water salinity at location", "0.001");
 	public static final VariableParams SEA_SURFACE_HEIGHT = new VariableParams("sea_surface_height", "ssh",
 		"sea surface height above sea level at location (originally 'sea level anomaly'", "m");
     public static VariableParams AIR_TEMPERATURE = new VariableParams("air_temperature", "air temp",

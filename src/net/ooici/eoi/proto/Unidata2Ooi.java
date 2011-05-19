@@ -90,18 +90,14 @@ public class Unidata2Ooi {
 
         /* Add all of the Dimensions to the structure */
         for (Dimension ncDim : ncds.getDimensions()) {
-            GPBWrapper<Cdmdimension.Dimension> dimWrap = getOoiDimension(ncDim);
+            GPBWrapper<Cdmdimension.Dimension> dimWrap = getOoiDimension(ncDim, subRanges);
             ProtoUtils.addStructureElementToStructureBuilder(structBldr, dimWrap.getStructureElement());
             grpBldr.addDimensions(dimWrap.getCASRef());
         }
 
         /* Add all of the Variables to the structure */
         for (Variable ncVar : ncds.getVariables()) {
-            Section sec = null;
-            if(subRanges != null) {
-                sec = NcUtils.getSubRangedSection(ncVar, subRanges);
-            }
-            GPBWrapper<Cdmvariable.Variable> varWrap = getOoiVariable(ncVar, sec, includeData);
+            GPBWrapper<Cdmvariable.Variable> varWrap = getOoiVariable(ncVar, subRanges, includeData);
             ProtoUtils.addStructureElementToStructureBuilder(structBldr, varWrap.getStructureElement());
             grpBldr.addVariables(varWrap.getCASRef());
         }
@@ -130,8 +126,12 @@ public class Unidata2Ooi {
         /* DONE!! */
     }
 
-    private static GPBWrapper<Cdmdimension.Dimension> getOoiDimension(Dimension ncDim) {
-        return GPBWrapper.Factory(Cdmdimension.Dimension.newBuilder().setName(ncDim.getName()).setLength(ncDim.getLength()).build());
+    private static GPBWrapper<Cdmdimension.Dimension> getOoiDimension(Dimension ncDim, HashMap<String, Range> subRanges) {
+        long dLen = ncDim.getLength();
+        if (subRanges.containsKey(ncDim.getName())) {
+            dLen = subRanges.get(ncDim.getName()).length();
+        }
+        return GPBWrapper.Factory(Cdmdimension.Dimension.newBuilder().setName(ncDim.getName()).setLength(dLen).build());
     }
 
     private static GPBWrapper<Cdmattribute.Attribute> getOoiAttribute(Attribute ncAtt) {
@@ -185,7 +185,12 @@ public class Unidata2Ooi {
 //    private static GPBWrapper<Cdmvariable.Variable> getOoiVariable(Variable ncVar, Section section) throws java.io.IOException {
 //        return getOoiVariable(ncVar, section, true);
 //    }
-    private static GPBWrapper<Cdmvariable.Variable> getOoiVariable(Variable ncVar, Section section, boolean includeData) throws java.io.IOException {
+    private static GPBWrapper<Cdmvariable.Variable> getOoiVariable(Variable ncVar, HashMap<String, Range> subRanges, boolean includeData) throws java.io.IOException {
+        Section section = null;
+        if (subRanges != null) {
+            section = NcUtils.getSubRangedSection(ncVar, subRanges);
+        }
+
         /* If section is null, section is all available data */
         section = (section == null) ? ncVar.getShapeAsSection() : section;
 
@@ -201,7 +206,7 @@ public class Unidata2Ooi {
 
         /* Set the shape - set of dimensions, not the nc-java "shape"... */
         for (Dimension ncDim : ncVar.getDimensions()) {
-            GPBWrapper<Cdmdimension.Dimension> dimWrap = getOoiDimension(ncDim);
+            GPBWrapper<Cdmdimension.Dimension> dimWrap = getOoiDimension(ncDim, subRanges);
             ProtoUtils.addStructureElementToStructureBuilder(structBldr, dimWrap.getStructureElement());
             varBldr.addShape(dimWrap.getCASRef());
         }
@@ -213,11 +218,8 @@ public class Unidata2Ooi {
             GPBWrapper arrWrap = getOoiArray(ncVar, section);
             if (arrWrap != null) {
                 ProtoUtils.addStructureElementToStructureBuilder(structBldr, arrWrap.getStructureElement());
-                bndArr = getBoundedArray(section, arrWrap.getCASRef());
+                bndArr = getBoundedArray(section, arrWrap.getCASRef(), true);
             }
-//        } else {
-//            /* TODO: Ask David if this is right --> Build the bounded array for the section, but without an ndarray reference */
-//            bndArr = getBoundedArray(section, null);
         }
 
         if (bndArr != null) {
@@ -233,15 +235,21 @@ public class Unidata2Ooi {
     }
 
     public static Cdmvariable.BoundedArray getBoundedArray(ucar.ma2.Section section, CASRef arrRef) {
+        return getBoundedArray(section, arrRef, false);
+    }
+    public static Cdmvariable.BoundedArray getBoundedArray(ucar.ma2.Section section, CASRef arrRef, boolean applyZeroOrigin) {
         /* No section == empty BA */
         if (section == null) {
             return Cdmvariable.BoundedArray.newBuilder().build();
         }
 
-        return getBoundedArray(section.getRanges(), arrRef);
+        return getBoundedArray(section.getRanges(), arrRef, applyZeroOrigin);
     }
 
     public static Cdmvariable.BoundedArray getBoundedArray(List<ucar.ma2.Range> ranges, CASRef arrRef) {
+        return getBoundedArray(ranges, arrRef, false);        
+    }
+    public static Cdmvariable.BoundedArray getBoundedArray(List<ucar.ma2.Range> ranges, CASRef arrRef, boolean applyZeroOrigin) {
         /* No ranges == empty BA */
         if (ranges == null) {
             return Cdmvariable.BoundedArray.newBuilder().build();
@@ -250,7 +258,7 @@ public class Unidata2Ooi {
         Cdmvariable.BoundedArray.Builder baBldr = Cdmvariable.BoundedArray.newBuilder();
         Cdmvariable.Bounds bnds;
         for (Range rng : ranges) {
-            bnds = Cdmvariable.Bounds.newBuilder().setOrigin(rng.first()).setSize(rng.length()).build();
+            bnds = Cdmvariable.Bounds.newBuilder().setOrigin(applyZeroOrigin ? 0 : rng.first()).setSize(rng.length()).setStride(1).build();
             baBldr.addBounds(bnds);
         }
         if (arrRef != null) {

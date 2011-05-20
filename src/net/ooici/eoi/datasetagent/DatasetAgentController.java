@@ -46,8 +46,11 @@ public class DatasetAgentController implements ControlListener {
                 w_scoped_name = args[2];
                 w_callback_op = args[3];
                 
+                if(log.isDebugEnabled()) {
+                    log.debug("Startup args: host_name={}; xp_name={}; scoped_name={}; callback={}", new Object[]{w_host_name, w_xp_name, w_scoped_name, w_callback_op});
+                }
             } catch (IllegalArgumentException ex) {
-                /* No-Op */
+                log.error("Incorrect number of startup args.", ex);
             }
 
             new DatasetAgentController(w_host_name, w_xp_name, w_scoped_name, w_callback_op);

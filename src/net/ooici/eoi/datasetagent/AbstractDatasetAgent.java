@@ -551,7 +551,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      *            a {@link NetcdfDataset} object
      */
     protected void addOoiciBoundsMetadata(NetcdfDataset ncds) {
-        FeatureType ft = NcUtils.determineFeatureType(ncds);
+        FeatureType ft = null;
+//        ft = NcUtils.determineFeatureType(ncds);
 
         /* Do Time */
         AttributeFactory.addTimeBoundsMetadata(ncds, subRanges);

@@ -6,9 +6,9 @@ package net.ooici.eoi.netcdf;
 
 import java.io.IOException;
 import java.util.HashMap;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import ucar.ma2.Array;
 import ucar.ma2.MAMath;
 import ucar.ma2.Range;
@@ -20,12 +20,17 @@ import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
 import ucar.nc2.dataset.NetcdfDataset;
+import ucar.units.Unit;
+import ucar.units.UnitFormat;
+import ucar.units.UnitFormatManager;
 
 /**
  *
  * @author cmueller
  */
 public class AttributeFactory {
+
+    private static final Logger log = LoggerFactory.getLogger(AttributeFactory.class);
 
     private AttributeFactory() {
     }
@@ -97,12 +102,11 @@ public class AttributeFactory {
         boolean isNan = (Double.isNaN(minMax[0].doubleValue()) | Double.isNaN(minMax[1].floatValue()));
 
         /* Determine positive direction */
-        String posDir = "";//default to ''
-//        String posDir = "down";//default to 'down'
+        String posDir = "";//default to ""
         for (Variable v : ncds.getVariables()) {
             Attribute a = v.findAttribute("positive");
             if (a != null) {
-                /* If we don't have values, use the variable (why else have "positive"??) */
+                /* If we don't have values, use the variable (is there another reason to have "positive"??) */
                 if (isNan) {
                     try {
                         Array arr = v.read();
@@ -119,20 +123,14 @@ public class AttributeFactory {
             }
         }
 
-
-
-
-//        if (isNan) {
-//            /* If we can't sort out the vertical bounds, don't bother with the directionality! */
-//            posDir = "";
-//        }
-
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_GEOSPATIAL_VERTICAL_MIN, minMax[0]));
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_GEOSPATIAL_VERTICAL_MAX, minMax[1]));
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_GEOSPATIAL_VERTICAL_POSITIVE, posDir));
     }
 
     private static Number[] getMetadata(NetcdfDataset ncds, FeatureType ftype, AxisType atype, String vname, String sname) {
+        boolean isVert = (atype == AxisType.Height);
+
         if (null == ftype) {
             ftype = FeatureType.NONE;
         }
@@ -142,52 +140,51 @@ public class AttributeFactory {
         Number max = Double.NaN;
         CoordinateAxis ca = null;
         Variable var;
-        switch (ftype) {
-            case GRID:
-                ca = ncds.findCoordinateAxis(atype);
-                /* NOTE: falls through to next case if 'ca' is null by this point */
-                if (ca != null) {
-                    max = ca.getMaxValue();
-                    min = ca.getMinValue();
-                    break;
-                }
-            case ANY_POINT:
-            case STATION:
-            case PROFILE:
-            case STATION_PROFILE:
-            case TRAJECTORY:
-                /* Try to find the variable by "typical" variable name */
-                var = ncds.findVariable(vname);
-                if (var == null) {
-                    /* Look for it by standard_name */
-                    for (Variable v : ncds.getVariables()) {
-                        Attribute a = v.findAttribute(CF.STANDARD_NAME);
-                        if (a != null && a.getStringValue().equalsIgnoreCase(sname)) {
-                            var = v;
-                            break;
-                        }
-                    }
-                }
+        ca = ncds.findCoordinateAxis(atype);
+        if (ca != null) {
+            max = ca.getMaxValue();
+            min = ca.getMinValue();
+            /* If the axis is vertical, attempt to convert to "m" */
+            if (isVert) {
+                UnitFormat format = UnitFormatManager.instance();
+                Unit from = null;
+                Unit to = null;
+                try {
+                    from = format.parse(ca.getUnitsString());
+                    to = format.parse("m");
 
-                /* NOTE: falls through to 'default' if var is still null by this point */
-                if (var != null) {
-                    try {
-                        Array arr = var.read();
-                        min = MAMath.getMinimum(arr);
-                        max = MAMath.getMaximum(arr);
-                        break;
-                    } catch (IOException ex) {
-                        /* fall through to default */
+                    max = from.convertTo(max.doubleValue(), to);
+                    min = from.convertTo(min.doubleValue(), to);
+                } catch (Exception e) {
+                    log.error("Error converting units of coordinate axis to meters: axis==" + ca, e);
+                }
+            }
+        } else {
+            /* Try to find the variable by "typical" variable name */
+            var = ncds.findVariable(vname);
+            if (var == null) {
+                /* Look for it by standard_name */
+                for (Variable v : ncds.getVariables()) {
+                    Attribute a = v.findAttribute(CF.STANDARD_NAME);
+                    if (a != null && a.getStringValue().equalsIgnoreCase(sname)) {
+                        var = v;
+                        continue;
                     }
                 }
-            default:
-                ca = ncds.findCoordinateAxis(atype);
-                /* NOTE: if 'ca' is null, "nan" will be returned */
-                if (ca != null) {
-                    max = ca.getMaxValue();
-                    min = ca.getMinValue();
-                    break;
+            }
+
+            /* NOTE: falls through to 'default' if var is still null by this point */
+            if (var != null) {
+                try {
+                    Array arr = var.read();
+                    min = MAMath.getMinimum(arr);
+                    max = MAMath.getMaximum(arr);
+                } catch (IOException ex) {
+                    /* fall through to default */
+                    min = Double.NaN;
+                    max = Double.NaN;
                 }
+            }
         }
         return new Number[]{min, max};
     }

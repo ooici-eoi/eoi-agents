@@ -17,6 +17,7 @@ import java.io.IOException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -266,7 +267,7 @@ public class NcAgent extends AbstractNcAgent {
                 HttpClientManager.init(provider, "OOICI-ION");
             }
 
-            ncds = NetcdfDataset.openDataset(request, false, null);
+            ncds = NetcdfDataset.openDataset(request, EnumSet.of(NetcdfDataset.Enhance.CoordSystems), -1, null, null);
         } catch (IOException ex) {
             log.error("Error opening dataset \"" + request + "\"", ex);
         }

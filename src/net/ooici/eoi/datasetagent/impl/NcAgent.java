@@ -23,7 +23,6 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
-import net.ooici.eoi.datasetagent.AbstractDatasetAgent;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
@@ -330,6 +329,7 @@ public class NcAgent extends AbstractNcAgent {
                         warn = true;
                         thrown = ex;
                     }
+                    this.addSubRange(trng);
                 } else {
                     warn = true;
                 }
@@ -343,7 +343,6 @@ public class NcAgent extends AbstractNcAgent {
                     log.warn("Error determining time axis - full time range will be used");
                 }
             }
-            this.addSubRange(trng);
 //            System.out.println((trng != null) ? trng.getName() + "=" + trng.toString() : "no trng");
         }
 
@@ -641,9 +640,9 @@ public class NcAgent extends AbstractNcAgent {
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"AIRT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"ATMS\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RELH\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"LW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RAIT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"TEMP\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"SW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"UWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"VWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"PSAL\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable></netcdf>";
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        ncmlmask = "";
-//        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_NTAS_2010_R_M-1.nc";
-//        sTime = "2011-05-16T00:00:00Z";
-//        eTime = "2011-05-17T00:00:00Z";
+        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_NTAS_2010_R_M-1.nc";
+        sTime = "2011-05-23T00:00:00Z";
+        eTime = "2011-05-24T00:00:00Z";
 
         /* UOP - NTAS 2 */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
@@ -781,17 +780,13 @@ public class NcAgent extends AbstractNcAgent {
         
          */
         /* AVHRR_METOP_A test */
-        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-        sTime = "2011-05-22T04:30:00Z";
-        eTime = "2011-05-22T04:40:00Z";
-        baseUrl = "ftp://podaac-ftp.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR_METOP_A/EUR/";
-        dirPattern = "%yyyy%/%DDD%/";
-        filePattern = "%yyyy%%MM%%dd%-EUR-L2P_GHRSST-SSTsubskin-AVHRR_METOP_A-eumetsat_sstmgr_metop02_%yyyy%%MM%%dd%_%HH%%mm%%ss%-v01\\.7-fv01.0\\.nc\\.bz2";
-        joinName = "time";
-
-
-
-
+//        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+//        sTime = "2011-05-22T04:30:00Z";
+//        eTime = "2011-05-22T04:40:00Z";
+//        baseUrl = "ftp://podaac-ftp.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR_METOP_A/EUR/";
+//        dirPattern = "%yyyy%/%DDD%/";
+//        filePattern = "%yyyy%%MM%%dd%-EUR-L2P_GHRSST-SSTsubskin-AVHRR_METOP_A-eumetsat_sstmgr_metop02_%yyyy%%MM%%dd%_%HH%%mm%%ss%-v01\\.7-fv01.0\\.nc\\.bz2";
+//        joinName = "time";
         List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         net.ooici.services.sa.DataSource.SourceType sourceType = net.ooici.services.sa.DataSource.SourceType.NETCDF_S;

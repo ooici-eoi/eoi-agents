@@ -451,10 +451,6 @@ public class DatasetAgentController implements ControlListener {
                 }
 
                 String op = msg.getIonHeaders().get("op").toString();
-                if(log.isDebugEnabled()) {
-                    log.debug("OP: " + op);
-                }
-                String repTo = msg.getIonHeaders().get("reply-to").toString();
                 if (op.equalsIgnoreCase("op_shutdown")) {
                     if(log.isDebugEnabled()) {
                         log.debug("Shutdown Request Received");
@@ -466,6 +462,10 @@ public class DatasetAgentController implements ControlListener {
                         log.debug("Update Request Received");
                     }
                     clistener.controlEvent(new ControlEvent(this, ControlEventType.UPDATE, msg));
+                } else {
+                    if(log.isDebugEnabled()) {
+                        log.debug("OP: \"{}\" is not understood, must be either \"op_shutdown\" or \"op_update\"", op);
+                    }
                 }
             }
         }

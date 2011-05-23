@@ -23,6 +23,7 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
+import net.ooici.eoi.datasetagent.AbstractDatasetAgent;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
@@ -375,11 +376,25 @@ public class NcAgent extends AbstractNcAgent {
         }
 
         manualTesting();
+        
+//        writeNcdsForNcml();
 
 //        generateSamples();
 
 //        generateMetadata();
 
+    }
+    
+    private static void writeNcdsForNcml() throws IOException {
+        
+        String ncml = "file:/Users/tlarocque/cfoutput/cfout-cgsn/ismt2-cr1000.ncml";
+        String out = "/Users/tlarocque/Desktop/ismt2-cr1000.nc";
+        
+        System.out.println("Starting ncds write");
+        NetcdfDataset ncds = NetcdfDataset.openDataset(ncml);
+        ucar.nc2.FileWriter.writeToFile(ncds, out);
+        System.out.println("Write complete!");
+        
     }
 
     private static void generateMetadata() throws IOException {
@@ -702,10 +717,10 @@ public class NcAgent extends AbstractNcAgent {
         /** ******************** */
 
 
-        /* MODIS A test (pull 15 minutes of data -- 3 files) */
+        /* MODIS A test (pull 10 minutes of data -- 2 files) */
 //         requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-//         sTime = "2011-05-19T12:00:00Z";
-//         eTime = "2011-05-19T12:15:00Z";
+//         sTime = "2011-04-20T12:00:00Z";
+//         eTime = "2011-04-20T12:10:00Z";
 //         baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_A/JPL/";
 //         dirPattern = "%yyyy%/%DDD%/";
 //         filePattern = "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
@@ -717,14 +732,14 @@ public class NcAgent extends AbstractNcAgent {
             Base Dir:       ./allData/ghrsst/data/L2P/MODIS_A/JPL/
          */
 
-        /* MODIS T test (pull 15 minutes of data -- 3 files) */
-        // requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-        // sTime = "2011-04-20T12:00:00Z";
-        // eTime = "2011-04-20T12:10:00Z";
-        // baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_T/JPL/";
-        // dirPattern = "%yyyy%/%DDD%/";
-        // filePattern = "%yyyy%%MM%%dd%-MODIS_T-JPL-L2P-T%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
-        // joinName = "time";
+        /* MODIS T test (pul 10 minutes of data -- 2 files) */
+//         requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+//         sTime = "2011-04-20T12:00:00Z";
+//         eTime = "2011-04-20T12:10:00Z";
+//         baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_T/JPL/";
+//         dirPattern = "%yyyy%/%DDD%/";
+//         filePattern = "%yyyy%%MM%%dd%-MODIS_T-JPL-L2P-T%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
+//         joinName = "time";
         /*
             dir_pattern:    "%yyyy%/%DDD%/"
             file_pattern:   "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2"
@@ -732,14 +747,14 @@ public class NcAgent extends AbstractNcAgent {
             Base Dir:       ./allData/ghrsst/data/L2P/MODIS_A/JPL/
          */
 
-        /* OSTIA test (pull 3 days of data -- 3 files) */
-        // requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-        // sTime = "2011-04-20T12:30:00Z";
-        // eTime = "2011-04-23T12:30:00Z";
-        // baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L4/GLOB/UKMO/OSTIA/";
-        // dirPattern = "%yyyy%/%DDD%/";
-        // filePattern = "%yyyy%%MM%%dd%-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA\\.nc\\.bz2";
-        // joinName = "time";
+        /* OSTIA test (pull 2 days of data -- 2 files) */
+//         requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+//         sTime = "2011-04-20T12:30:00Z";
+//         eTime = "2011-04-21T12:30:00Z";
+//         baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L4/GLOB/UKMO/OSTIA/";
+//         dirPattern = "%yyyy%/%DDD%/";
+//         filePattern = "%yyyy%%MM%%dd%-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA\\.nc\\.bz2";
+//         joinName = "time";
 
         /*
             Base URL:       ftp://podaac.jpl.nasa.gov
@@ -749,6 +764,7 @@ public class NcAgent extends AbstractNcAgent {
             file_pattern:   "%yyyy%%MM%%dd%-UKMO-L4HRfnd-GLOB-v01-fv02-OSTIA\\.nc\\.bz2"
             join_dimension: "time"
          */
+
         
         /* AVHRR19_L test (pull 15 mins of data -- ~2 files) */
 //        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
@@ -758,17 +774,7 @@ public class NcAgent extends AbstractNcAgent {
 //        dirPattern = "%yyyy%/%DDD%/";
 //        filePattern = "%yyyy%%MM%%dd%-AVHRR19_L-NAVO-L2P-SST_s%HH%%mm%_e[0-9]{4}-v01\\.nc\\.bz2";
 //        joinName = "time";
-        
-        /* AVHRR_METOP_A test */
-        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-        sTime = "2011-05-22T04:30:00Z";
-        eTime = "2011-05-22T04:40:00Z";
-        baseUrl = "ftp://podaac-ftp.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR_METOP_A/EUR/";
-        dirPattern = "%yyyy%/%DDD%/";
-        filePattern = "%yyyy%%MM%%dd%-EUR-L2P_GHRSST-SSTsubskin-AVHRR_METOP_A-eumetsat_sstmgr_metop02_%yyyy%%MM%%dd%_%HH%%mm%%ss%-v01\\.7-fv01.0\\.nc\\.bz2";
-        joinName = "time";
-        
-        
+
         /*
             Base URL:      ftp://podaac.jpl.nasa.gov
             Base Dir:      /allData/ghrsst/data/L2P/AVHRR19_L/NAVO/
@@ -781,6 +787,19 @@ public class NcAgent extends AbstractNcAgent {
              2011  01  09 -AVHRR19_L-NAVO-L2P-SST_s 01  01 _e0109-v01.nc.bz2
          
          */
+        
+        
+        /* AVHRR_METOP_A test */
+        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+        sTime = "2011-05-22T04:30:00Z";
+        eTime = "2011-05-22T04:40:00Z";
+        baseUrl = "ftp://podaac-ftp.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR_METOP_A/EUR/";
+        dirPattern = "%yyyy%/%DDD%/";
+        filePattern = "%yyyy%%MM%%dd%-EUR-L2P_GHRSST-SSTsubskin-AVHRR_METOP_A-eumetsat_sstmgr_metop02_%yyyy%%MM%%dd%_%HH%%mm%%ss%-v01\\.7-fv01.0\\.nc\\.bz2";
+        joinName = "time";
+        
+        
+        
         
         List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();

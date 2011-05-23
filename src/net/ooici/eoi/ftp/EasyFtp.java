@@ -56,13 +56,14 @@ public class EasyFtp {
                 @Override
                 public void protocolReplyReceived(ProtocolCommandEvent pce) {
                     log.debug(new StringBuilder("<<<---@@@ RECEIVE: ").append(pce.getCommand()).append(": ")
-                        .append(pce.getMessage()).toString().trim());
+                        .append(pce.getMessage().trim()).toString());
                 }
 
                 @Override
                 public void protocolCommandSent(ProtocolCommandEvent pce) {
-                    log.debug(new StringBuilder("@@@--->>> SENT: ").append(pce.getCommand()).append(": ")
-                        .append(pce.getMessage()).toString().trim());
+                    /* Spaces here make the logged output "line up" */
+                    log.debug(new StringBuilder("  @@@--->>> SENT: ").append(pce.getCommand()).append(": ")
+                        .append(pce.getMessage().trim()).toString());
                 }
             });
         }

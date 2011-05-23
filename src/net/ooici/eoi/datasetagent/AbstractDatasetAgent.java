@@ -233,6 +233,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             result = _processDataset(data);
         } catch (Exception ex) {
             result = new String[]{"failure", ex.getMessage()};
+            log.error("Failure during update...", ex);
         }
 
         closeMsgBrokerClient();

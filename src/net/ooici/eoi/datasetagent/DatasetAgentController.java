@@ -193,19 +193,24 @@ public class DatasetAgentController implements ControlListener {
 
                 } catch (InvalidProtocolBufferException ex) {
                     log.error("ProcThread:" + threadId + ":: Received bad context ");
-                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
-                    reply.getIonHeaders().putAll(msg.getIonHeaders());
-                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
-                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
-                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
-                    reply.getIonHeaders().put("encoding", "json");
+                    IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", ex.getMessage());
                     reply.getIonHeaders().put("status", "ERROR");
-                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
                     reply.getIonHeaders().put("performative", "failure");
+                    reply.getIonHeaders().put("encoding", "json");
+
+//                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
+//                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+//                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+//                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+//                    reply.getIonHeaders().put("encoding", "json");
+//                    reply.getIonHeaders().put("status", "ERROR");
+//                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+//                    reply.getIonHeaders().put("response", "ION ERROR");
+//                    reply.getIonHeaders().put("performative", "failure");
 
 
-                    if(log.isDebugEnabled()) {
+                    if (log.isDebugEnabled()) {
                         log.debug(reply.toString());
                     }
 
@@ -227,18 +232,24 @@ public class DatasetAgentController implements ControlListener {
                     }
                     agent = AgentFactory.getDatasetAgent(source_type);
                 } catch (IllegalArgumentException ex) {
-                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
-                    reply.getIonHeaders().putAll(msg.getIonHeaders());
-                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
-                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
-                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
-                    reply.getIonHeaders().put("encoding", "json");
+                    IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", ex.getMessage());
                     reply.getIonHeaders().put("status", "ERROR");
-                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
                     reply.getIonHeaders().put("performative", "failure");
+                    reply.getIonHeaders().put("encoding", "json");
 
-                    if(log.isDebugEnabled()) {
+//                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
+//                    reply.getIonHeaders().putAll(msg.getIonHeaders());
+//                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+//                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+//                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+//                    reply.getIonHeaders().put("encoding", "json");
+//                    reply.getIonHeaders().put("status", "ERROR");
+//                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+//                    reply.getIonHeaders().put("response", "ION ERROR");
+//                    reply.getIonHeaders().put("performative", "failure");
+
+                    if (log.isDebugEnabled()) {
                         log.debug(reply.toString());
                     }
 
@@ -250,7 +261,7 @@ public class DatasetAgentController implements ControlListener {
                 /* TODO: Make the connection information default to the conn-info for the DAC...will
                  * be replaced by a proto object containing this information.
                  */
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("ProcThread:" + threadId + ":: Build connInfo");
                 }
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
@@ -264,7 +275,7 @@ public class DatasetAgentController implements ControlListener {
                  * Perform the update - this can result in multiple messages being sent to the ingest service
                  * The reply should be the ooi resource id
                  */
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("ProcThread:" + threadId + ":: Perform update");
                 }
                 String[] ooiDsId = null;
@@ -273,18 +284,24 @@ public class DatasetAgentController implements ControlListener {
                 } catch (Exception ex) {
                     /* Send a reply_err message back to caller */
                     log.error("ProcThread:" + threadId + ":: Received could not perform update", ex);
-                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
-                    reply.getIonHeaders().putAll(msg.getIonHeaders());
-                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
-                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
-                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
-                    reply.getIonHeaders().put("encoding", "json");
+                    IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", ex.getMessage());
                     reply.getIonHeaders().put("status", "ERROR");
-                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
                     reply.getIonHeaders().put("performative", "failure");
+                    reply.getIonHeaders().put("encoding", "json");
 
-                    if(log.isDebugEnabled()) {
+//                    IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
+//                    reply.getIonHeaders().putAll(msg.getIonHeaders());
+//                    reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+//                    reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+//                    reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+//                    reply.getIonHeaders().put("encoding", "json");
+//                    reply.getIonHeaders().put("status", "ERROR");
+//                    reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+//                    reply.getIonHeaders().put("response", "ION ERROR");
+//                    reply.getIonHeaders().put("performative", "failure");
+
+                    if (log.isDebugEnabled()) {
                         log.debug(reply.toString());
                     }
 
@@ -292,21 +309,27 @@ public class DatasetAgentController implements ControlListener {
                     return;
                 }
 
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug("ProcThread:" + threadId + ":: Update complete - send reply to wrapper");
                 }
-                IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId[0]);
-                reply.getIonHeaders().putAll(msg.getIonHeaders());
-                reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
-                reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
-                reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
-                reply.getIonHeaders().put("encoding", "json");
+                IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", ooiDsId[0]);
                 reply.getIonHeaders().put("status", "OK");
-                reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                 reply.getIonHeaders().put("response", "ION SUCCESS");
                 reply.getIonHeaders().put("performative", "inform_result");
+                reply.getIonHeaders().put("encoding", "json");
 
-                if(log.isDebugEnabled()) {
+//                IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId[0]);
+//                reply.getIonHeaders().putAll(msg.getIonHeaders());
+//                reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
+//                reply.getIonHeaders().put("reply-to", ((ControlProcess) source).getMessagingName().toString());
+//                reply.getIonHeaders().put("sender", ((ControlProcess) source).getMessagingName().toString());
+//                reply.getIonHeaders().put("encoding", "json");
+//                reply.getIonHeaders().put("status", "OK");
+//                reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
+//                reply.getIonHeaders().put("response", "ION SUCCESS");
+//                reply.getIonHeaders().put("performative", "inform_result");
+
+                if (log.isDebugEnabled()) {
                     log.debug(reply.toString());
                 }
 
@@ -386,14 +409,14 @@ public class DatasetAgentController implements ControlListener {
         }
 
         public void sendControlMessage(String toName, String op, Object content) {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("\n\n\ntoName: \t" + toName + "\nop: \t" + op + "\ncontent: \t" + content);
             }
             cp.send(new MessagingName(toName), op, content);
         }
 
         public void terminate() {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("ControlThread:: Terminating " + this.getName() + "...");
             }
             interrupt();
@@ -402,7 +425,7 @@ public class DatasetAgentController implements ControlListener {
         @Override
         public synchronized void start() {
             super.start();
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("ControlThread:: Starting control thread...");
             }
             if (cp != null) {
@@ -412,7 +435,7 @@ public class DatasetAgentController implements ControlListener {
 
         @Override
         public void interrupt() {
-            if(log.isDebugEnabled()) {
+            if (log.isDebugEnabled()) {
                 log.debug("ControlThread:: Interrupting " + this.getName() + "...");
             }
             cp.dispose();
@@ -446,24 +469,24 @@ public class DatasetAgentController implements ControlListener {
 //                log.debug("Ack Message");
                 this.ackMessage(msg);
 
-                if(log.isDebugEnabled()) {
+                if (log.isDebugEnabled()) {
                     log.debug(msg.toString());
                 }
 
                 String op = msg.getIonHeaders().get("op").toString();
                 if (op.equalsIgnoreCase("op_shutdown")) {
-                    if(log.isDebugEnabled()) {
+                    if (log.isDebugEnabled()) {
                         log.debug("Shutdown Request Received");
                     }
 //                    this.send(new MessagingName(repTo), "op_shutdown_ack", "Shutdown initiated");
                     clistener.controlEvent(new ControlEvent(this, ControlEventType.SHUTDOWN, msg));
                 } else if (op.equalsIgnoreCase("op_update")) {
-                    if(log.isDebugEnabled()) {
+                    if (log.isDebugEnabled()) {
                         log.debug("Update Request Received");
                     }
                     clistener.controlEvent(new ControlEvent(this, ControlEventType.UPDATE, msg));
                 } else {
-                    if(log.isDebugEnabled()) {
+                    if (log.isDebugEnabled()) {
                         log.debug("OP: \"{}\" is not understood, must be either \"op_shutdown\" or \"op_update\"", op);
                     }
                 }

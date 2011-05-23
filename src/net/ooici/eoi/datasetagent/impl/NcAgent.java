@@ -258,7 +258,7 @@ public class NcAgent extends AbstractNcAgent {
                 HttpClientManager.init(provider, "OOICI-ION");
             }
 
-            ncds = NetcdfDataset.openDataset(request);
+            ncds = NetcdfDataset.openDataset(request, false, null);
         } catch (IOException ex) {
             log.error("Error opening dataset \"" + request + "\"", ex);
         }
@@ -570,8 +570,8 @@ public class NcAgent extends AbstractNcAgent {
     private static void manualTesting() throws IOException {
         /* the ncml mask to use*/
         /* for NAM - WARNING!!  This is a HUGE file... not fully supported on the ingest side yet... */
-        String ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?> <netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"> <variable name=\"time\"> <attribute name=\"standard_name\" value=\"time\" /> </variable> <variable name=\"lat\"> <attribute name=\"standard_name\" value=\"latitude\" /> <attribute name=\"units\" value=\"degree_north\" /> </variable> <variable name=\"lon\"> <attribute name=\"standard_name\" value=\"longitude\" /> <attribute name=\"units\" value=\"degree_east\" /> </variable> </netcdf>";
-        String dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110502/nam1hr_00z";
+        String ncmlmask = "";
+        String dataurl = "";
         String baseUrl = "";
         String sTime = "";
         String eTime = "";
@@ -624,30 +624,30 @@ public class NcAgent extends AbstractNcAgent {
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"AIRT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"ATMS\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RELH\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"LW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RAIT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"TEMP\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"SW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"UWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"VWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"PSAL\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable></netcdf>";
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        ncmlmask = "";
-//        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_NTAS_2010_R_M-1.nc";
-//        sTime = "2011-04-01T00:00:00Z";
-//        eTime = "2011-04-15T00:00:00Z";
+//        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_NTAS_2010_R_M-1.nc";
+//        sTime = "2011-05-16T00:00:00Z";
+//        eTime = "2011-05-17T00:00:00Z";
 
         /* UOP - NTAS 2 */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        ncmlmask = "";
-//        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_NTAS_2010_R_M-2.nc";
-//        sTime = "2011-04-01T00:00:00Z";
-//        eTime = "2011-04-15T00:00:00Z";
+//        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_NTAS_2010_R_M-2.nc";
+//        sTime = "2011-05-01T00:00:00Z";
+//        eTime = "2011-05-15T00:00:00Z";
 
         /* UOP - WHOTS 1 */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        ncmlmask = "";
-//        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-1.nc";
-//        sTime = "2011-04-01T00:00:00Z";
-//        eTime = "2011-04-15T00:00:00Z";
+//        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_WHOTS_2010_R_M-1.nc";
+//        sTime = "2011-05-01T00:00:00Z";
+//        eTime = "2011-05-15T00:00:00Z";
 
         /* UOP - WHOTS 2 */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        ncmlmask = "";
-//        dataurl = "http://geoport.whoi.edu/thredds/dodsC/usgs/data0/rsignell/data/oceansites/OS_WHOTS_2010_R_M-2.nc";
-//        sTime = "2011-05-04T03:00:00Z";
-//        eTime = "2011-04-15T00:00:00Z";
+//        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_WHOTS_2010_R_M-2.nc";
+//        sTime = "2011-05-01T00:00:00Z";
+//        eTime = "2011-05-15T00:00:00Z";
 
         /* GFS */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><attribute name=\"title\" value=\"NCEP GFS4\"/></netcdf>";
@@ -681,11 +681,11 @@ public class NcAgent extends AbstractNcAgent {
 
         /* CGSN test */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"stnId\" shape=\"\" type=\"int\"><attribute name=\"standard_name\" value=\"station_id\"/><values>1</values></variable></netcdf>";
+//        ncmlmask = "";
 //        uname = "cgsn";
 //        pass = "ISMT2!!";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Timing.nc";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_SBE16.nc";
-//        ncmlmask = "";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Motion.nc";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_Iridium.nc";
 //        dataurl = "http://ooi.coas.oregonstate.edu:8080/thredds/dodsC/OOI/ISMT2/ISMT2_ECO-VSF.nc";
@@ -703,13 +703,13 @@ public class NcAgent extends AbstractNcAgent {
 
 
         /* MODIS A test (pull 15 minutes of data -- 3 files) */
-        // requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-        // sTime = "2011-04-20T12:00:00Z";
-        // eTime = "2011-04-20T12:15:00Z";
-        // baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_A/JPL/";
-        // dirPattern = "%yyyy%/%DDD%/";
-        // filePattern = "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
-        // joinName = "time";
+//         requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+//         sTime = "2011-05-19T12:00:00Z";
+//         eTime = "2011-05-19T12:15:00Z";
+//         baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/MODIS_A/JPL/";
+//         dirPattern = "%yyyy%/%DDD%/";
+//         filePattern = "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
+//         joinName = "time";
         /*
             dir_pattern:    "%yyyy%/%DDD%/"
             file_pattern:   "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2"
@@ -750,14 +750,24 @@ public class NcAgent extends AbstractNcAgent {
             join_dimension: "time"
          */
         
-        /* AVHRR test (pull 15 mins of data -- ~2 files) */
+        /* AVHRR19_L test (pull 15 mins of data -- ~2 files) */
+//        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+//        sTime = "2011-01-09T04:25:00Z";
+//        eTime = "2011-01-09T04:40:00Z";
+//        baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR19_L/NAVO/";
+//        dirPattern = "%yyyy%/%DDD%/";
+//        filePattern = "%yyyy%%MM%%dd%-AVHRR19_L-NAVO-L2P-SST_s%HH%%mm%_e[0-9]{4}-v01\\.nc\\.bz2";
+//        joinName = "time";
+        
+        /* AVHRR_METOP_A test */
         requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
-        sTime = "2011-01-09T04:25:00Z";
-        eTime = "2011-01-09T04:40:00Z";
-        baseUrl = "ftp://podaac.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR19_L/NAVO/";
+        sTime = "2011-05-22T04:30:00Z";
+        eTime = "2011-05-22T04:40:00Z";
+        baseUrl = "ftp://podaac-ftp.jpl.nasa.gov/allData/ghrsst/data/L2P/AVHRR_METOP_A/EUR/";
         dirPattern = "%yyyy%/%DDD%/";
-        filePattern = "%yyyy%%MM%%dd%-AVHRR19_L-NAVO-L2P-SST_s%HH%%mm%_e[0-9]{4}-v01\\.nc\\.bz2";
+        filePattern = "%yyyy%%MM%%dd%-EUR-L2P_GHRSST-SSTsubskin-AVHRR_METOP_A-eumetsat_sstmgr_metop02_%yyyy%%MM%%dd%_%HH%%mm%%ss%-v01\\.7-fv01.0\\.nc\\.bz2";
         joinName = "time";
+        
         
         /*
             Base URL:      ftp://podaac.jpl.nasa.gov
@@ -813,8 +823,8 @@ public class NcAgent extends AbstractNcAgent {
             cBldr.setSearchPattern(patternWrap.getCASRef());
         }
         net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()), addlObjects.toArray(new GPBWrapper<?>[] {}));
-//        runAgent(struct, AgentRunType.TEST_WRITE_NC);
-        runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
+        runAgent(struct, AgentRunType.TEST_WRITE_NC);
+//        runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
     }
 
     private static String[] runAgent(net.ooici.core.container.Container.Structure structure, AgentRunType agentRunType) throws IOException {
@@ -823,7 +833,7 @@ public class NcAgent extends AbstractNcAgent {
 
         /* Set the maximum size for retrieving/sending - default is 5mb */
 //        agent.setMaxSize(1048576);//1mb
-        agent.setMaxSize(67874688);//~64mb
+//        agent.setMaxSize(67874688);//~64mb
 //        agent.setMaxSize(30000);//pretty small
 //        agent.setMaxSize(1500);//very small
 //        agent.setMaxSize(150);//super small

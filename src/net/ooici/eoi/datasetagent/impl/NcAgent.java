@@ -208,7 +208,7 @@ public class NcAgent extends AbstractNcAgent {
             if (!log.isDebugEnabled()) {
                 temp.deleteOnExit();
             }
-            FtpFileFinder.generateNcml(temp, localFiles, joinDim);
+            FtpFileFinder.generateNcml(temp, localFiles, joinDim, context.getNcmlMask());
         } catch (IOException ex) {
             // TODO: handle this -- failure to generate NCML aggregation for FTP files..
             ex.printStackTrace();
@@ -398,7 +398,8 @@ public class NcAgent extends AbstractNcAgent {
         String out = "/Users/tlarocque/Desktop/ismt2-cr1000.nc";
 
         System.out.println("Starting ncds write");
-        NetcdfDataset ncds = NetcdfDataset.openDataset(ncml);
+        NetcdfDataset ncds = NetcdfDataset.openDataset(ncml, false, null);
+        
         ucar.nc2.FileWriter.writeToFile(ncds, out);
         System.out.println("Write complete!");
 
@@ -727,7 +728,7 @@ public class NcAgent extends AbstractNcAgent {
         Base Dir:       ./allData/ghrsst/data/L2P/MODIS_A/JPL/
          */
 
-        /* MODIS T test (pul 10 minutes of data -- 2 files) */
+        /* MODIS T test (pull 10 minutes of data -- 2 files) */
 //         requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
 //         sTime = "2011-04-20T12:00:00Z";
 //         eTime = "2011-04-20T12:10:00Z";
@@ -735,6 +736,7 @@ public class NcAgent extends AbstractNcAgent {
 //         dirPattern = "%yyyy%/%DDD%/";
 //         filePattern = "%yyyy%%MM%%dd%-MODIS_T-JPL-L2P-T%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2";
 //         joinName = "time";
+//         ncmlmask = "<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\">\n   <variable name=\"lat\">\n      <attribute name=\"moto\" type=\"string\" value=\"GO TEAM!\" />\n   </variable>\n   <variable name=\"lon\">\n      <attribute name=\"moto\" type=\"string\" value=\"GO TEAM!\" />\n   </variable>\n</netcdf>\n";
         /*
         dir_pattern:    "%yyyy%/%DDD%/"
         file_pattern:   "%yyyy%%MM%%dd%-MODIS_A-JPL-L2P-A%yyyy%%DDD%%HH%%mm%%ss%\\.L2_LAC_GHRSST_[a-zA-Z]-v01\\.nc\\.bz2"

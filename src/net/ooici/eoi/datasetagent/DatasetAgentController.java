@@ -32,10 +32,11 @@ public class DatasetAgentController implements ControlListener {
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DatasetAgentController.class);
     private final ControlThread controlThread;
     private final ExecutorService processService;
-    
     private static String w_host_name = "";
     private static String w_xp_name = "";       /* Wrapper Service Exchange Point Name aka Topic (usu. magnet.topic) */
-    private static String w_scoped_name = "";   /* Qualified Wrapper Service Name */ 
+
+    private static String w_scoped_name = "";   /* Qualified Wrapper Service Name */
+
 
     public static void main(String[] args) {
         String w_callback_op = "";
@@ -45,8 +46,8 @@ public class DatasetAgentController implements ControlListener {
                 w_xp_name = args[1];
                 w_scoped_name = args[2];
                 w_callback_op = args[3];
-                
-                if(log.isDebugEnabled()) {
+
+                if (log.isDebugEnabled()) {
                     log.debug("Startup args: host_name={}; xp_name={}; scoped_name={}; callback={}", new Object[]{w_host_name, w_xp_name, w_scoped_name, w_callback_op});
                 }
             } catch (IllegalArgumentException ex) {
@@ -65,7 +66,9 @@ public class DatasetAgentController implements ControlListener {
         }
 
         controlThread = new ControlThread(host, exchange, null, 500, this);
-        log.debug("Control ID: " + controlThread.getMessagingName());
+        if (log.isDebugEnabled()) {
+            log.debug("Control ID: " + controlThread.getMessagingName());
+        }
 
         /* Start the control thread */
         controlThread.start();
@@ -74,7 +77,11 @@ public class DatasetAgentController implements ControlListener {
         processService = Executors.newFixedThreadPool(1);
 
         /* Inform the wrapper of my messaging name */
-        controlThread.sendControlMessage(wrapperName, bindingCallback, controlThread.getMessagingName().toString());
+        String myName = controlThread.getMessagingName().toString();
+        if (log.isDebugEnabled()) {
+            log.debug("Sending message to wrapper with the DAC Binding Key: {}", myName);
+        }
+        controlThread.sendControlMessage(wrapperName, bindingCallback, myName);
     }
 
     public void controlEvent(ControlEvent evt) {
@@ -127,7 +134,9 @@ public class DatasetAgentController implements ControlListener {
             public void run() {
                 String threadId = Thread.currentThread().getName();
                 String status = "";
-                log.debug("Processing Thread ID: " + threadId);
+                if (log.isDebugEnabled()) {
+                    log.debug("Processing Thread ID: " + threadId);
+                }
 //                Map<String, String[]> context = convertToStringStringArrayMap(((HashMap<?, ?>) msg.getContent()));
                 net.ooici.services.sa.DataSource.EoiDataContextMessage context = null;
                 net.ooici.core.container.Container.Structure struct = null;
@@ -137,7 +146,9 @@ public class DatasetAgentController implements ControlListener {
                     for (Container.StructureElement se : struct.getItemsList()) {
                         elementMap.put(se.getKey(), se);
                     }
-                    log.debug(elementMap.entrySet().iterator().next().getValue().toString());
+                    if (log.isDebugEnabled()) {
+                        log.debug(elementMap.entrySet().iterator().next().getValue().toString());
+                    }
 //                    net.ooici.core.message.IonMessage.IonMsg ionmsg = net.ooici.core.message.IonMessage.IonMsg.parseFrom(struct.getHead());
 //                    log.debug("IonMsg:\n" + ionmsg);
 //
@@ -145,8 +156,10 @@ public class DatasetAgentController implements ControlListener {
 //                    Container.StructureElement elm = elementMap.get(link.toByteString());
 
                     context = net.ooici.services.sa.DataSource.EoiDataContextMessage.parseFrom(elementMap.entrySet().iterator().next().getValue().getValue());
-                    log.debug("ProcThread:" + threadId + ":: Received context as:\n{\n" + context.toString() + "}\n");
-                    
+                    if (log.isDebugEnabled()) {
+                        log.debug("ProcThread:" + threadId + ":: Received context as:\n{\n" + context.toString() + "}\n");
+                    }
+
 //                    if (log.isDebugEnabled()) {
 //                        log.debug("Checking localized context...");
 //                        StringBuilder sb = new StringBuilder("Dataset Context:\n{\n");
@@ -190,10 +203,11 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("conv-seq", Integer.valueOf(msg.getIonHeaders().get("conv-seq").toString()) + 1);
                     reply.getIonHeaders().put("response", "ION ERROR");
                     reply.getIonHeaders().put("performative", "failure");
-                    
-                    
 
-                    log.debug(printMessage("**Reply Message to Wrapper**", reply));
+
+                    if(log.isDebugEnabled()) {
+                        log.debug(reply.toString());
+                    }
 
                     ((ControlProcess) source).send(reply);
                     /* TODO: should we return here? */
@@ -201,12 +215,16 @@ public class DatasetAgentController implements ControlListener {
                 }
 
                 net.ooici.services.sa.DataSource.SourceType source_type = context.getSourceType();
-                log.debug("ProcThread:" + threadId + ":: source_type = " + source_type);
+                if (log.isDebugEnabled()) {
+                    log.debug("ProcThread:" + threadId + ":: source_type = " + source_type);
+                }
 
                 /* Instantiate the appropriate dataset agent based on the source_type */
                 IDatasetAgent agent;
                 try {
-                    log.debug("ProcThread:" + threadId + ":: Generating DatasetAgent instance...");
+                    if (log.isDebugEnabled()) {
+                        log.debug("ProcThread:" + threadId + ":: Generating DatasetAgent instance...");
+                    }
                     agent = AgentFactory.getDatasetAgent(source_type);
                 } catch (IllegalArgumentException ex) {
                     IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ex.getMessage());
@@ -220,7 +238,9 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("response", "ION ERROR");
                     reply.getIonHeaders().put("performative", "failure");
 
-                    log.debug(printMessage("**Reply Message to Wrapper**", reply));
+                    if(log.isDebugEnabled()) {
+                        log.debug(reply.toString());
+                    }
 
                     ((ControlProcess) source).send(reply);
                     return;
@@ -230,7 +250,9 @@ public class DatasetAgentController implements ControlListener {
                 /* TODO: Make the connection information default to the conn-info for the DAC...will
                  * be replaced by a proto object containing this information.
                  */
-                log.debug("ProcThread:" + threadId + ":: Build connInfo");
+                if(log.isDebugEnabled()) {
+                    log.debug("ProcThread:" + threadId + ":: Build connInfo");
+                }
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
 //                connInfo.put("exchange", "eoitest");
 //                connInfo.put("service", "eoi_ingest");
@@ -242,7 +264,9 @@ public class DatasetAgentController implements ControlListener {
                  * Perform the update - this can result in multiple messages being sent to the ingest service
                  * The reply should be the ooi resource id
                  */
-                log.debug("ProcThread:" + threadId + ":: Perform update");
+                if(log.isDebugEnabled()) {
+                    log.debug("ProcThread:" + threadId + ":: Perform update");
+                }
                 String[] ooiDsId = null;
                 try {
                     ooiDsId = agent.doUpdate(struct, connInfo);
@@ -260,13 +284,17 @@ public class DatasetAgentController implements ControlListener {
                     reply.getIonHeaders().put("response", "ION ERROR");
                     reply.getIonHeaders().put("performative", "failure");
 
-                    log.debug(printMessage("**Reply Message to Wrapper**", reply));
+                    if(log.isDebugEnabled()) {
+                        log.debug(reply.toString());
+                    }
 
                     ((ControlProcess) source).send(reply);
                     return;
                 }
 
-                log.debug("ProcThread:" + threadId + ":: Update complete - send reply to wrapper");
+                if(log.isDebugEnabled()) {
+                    log.debug("ProcThread:" + threadId + ":: Update complete - send reply to wrapper");
+                }
                 IonMessage reply = ((ControlProcess) source).createMessage(msg.getIonHeaders().get("reply-to").toString(), "result", ooiDsId[0]);
                 reply.getIonHeaders().putAll(msg.getIonHeaders());
                 reply.getIonHeaders().put("receiver", msg.getIonHeaders().get("reply-to").toString());
@@ -278,7 +306,9 @@ public class DatasetAgentController implements ControlListener {
                 reply.getIonHeaders().put("response", "ION SUCCESS");
                 reply.getIonHeaders().put("performative", "inform_result");
 
-                log.debug(printMessage("**Reply Message to Wrapper**", reply));
+                if(log.isDebugEnabled()) {
+                    log.debug(reply.toString());
+                }
 
                 ((ControlProcess) source).send(reply);
 
@@ -356,19 +386,25 @@ public class DatasetAgentController implements ControlListener {
         }
 
         public void sendControlMessage(String toName, String op, Object content) {
-            log.debug("\n\n\ntoName: \t" + toName + "\nop: \t" + op + "\ncontent: \t" + content);
+            if(log.isDebugEnabled()) {
+                log.debug("\n\n\ntoName: \t" + toName + "\nop: \t" + op + "\ncontent: \t" + content);
+            }
             cp.send(new MessagingName(toName), op, content);
         }
 
         public void terminate() {
-            log.debug("ControlThread:: Terminating " + this.getName() + "...");
+            if(log.isDebugEnabled()) {
+                log.debug("ControlThread:: Terminating " + this.getName() + "...");
+            }
             interrupt();
         }
 
         @Override
         public synchronized void start() {
             super.start();
-            log.debug("ControlThread:: Starting control thread...");
+            if(log.isDebugEnabled()) {
+                log.debug("ControlThread:: Starting control thread...");
+            }
             if (cp != null) {
                 cp.spawn();
             }
@@ -376,7 +412,9 @@ public class DatasetAgentController implements ControlListener {
 
         @Override
         public void interrupt() {
-            log.debug("ControlThread:: Interrupting " + this.getName() + "...");
+            if(log.isDebugEnabled()) {
+                log.debug("ControlThread:: Interrupting " + this.getName() + "...");
+            }
             cp.dispose();
             super.interrupt();
         }
@@ -408,40 +446,29 @@ public class DatasetAgentController implements ControlListener {
 //                log.debug("Ack Message");
                 this.ackMessage(msg);
 
-                log.debug(printMessage("**Control Message Received**", msg));
+                if(log.isDebugEnabled()) {
+                    log.debug(msg.toString());
+                }
 
                 String op = msg.getIonHeaders().get("op").toString();
-                log.debug("OP: " + op);
+                if(log.isDebugEnabled()) {
+                    log.debug("OP: " + op);
+                }
                 String repTo = msg.getIonHeaders().get("reply-to").toString();
                 if (op.equalsIgnoreCase("op_shutdown")) {
-                    log.debug("Shutdown Request Received");
+                    if(log.isDebugEnabled()) {
+                        log.debug("Shutdown Request Received");
+                    }
 //                    this.send(new MessagingName(repTo), "op_shutdown_ack", "Shutdown initiated");
                     clistener.controlEvent(new ControlEvent(this, ControlEventType.SHUTDOWN, msg));
                 } else if (op.equalsIgnoreCase("op_update")) {
-                    log.debug("Update Request Received");
+                    if(log.isDebugEnabled()) {
+                        log.debug("Update Request Received");
+                    }
                     clistener.controlEvent(new ControlEvent(this, ControlEventType.UPDATE, msg));
                 }
             }
         }
-    }
-
-    /**
-     * Generates a multi-line string representation of an {@link IonMessage}
-     *
-     * @param title a title (description) for this message.  This text will be at the beginning of the multi-line output string.
-     * @param msg the {@link IonMessage} to represent as a string.
-     * @return a multi-line string representation of the message
-     */
-    public static String printMessage(String title, IonMessage msg) {
-        StringBuilder sb = new StringBuilder("\t\n" + title + "\n");
-        sb.append("Headers: ").append("\n");
-        java.util.HashMap<String, Object> headers = (java.util.HashMap<String, Object>) msg.getIonHeaders();
-        for (String s : headers.keySet()) {
-            sb.append("\t").append(s).append(" :: ").append(headers.get(s)).append("\n");
-        }
-        sb.append("CONTENT: ").append("\n");
-        sb.append("\t").append(msg.getContent()).append("\n");
-        return sb.toString();
     }
 
     public static Map<String, String[]> convertToStringStringArrayMap(Map<?, ?> params) {

@@ -49,6 +49,7 @@ public class SosAgent extends AbstractAsciiAgent {
     private static long endTime = Long.MIN_VALUE;
     protected static final SimpleDateFormat sdf;
     private String data_url;
+    private String obsName;
 
     static {
         sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
@@ -77,10 +78,8 @@ public class SosAgent extends AbstractAsciiAgent {
         String south = String.valueOf(context.getRequestBoundsSouth());
         String west = String.valueOf(context.getRequestBoundsWest());
         String east = String.valueOf(context.getRequestBoundsEast());
-//        String sTimeString = context.getStartTime();
-//        String eTimeString = context.getEndTime();
-        /* TODO: make these iterative */
         String property = context.getPropertyList().get(0);
+        obsName = property;
         String stnId = context.getStationIdList().get(0);
 
 
@@ -164,8 +163,9 @@ public class SosAgent extends AbstractAsciiAgent {
      */
     @Override
     protected List<IObservationGroup> parseObs(String asciiData) {
-        log.debug("");
-        log.info("Parsing observations from data [" + asciiData.substring(0, 40) + "...]");
+        if (log.isDebugEnabled()) {
+            log.debug("Parsing observations from data [{}...]", asciiData.substring(0, 40));
+        }
 
         List<IObservationGroup> obsList = null;
         StringReader srdr = new StringReader(asciiData);
@@ -207,34 +207,69 @@ public class SosAgent extends AbstractAsciiAgent {
 
             String[] tokens;
             tokens = line.split(",");
-            List<Pair<Integer, VariableParams>> dataCols = new ArrayList<Pair<Integer, VariableParams>>();
-            String varName = "";
-            for (int i = 6; i < tokens.length; i++) {
-                if (tokens[i].toLowerCase().contains("sea_water_temperature")) {
-//                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_TEMPERATURE));
-                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
-                    varName += (varName.isEmpty()) ? VariableParams.SEA_WATER_TEMPERATURE.getStandardName() : "-" + VariableParams.SEA_WATER_TEMPERATURE.getStandardName();
-                } else if (tokens[i].toLowerCase().contains("sea_water_salinity")) {
-//                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
-                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_SALINITY, IObservationGroup.DataType.FLOAT)));
-                    varName = (varName.isEmpty()) ? VariableParams.SEA_WATER_SALINITY.getStandardName() : "-" + VariableParams.SEA_WATER_SALINITY.getStandardName();
-                } else if (tokens[i].toLowerCase().contains("air_temperature")) {
-//                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
-                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
-                    varName = (varName.isEmpty()) ? VariableParams.AIR_TEMPERATURE.getStandardName() : "-" + VariableParams.AIR_TEMPERATURE.getStandardName();
-                } else if (tokens[i].toLowerCase().contains("air_pressure_at_sea_level")) {
-                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_PRESSURE_AT_SEA_LEVEL, IObservationGroup.DataType.FLOAT)));
-                } else if (tokens[i].toLowerCase().contains("waves")) {
-//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.WAVES, IObservationGroup.DataType.FLOAT)));
 
-                    log.debug("waves");
-                } else if (tokens[i].toLowerCase().contains("winds")) {
-//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.WINDS, IObservationGroup.DataType.FLOAT)));
-
-                    log.debug("winds");
-                } else {
-                    log.debug("Unknown token: " + tokens[i]);
+            /* Sort out depth */
+            int depthIndex = -1;// default is no depth field --> gets set to 0
+            int startIndex = 5;// 5 if no depth, otherwise should be depthIndex + 1;
+            for (int i = 0; i < tokens.length; i++) {
+                if (tokens[i].equalsIgnoreCase("\"depth (m)\"")) {
+                    /* We have depth - */
+                    depthIndex = i;
+                    startIndex = i + 1;
+                    break;
                 }
+            }
+
+            List<Pair<Integer, VariableParams>> dataCols = new ArrayList<Pair<Integer, VariableParams>>();
+            VariableParams params;
+            String name;
+//            String varName = "";
+            for (int i = startIndex; i < tokens.length; i++) {
+                /* Remove any quoting (occurs for all headers with units) */
+                name = tokens[i].replaceAll("\"", "");
+                /* Store the original name */
+                String oname = name;
+                /* Chop off the units (if present) and any leading/trailing whitespace */
+                int ei = name.indexOf("(");
+                name = name.substring(0, ei > 0 ? ei : name.length() - 1);
+                name = name.trim();
+                try {
+                    params = VariableParams.StandardVariable.parseStandardName(name).getVariableParams();
+                } catch (IllegalArgumentException ex) {
+                    /* Ensure the name is a valid Netcdf3 name */
+                    name = ucar.nc2.iosp.netcdf3.N3iosp.createValidNetcdf3ObjectName(name);
+
+                    log.error("Data header \"{}\" unrecognized - adding generic \"{}\"", oname, name);
+                    params = new VariableParams(null, name, "unrecognized: " + oname, "1");
+                }
+                dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(params, IObservationGroup.DataType.FLOAT)));
+//                varName += (varName.isEmpty()) ? params.getStandardName() : "-" + params.getStandardName();
+
+//                if (tokens[i].toLowerCase().contains("sea_water_temperature")) {
+////                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_TEMPERATURE));
+//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.StandardVariable.SEA_WATER_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
+//                    varName += (varName.isEmpty()) ? VariableParams.VariableParams.SEA_WATER_TEMPERATURE.getStandardName() : "-" + VariableParams.SEA_WATER_TEMPERATURE.getStandardName();
+//                } else if (tokens[i].toLowerCase().contains("sea_water_salinity")) {
+////                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
+//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.SEA_WATER_SALINITY, IObservationGroup.DataType.FLOAT)));
+//                    varName = (varName.isEmpty()) ? VariableParams.SEA_WATER_SALINITY.getStandardName() : "-" + VariableParams.SEA_WATER_SALINITY.getStandardName();
+//                } else if (tokens[i].toLowerCase().contains("air_temperature")) {
+////                    dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
+//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_TEMPERATURE, IObservationGroup.DataType.FLOAT)));
+//                    varName = (varName.isEmpty()) ? VariableParams.AIR_TEMPERATURE.getStandardName() : "-" + VariableParams.AIR_TEMPERATURE.getStandardName();
+//                } else if (tokens[i].toLowerCase().contains("air_pressure_at_sea_level")) {
+//                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.AIR_PRESSURE_AT_SEA_LEVEL, IObservationGroup.DataType.FLOAT)));
+//                } else if (tokens[i].toLowerCase().contains("waves")) {
+////                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.WAVES, IObservationGroup.DataType.FLOAT)));
+//
+//                    log.debug("waves");
+//                } else if (tokens[i].toLowerCase().contains("winds")) {
+////                    dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(VariableParams.WINDS, IObservationGroup.DataType.FLOAT)));
+//
+//                    log.debug("winds");
+//                } else {
+//                    log.debug("Unknown token: " + tokens[i]);
+//                }
             }
 
             String stnId = "";
@@ -272,12 +307,16 @@ public class SosAgent extends AbstractAsciiAgent {
                 } catch (ArrayIndexOutOfBoundsException ex) {
                     time = 0;
                 }
-                try {
-                    depth = Float.valueOf(tokens[5]);
-                } catch (NumberFormatException ex) {
-                    /* Can have missing depth (I believe when the instrument does not report it's depth or is an older record) - assign to depth of 0 when this happens. */
-                    depth = 0.0f;
-                } catch (ArrayIndexOutOfBoundsException ex) {
+                if (depthIndex >= 0) {
+                    try {
+                        depth = Float.valueOf(tokens[depthIndex]);
+                    } catch (NumberFormatException ex) {
+                        /* Can have missing depth (I believe when the instrument does not report it's depth or is an older record) - assign to depth of 0 when this happens. */
+                        depth = 0.0f;
+                    } catch (ArrayIndexOutOfBoundsException ex) {
+                        depth = 0.0f;
+                    }
+                } else {
                     depth = 0.0f;
                 }
                 Pair<Integer, VariableParams> dc;
@@ -307,7 +346,8 @@ public class SosAgent extends AbstractAsciiAgent {
             /* title */
 //        String queryUrl = "http://sdf.ndbc.noaa.gov/sos/";
 //        globalAttributes.put("title", "NDBC Sensor Observation Service data from \"" + queryUrl + "\"");
-            String title = "SOS (" + stnId + ") " + varName;
+//            String title = "SOS (" + stnId + ") " + varName;
+            String title = "SOS (" + stnId + ") " + obsName;
             globalAttributes.put("title", title);
 
             /* institution */
@@ -400,7 +440,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        int switcher = 2;
+        int switcher = 4;
         try {
             switch (switcher) {
                 case 1: //test station
@@ -410,8 +450,8 @@ public class SosAgent extends AbstractAsciiAgent {
                     cBldr.addStationId("41012");
                     break;
                 case 2: //test glider
-                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2010-07-26T00:00:00Z").getTime());
-                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2010-07-27T00:00:00Z").getTime());
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2010-07-28T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2010-07-29T00:00:00Z").getTime());
                     cBldr.addProperty("salinity");
                     cBldr.addStationId("48900");
                     break;
@@ -421,6 +461,17 @@ public class SosAgent extends AbstractAsciiAgent {
                     cBldr.addProperty("air_temperature");
                     cBldr.addStationId("41NT0");
                     break;
+                case 4: // "East of Virginia Beach, VA
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-20T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-22T00:00:00Z").getTime());
+//                    cBldr.addProperty("air_temperature");
+//                    cBldr.addProperty("sea_water_temperature");
+                    cBldr.addProperty("Currents");
+//                    cBldr.addProperty("Winds");
+//                    cBldr.addProperty("Waves");
+                    cBldr.addStationId("44014");
+                    break;
+
             }
         } catch (ParseException ex) {
             throw new IOException("Error parsing time strings", ex);

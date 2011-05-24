@@ -110,7 +110,7 @@ public class NcdsFactory {
             zVar.setDataType(getNcDataType(ddt));
             Number depth = obsGroup.getDepths()[0];
             zVar.setCachedData(getNcScalar(depth, lldt));
-            
+
 //            VariableDS zVar = new VariableDS(ncds, null, null, "z", getNcDataType(ddt), "", "m", "station depth");
 //            zVar.resetDimensions();
 //            zVar.addAttribute(new Attribute(CF.STANDARD_NAME, "depth"));
@@ -124,7 +124,9 @@ public class NcdsFactory {
                 DataType ncdtData = getNcDataType(dn.getDataType());
                 VariableDS dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "time", dn.getUnits(), dn.getDescription());
                 dvar.addAttribute(new Attribute(CF.COORDINATES, "time lon lat"));
-                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                if (dn.getStandardName() != null) {
+                    dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                }
                 Array adata = Array.factory(ncdtData, new int[]{times.length});
                 IndexIterator aii = adata.getIndexIterator();
                 dvar.setCachedData(adata);
@@ -139,7 +141,9 @@ public class NcdsFactory {
             for (VariableParams dn : obsGroup.getScalarNames()) {
                 DataType ncdtData = getNcDataType(dn.getDataType());
                 VariableDS dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "", dn.getUnits(), dn.getDescription());
-                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                if (dn.getStandardName() != null) {
+                    dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                }
                 dvar.setCachedData(getNcScalar(obsGroup.getScalarData(dn), dn.getDataType()));
                 ncds.addVariable(null, dvar);
             }
@@ -221,7 +225,9 @@ public class NcdsFactory {
                 DataType ncdtData = getNcDataType(dn.getDataType());
                 VariableDS dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "time z", dn.getUnits(), dn.getDescription());
                 dvar.addAttribute(new Attribute(CF.COORDINATES, "time lon lat z"));
-                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                if (dn.getStandardName() != null) {
+                    dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                }
                 Array adata = Array.factory(ncdtData, new int[]{times.length, depths.length});
                 IndexIterator aii = adata.getIndexIterator();
                 dvar.setCachedData(adata);
@@ -238,11 +244,13 @@ public class NcdsFactory {
             for (VariableParams dn : obsGroup.getScalarNames()) {
                 DataType ncdtData = getNcDataType(dn.getDataType());
                 VariableDS dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "", dn.getUnits(), dn.getDescription());
-                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                if (dn.getStandardName() != null) {
+                    dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                }
                 dvar.setCachedData(getNcScalar(obsGroup.getScalarData(dn), dn.getDataType()));
                 ncds.addVariable(null, dvar);
             }
-            
+
             /* Add global attributes */
             String value;
             for (String key : allAttributes.keySet()) {
@@ -350,7 +358,9 @@ public class NcdsFactory {
                             dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "time", dn.getUnits(), dn.getDescription());
                             dvar.addAttribute(new Attribute(CF.COORDINATES, "time lon lat"));
 //                            dvar.addAttribute(new Attribute("missing_value", missingData));
-                            dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                            if (dn.getStandardName() != null) {
+                                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                            }
                             Array darr = Array.factory(ncdtData, new int[]{nt});
                             dvar.setCachedData(darr);
 
@@ -375,11 +385,13 @@ public class NcdsFactory {
             for (VariableParams dn : obsGroups[0].getScalarNames()) {
                 DataType ncdtData = getNcDataType(dn.getDataType());
                 VariableDS dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "", dn.getUnits(), dn.getDescription());
-                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                if (dn.getStandardName() != null) {
+                    dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                }
                 dvar.setCachedData(getNcScalar(obsGroups[0].getScalarData(dn), dn.getDataType()));
                 ncds.addVariable(null, dvar);
             }
-            
+
             /* Add global attributes */
             String value;
             for (String key : allAttributes.keySet()) {
@@ -426,7 +438,7 @@ public class NcdsFactory {
             Collections.sort(adep, new NumberComparator());
             Number[] allDepths = adep.toArray(new Number[0]);
             nd = allDepths.length;
-            
+
             /* Do the trajectory ID */
 
             /* Do the times */
@@ -491,7 +503,9 @@ public class NcdsFactory {
                             dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "time z", dn.getUnits(), dn.getDescription());
                             dvar.addAttribute(new Attribute(CF.COORDINATES, "time lon lat z"));
 //                            dvar.addAttribute(new Attribute("missing_value", missingData));
-                            dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                            if (dn.getStandardName() != null) {
+                                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                            }
                             Array darr = Array.factory(ncdtData, new int[]{nt, nd});
                             dvar.setCachedData(darr);
 
@@ -513,12 +527,14 @@ public class NcdsFactory {
                     }
                 }
             }
-            
+
             /* Add the scalar variables */
             for (VariableParams dn : obsGroups[0].getScalarNames()) {
                 DataType ncdtData = getNcDataType(dn.getDataType());
                 VariableDS dvar = new VariableDS(ncds, null, null, dn.getShortName(), ncdtData, "", dn.getUnits(), dn.getDescription());
-                dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                if (dn.getStandardName() != null) {
+                    dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
+                }
                 dvar.setCachedData(getNcScalar(obsGroups[0].getScalarData(dn), dn.getDataType()));
                 ncds.addVariable(null, dvar);
             }
@@ -664,13 +680,13 @@ public class NcdsFactory {
     public static void main(String[] args) {
         IObservationGroup og = new ObservationGroupImpl(0, "testStation", 41.82f, -71.21f);
 
-        VariableParams swatts = new VariableParams(VariableParams.SEA_WATER_TEMPERATURE, IObservationGroup.DataType.FLOAT);
+        VariableParams swatts = new VariableParams(VariableParams.StandardVariable.SEA_WATER_TEMPERATURE.getVariableParams(), IObservationGroup.DataType.FLOAT);
         og.addObservation(0, 1.0, 22f, swatts);
         og.addObservation(1, 1.0, 21f, swatts);
         og.addObservation(2, 1.0, 20f, swatts);
         og.addObservation(3, 1.0, 19f, swatts);
 
-        VariableParams salatts = new VariableParams(VariableParams.SEA_WATER_SALINITY, IObservationGroup.DataType.INT);
+        VariableParams salatts = new VariableParams(VariableParams.StandardVariable.SEA_WATER_SALINITY.getVariableParams(), IObservationGroup.DataType.INT);
         og.addObservation(0, 1.0, 22, salatts);
         og.addObservation(1, 1.0, 21, salatts);
         og.addObservation(2, 1.0, 20, salatts);
@@ -687,13 +703,13 @@ public class NcdsFactory {
 
         IObservationGroup og2 = new ObservationGroupImpl(0, "testStationProfile", 41.82f, -71.21f);
 
-        VariableParams swatts2 = new VariableParams(VariableParams.SEA_WATER_TEMPERATURE, IObservationGroup.DataType.FLOAT);
+        VariableParams swatts2 = new VariableParams(VariableParams.StandardVariable.SEA_WATER_TEMPERATURE.getVariableParams(), IObservationGroup.DataType.FLOAT);
         og2.addObservation(0, 1.0, 22f, swatts2);
         og2.addObservation(0, 2.0, 21f, swatts2);
         og2.addObservation(1, 1.0, 20f, swatts2);
         og2.addObservation(1, 2.0, 19f, swatts2);
 
-        VariableParams salatts2 = new VariableParams(VariableParams.SEA_WATER_SALINITY, IObservationGroup.DataType.INT);
+        VariableParams salatts2 = new VariableParams(VariableParams.StandardVariable.SEA_WATER_SALINITY.getVariableParams(), IObservationGroup.DataType.INT);
         og2.addObservation(0, 1.0, 22, salatts2);
         og2.addObservation(0, 2.0, 21, salatts2);
         og2.addObservation(1, 1.0, 20, salatts2);

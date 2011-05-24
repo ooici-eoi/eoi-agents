@@ -544,7 +544,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     // data = Float.parseFloat(value);
                     name = getDataNameForVariableCode(variableCode);
                     /* Check to see if this is the waterSurface var */
-                    hasWaterSurface = (!hasWaterSurface) ? name == VariableParams.RIVER_WATER_SURFACE_HEIGHT : hasWaterSurface;
+                    hasWaterSurface = (!hasWaterSurface) ? name == VariableParams.StandardVariable.RIVER_WATER_SURFACE_HEIGHT.getVariableParams() : hasWaterSurface;
 
                     /* DON'T EVER CONVERT - Only convert data if we are dealing with Steamflow */
 //                    if (name == VariableParams.RIVER_STREAMFLOW) {
@@ -564,7 +564,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
                 }
                 /* If the group has waterSurface, add a the datum variable */
                 if (hasWaterSurface) {
-                    obs.addScalarVariable(new VariableParams(VariableParams.RIVER_WATER_SURFACE_REF_DATUM_ALTITUDE, DataType.FLOAT), 0f);
+                    obs.addScalarVariable(new VariableParams(VariableParams.StandardVariable.RIVER_WATER_SURFACE_REF_DATUM_ALTITUDE, DataType.FLOAT), 0f);
                 }
             }
             obs.addAttributes(globalAttributes);
@@ -848,15 +848,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
         VariableParams result = null;
 
         if ("00010".equals(variableCode)) {
-            result = VariableParams.WATER_TEMPERATURE;
+            result = VariableParams.StandardVariable.WATER_TEMPERATURE.getVariableParams();
         } else if ("00060".equals(variableCode)) {
-            result = VariableParams.RIVER_STREAMFLOW;
+            result = VariableParams.StandardVariable.RIVER_STREAMFLOW.getVariableParams();
         } else if ("00065".equals(variableCode)) {
-            result = VariableParams.RIVER_WATER_SURFACE_HEIGHT;
+            result = VariableParams.StandardVariable.RIVER_WATER_SURFACE_HEIGHT.getVariableParams();
         } else if ("00045".equals(variableCode)) {
-            result = VariableParams.RIVER_PRECIPITATION;
+            result = VariableParams.StandardVariable.RIVER_PRECIPITATION.getVariableParams();
         } else if ("00095".equals(variableCode)) {
-            result = VariableParams.SEA_WATER_CONDUCTIVITY;
+            result = VariableParams.StandardVariable.SEA_WATER_CONDUCTIVITY.getVariableParams();
         } else {
             throw new IllegalArgumentException("Given variable code is not known: " + variableCode);
         }
@@ -959,14 +959,15 @@ public class UsgsAgent extends AbstractAsciiAgent {
                         cBldr.addStationId("01646500");
                         break;
                     case 5://test all supported parameters
-                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-02-15T00:00:00Z").getTime());
-                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-11T00:00:00Z").getTime());
+                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-12T00:00:00Z").getTime());
+                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-13T00:00:00Z").getTime());
                         cBldr.addProperty("00010");
                         cBldr.addProperty("00060");
                         cBldr.addProperty("00065");//gauge height
                         cBldr.addProperty("00045");//precip
-//                        cBldr.addStationId("01646500");
-                        cBldr.addStationId("01184000");
+                        cBldr.addProperty("00095");//?? 
+//                        cBldr.addStationId("01491000");
+                        cBldr.addStationId("212359157502601");
                         break;
                 }
             } catch (ParseException ex) {
@@ -979,8 +980,8 @@ public class UsgsAgent extends AbstractAsciiAgent {
 //            cBldr.addAllStationId(java.util.Arrays.asList(new String[] {"01184000", "01327750", "01357500", "01389500", "01403060", "01463500", "01578310", "01646500", "01592500", "01668000", "01491000", "02035000", "02041650", "01673000", "01674500", "01362500", "01463500", "01646500" }));
 
             net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()));
-            runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
-//            runAgent(struct, AgentRunType.TEST_WRITE_NC);
+//            runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
+            runAgent(struct, AgentRunType.TEST_WRITE_NC);
         }
     }
 

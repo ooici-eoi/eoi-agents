@@ -223,9 +223,9 @@ public class AomlAgent extends AbstractAsciiAgent {
         String[] dhead = header.split("\n")[1].split("\\s+");
         for (int i = 0; i < dhead.length; i++) {
             if (dhead[i].equalsIgnoreCase("temp")) {
-                dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_TEMPERATURE));
+                dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.StandardVariable.SEA_WATER_TEMPERATURE.getVariableParams()));
             } else if (dhead[i].equalsIgnoreCase("salinity")) {
-                dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.SEA_WATER_SALINITY));
+                dataCols.add(new Pair<Integer, VariableParams>(i, VariableParams.StandardVariable.SEA_WATER_SALINITY.getVariableParams()));
             }
         }
 

@@ -99,26 +99,50 @@ public class AttributeFactory {
     public static void addVertBoundsMetadata(NetcdfDataset ncds, FeatureType ftype) {
         Number[] minMax = getMetadata(ncds, ftype, AxisType.Height, "z", "depth");
 
-        boolean isNan = (Double.isNaN(minMax[0].doubleValue()) | Double.isNaN(minMax[1].floatValue()));
+        boolean isNan = (Double.isNaN(minMax[0].doubleValue()) || Double.isNaN(minMax[1].floatValue()));
 
         /* Determine positive direction */
         String posDir = "";//default to ""
+
         for (Variable v : ncds.getVariables()) {
             Attribute a = v.findAttribute("positive");
+            if(a == null) {
+                a = v.findAttribute("_CoordinateZisPositive");
+            }
             if (a != null) {
+                posDir = a.getStringValue();
                 /* If we don't have values, use the variable (is there another reason to have "positive"??) */
                 if (isNan) {
                     try {
                         Array arr = v.read();
                         minMax[0] = MAMath.getMinimum(arr);
                         minMax[1] = MAMath.getMaximum(arr);
+                        UnitFormat format = UnitFormatManager.instance();
+                        Unit from = null;
+                        Unit to = null;
+                        try {
+                            Attribute unit = v.findAttribute("units");
+                            if (unit != null) {
+                                from = format.parse(unit.getStringValue());
+                                to = format.parse("m");
+
+                                minMax[0] = from.convertTo(minMax[0].doubleValue(), to);
+                                minMax[1] = from.convertTo(minMax[1].doubleValue(), to);
+                            } else {
+                                throw new Exception("No \"units\" attribute");
+                            }
+                        } catch (Exception e) {
+                            throw new IOException("Can't convert/calculate vertical", e);
+                        }
+
                     } catch (IOException ex) {
+                        log.error("Error calculating min/max for vertical coordinate", ex);
                         minMax[0] = Double.NaN;
                         minMax[1] = Double.NaN;
                         // exit quietly, return nans
+                        posDir = "";
                     }
                 }
-                posDir = a.getStringValue();
                 break;
             }
         }

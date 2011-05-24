@@ -143,7 +143,7 @@ public class DatasetAgentController implements ControlListener {
                 net.ooici.services.sa.DataSource.EoiDataContextMessage context = null;
                 net.ooici.core.container.Container.Structure struct = null;
                 try {
-//                    struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
+                    struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
                     
                     StructureManager sm = StructureManager.Factory(msg);
                     /* Store the EoiDataContext object */
@@ -291,7 +291,7 @@ public class DatasetAgentController implements ControlListener {
                     ooiDsId = agent.doUpdate(struct, connInfo);
                 } catch (Exception ex) {
                     /* Send a reply_err message back to caller */
-                    log.error("ProcThread:" + threadId + ":: Received could not perform update", ex);
+                    log.error("ProcThread:" + threadId + ":: Could not perform update", ex);
                     IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", ex.getMessage());
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("response", "ION ERROR");

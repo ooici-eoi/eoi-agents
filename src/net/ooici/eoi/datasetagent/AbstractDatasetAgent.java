@@ -18,12 +18,14 @@ import net.ooici.eoi.netcdf.AttributeFactory;
 import net.ooici.eoi.netcdf.NcUtils;
 import net.ooici.eoi.proto.Unidata2Ooi;
 import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage;
+import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage.StatusCode;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.InvalidRangeException;
 import ucar.ma2.Range;
+import ucar.nc2.NetcdfFile;
 import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.NetcdfDataset;
 
@@ -88,7 +90,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
-        TEST_WRITE_OOICDM,}
+        TEST_WRITE_OOICDM,
+    }
     /**
      * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
      */
@@ -234,7 +237,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         } catch (Exception ex) {
             result = new String[]{"failure", ex.getMessage()};
             log.error("Failure during update...\n" + AgentUtils.getStackTraceString(ex).replaceAll("^", "\t"));
-            
+
             this.sendDataErrorMsg(StatusCode.AGENT_ERROR, AgentUtils.getStackTraceString(ex));
         }
 
@@ -331,8 +334,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 return ret;
         }
 
-        ResponseCodes respCode = ResponseCodes.OK;
-        String respBody = "";
+        StatusCode statusCode = StatusCode.OK;
+        String statusBody = "";
 
         /* Package the dataset */
         /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
@@ -368,26 +371,30 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                         decompSendVariable(v, sec, 0);
                     } catch (Exception ex) {
                         log.error("Error Processing Dataset", ex);
-                        respCode = ResponseCodes.RECEIVER_ERROR;
-                        respBody = AgentUtils.getStackTraceString(ex);
+                        statusCode = StatusCode.AGENT_ERROR;
+                        statusBody = AgentUtils.getStackTraceString(ex);
                     }
                 }
             }
 
         } catch (IOException ex) {
             log.error(ret = "Error converting NetcdfDataset to OOICI CDM::******\n" + ncds.toString() + "\n******");
-            respCode = ResponseCodes.RECEIVER_ERROR;
-            respBody = AgentUtils.getStackTraceString(ex);
+            statusCode = StatusCode.AGENT_ERROR;
+            statusBody = AgentUtils.getStackTraceString(ex);
         } finally {
             /* Send Message to signify the end of the ingest */
 //            IonMsg.Builder endMsgBldr = IonMsg.newBuilder();
 //            endMsgBldr.setResponseCode(respCode);
-//            endMsgBldr.setResponseBody(respBody);
+//            endMsgBldr.setResponseBody(statusBody);
 //            GPBWrapper<IonMsg> msgWrap = GPBWrapper.Factory(endMsgBldr.build());
 //            log.debug(msgWrap.toString());
             switch (runType) {
                 case NORMAL:
-                    sendDataDoneMsg();
+                    if (statusCode == StatusCode.OK) {
+                        sendDataDoneMsg();
+                    } else {
+                        sendDataErrorMsg(statusCode, statusBody);
+                    }
                     break;
             }
         }

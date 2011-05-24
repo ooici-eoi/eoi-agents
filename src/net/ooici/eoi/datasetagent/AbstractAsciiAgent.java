@@ -126,6 +126,11 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
 
         validateData((String)data);
         obs = parseObs((String) data).toArray(new IObservationGroup[0]);
+        
+        if (null == obs || obs.length == 0 || obs[0].isEmpty()) {
+            throw new IllegalStateException("Empty observation list cannot be processed!");
+        }
+        
         return processDataset(obs);
     }
 

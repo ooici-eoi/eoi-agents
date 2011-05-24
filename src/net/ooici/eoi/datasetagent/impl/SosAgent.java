@@ -272,12 +272,22 @@ public class SosAgent extends AbstractAsciiAgent {
 //                }
             }
 
+            
             String stnId = "";
 //            String snsId = "";
             int time = 0;
             float lat = -9999, tla = -99991, lon = -9999, tlo = -99991, depth = -9999/*, td = -99991*/;
             int obsId = 0;
-            while ((line = csvReader.readLine()) != null) {
+            
+            line = csvReader.readLine();
+            if (null == line) {
+                log.warn("No data retrieved for this request!!");
+                return new ArrayList<IObservationGroup>();
+            }
+            
+            
+            
+            while (line != null) {
                 tokens = line.split(",");
                 tla = Float.valueOf(tokens[2]);
                 tlo = Float.valueOf(tokens[3]);
@@ -334,7 +344,13 @@ public class SosAgent extends AbstractAsciiAgent {
                     }
                     obs.addObservation(time, depth, val, dc.getValue());
                 }
+                
+                
+                /** Get the next line */
+                line = csvReader.readLine();
             }
+
+            
             /* Add the last obs group */
             if (obs != null) {
                 obsList.add(obs);
@@ -440,7 +456,7 @@ public class SosAgent extends AbstractAsciiAgent {
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.SOS);
         cBldr.setBaseUrl("http://sdf.ndbc.noaa.gov/sos/server.php?");
-        int switcher = 4;
+        int switcher = 6;
         try {
             switch (switcher) {
                 case 1: //test station
@@ -470,6 +486,35 @@ public class SosAgent extends AbstractAsciiAgent {
 //                    cBldr.addProperty("Winds");
 //                    cBldr.addProperty("Waves");
                     cBldr.addStationId("44014");
+                    break;
+                case 5: // Test (Part 1/3) For all variables (most vars present)
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-20T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-22T00:00:00Z").getTime());
+                    cBldr.addProperty("air_pressure_at_sea_level");
+//                    cBldr.addProperty("air_temperature");
+//                    cBldr.addProperty("Currents");
+//                    cBldr.addProperty("Salinity");
+//                    cBldr.addProperty("WaterTemperature");
+//                    cBldr.addProperty("Winds");
+                    cBldr.addStationId("41024");
+                    break;
+                case 6: // Test (Part 2/3) For all variables (conductivity + waves)
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-20T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-22T00:00:00Z").getTime());
+//                    cBldr.addProperty("air_pressure_at_sea_level");
+//                    cBldr.addProperty("air_temperature");
+                    cBldr.addProperty("Currents"); // FAILED
+//                    cBldr.addProperty("sea_water_electrical_conductivity");
+//                    cBldr.addProperty("WaterTemperature");
+//                    cBldr.addProperty("Waves"); // FAILED
+//                    cBldr.addProperty("Winds");
+                    cBldr.addStationId("44013");
+                    break;
+                case 7: // Test (Part 3/3) For all variables (water level only) 
+                    cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-20T00:00:00Z").getTime());
+                    cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-22T00:00:00Z").getTime());
+                    cBldr.addProperty("WaterLevel");
+                    cBldr.addStationId("44402");
                     break;
 
             }

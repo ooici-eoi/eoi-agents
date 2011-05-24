@@ -233,7 +233,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             result = _processDataset(data);
         } catch (Exception ex) {
             result = new String[]{"failure", ex.getMessage()};
-            log.error("Failure during update...", ex);
+            log.error("Failure during update...\n" + AgentUtils.getStackTraceString(ex).replaceAll("^", "\t"));
+            
+            this.sendDataErrorMsg(StatusCode.AGENT_ERROR, AgentUtils.getStackTraceString(ex));
         }
 
         closeMsgBrokerClient();

@@ -35,7 +35,7 @@ public class FtpFileFinder {
     /** Static Fields */
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FtpFileFinder.class);
     private static final String NEW_LINE = System.getProperty("line.separator");
-    private static final String TAB_STR = "   ";
+    private static final String TAB_STR = "    ";
 
 
     public static void main(String[] args) throws IOException {
@@ -101,11 +101,11 @@ public class FtpFileFinder {
 
         // testGetTargetFiles();
 
-        // testGenerateNcml_hycom();
+         testGenerateNcml_hycom();
 
-        // testGenerateNcml_ostia();
+//         testGenerateNcml_ostia();
 
-        testUrlParser();
+//        testUrlParser();
     }
 
 
@@ -145,7 +145,9 @@ public class FtpFileFinder {
         log.debug("Generating union/join NCML file...");
         File temp = File.createTempFile("ooi-", ".ncml");
         // temp.deleteOnExit();
-        generateNcml(temp, filemap, "MT");
+        String ncml = "<netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\">\n      <variable name=\"lat\">\n         <attribute name=\"moto\" type=\"string\" value=\"GO TEAM!\" />\n      </variable>\n      <variable name=\"lon\">\n         <attribute name=\"moto\" type=\"string\" value=\"GO TEAM!\" />\n      </variable>\n</netcdf>\n";
+        
+        generateNcml(temp, filemap, "MT", ncml);
         log.debug("... COMPLETE!");
         log.debug("");
         log.debug("");
@@ -489,13 +491,23 @@ public class FtpFileFinder {
         return results;
     }
 
-
+    
     public static void generateNcml(String output, Map<String, Long> filemap, String dimension) throws IOException {
-        generateNcml(new File(output), filemap, dimension);
+        generateNcml(new File(output), filemap, dimension, null);
+    }
+
+    
+    public static void generateNcml(String output, Map<String, Long> filemap, String dimension, String ncmlMask) throws IOException {
+        generateNcml(new File(output), filemap, dimension, ncmlMask);
     }
 
 
     public static void generateNcml(File outFile, Map<String, Long> filemap, String dimension) throws IOException {
+        generateNcml(outFile, filemap, dimension, null);
+    }
+    
+    
+    public static void generateNcml(File outFile, Map<String, Long> filemap, String dimension, String ncmlMask) throws IOException {
 
         /* Restructure the filelist so we can see what files have equal values (timesteps) */
         Map<Long, List<String>> groupings = new TreeMap<Long, List<String>>();
@@ -533,8 +545,22 @@ public class FtpFileFinder {
         /* TODO: dynamically determine time dimension name (provide in context??) */
         String ncml = generateNcml_join(unions, dimension);
 
-
-
+        
+        /* Extract the contents of the ncmlMask and insert into the resultant ncml: */
+        if (null != ncmlMask && !ncmlMask.isEmpty()) {
+            
+            String ncmlMaskContents = null;
+            /* Remove header and footer xml tags */
+            ncmlMaskContents = ncmlMask.replaceAll("(?m)(^[\\s]*<netcdf(?=[^>]*?xmlns)[^>]*?>)|(</netcdf>[\\s]*)$", "");
+            
+            /* Realign indentation */
+//            while (ncmlMaskContents.matches("(?m)[\\r\\n]?([ ]{3}|\\t).*")) {
+                ncmlMaskContents = ncmlMaskContents.replaceAll(new StringBuilder("^(").append(TAB_STR).append("||\\t)").toString(), "");
+//            }
+            ncml = new StringBuilder(ncml).append(NEW_LINE).append(ncmlMaskContents).toString();
+        }
+        
+        
         /* Write the output */
         FileWriter fw = new FileWriter(outFile);
         try {

@@ -18,8 +18,10 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import net.ooici.core.container.Container;
+import net.ooici.core.message.IonMessage.IonMsg;
 import net.ooici.eoi.datasetagent.ControlEvent.ControlEventType;
 import net.ooici.eoi.datasetagent.DatasetAgentController.ControlThread.ControlProcess;
+import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import ucar.nc2.Variable;
 import ucar.nc2.dataset.NetcdfDataset;
 
@@ -141,21 +143,27 @@ public class DatasetAgentController implements ControlListener {
                 net.ooici.services.sa.DataSource.EoiDataContextMessage context = null;
                 net.ooici.core.container.Container.Structure struct = null;
                 try {
-                    struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
-                    HashMap<ByteString, Container.StructureElement> elementMap = new HashMap<ByteString, Container.StructureElement>();
-                    for (Container.StructureElement se : struct.getItemsList()) {
-                        elementMap.put(se.getKey(), se);
-                    }
-                    if (log.isDebugEnabled()) {
-                        log.debug(elementMap.entrySet().iterator().next().getValue().toString());
-                    }
+//                    struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
+                    
+                    StructureManager sm = StructureManager.Factory(msg);
+                    /* Store the EoiDataContext object */
+                    IonMsg msg = (IonMsg) sm.getObjectWrapper(sm.getHeadId()).getObjectValue();
+                    context = (EoiDataContextMessage) sm.getObjectWrapper(msg.getMessageObject()).getObjectValue();
+                    
+//                    HashMap<ByteString, Container.StructureElement> elementMap = new HashMap<ByteString, Container.StructureElement>();
+//                    for (Container.StructureElement se : struct.getItemsList()) {
+//                        elementMap.put(se.getKey(), se);
+//                    }
+//                    if (log.isDebugEnabled()) {
+//                        log.debug(elementMap.entrySet().iterator().next().getValue().toString());
+//                    }
 //                    net.ooici.core.message.IonMessage.IonMsg ionmsg = net.ooici.core.message.IonMessage.IonMsg.parseFrom(struct.getHead());
 //                    log.debug("IonMsg:\n" + ionmsg);
 //
 //                    net.ooici.core.link.Link.CASRef link = ionmsg.getMessageObject();
 //                    Container.StructureElement elm = elementMap.get(link.toByteString());
 
-                    context = net.ooici.services.sa.DataSource.EoiDataContextMessage.parseFrom(elementMap.entrySet().iterator().next().getValue().getValue());
+//                    context = net.ooici.services.sa.DataSource.EoiDataContextMessage.parseFrom(elementMap.entrySet().iterator().next().getValue().getValue());
                     if (log.isDebugEnabled()) {
                         log.debug("ProcThread:" + threadId + ":: Received context as:\n{\n" + context.toString() + "}\n");
                     }
@@ -191,7 +199,7 @@ public class DatasetAgentController implements ControlListener {
 //                        sb.append("}");
 //                    }
 
-                } catch (InvalidProtocolBufferException ex) {
+                } catch (Exception ex) {
                     log.error("ProcThread:" + threadId + ":: Received bad context ");
                     IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", ex.getMessage());
                     reply.getIonHeaders().put("status", "ERROR");

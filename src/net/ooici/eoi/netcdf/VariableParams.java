@@ -28,7 +28,10 @@ public class VariableParams implements Comparable<VariableParams> {
         "sea surface height above sea level at location (originally 'sea level anomaly'", "m")),
         AIR_PRESSURE_AT_SEA_LEVEL(new VariableParams("air_pressure_at_sea_level", "air_pressure",
         "air pressure at sea level", "hPa")),
-        /* SOS "sea_water_electrical_conductivity" parameter */
+        /* USGS "sea_water_electrical_conductivity" parameter - units of "uS cm-1*/
+        USGS_SEA_WATER_CONDUCTIVITY(new VariableParams("sea_water_electrical_conductivity",
+        "specific_conductance", "specific conductance of water at 25 degrees C", "uS cm-1")),
+        /* SOS "sea_water_electrical_conductivity" parameter - units of "mS cm-1 */
         SEA_WATER_CONDUCTIVITY(new VariableParams("sea_water_electrical_conductivity",
         "specific_conductance", "specific conductance of water at 25 degrees C", "mS cm-1")),
         /* SOS air_temperature parameter */

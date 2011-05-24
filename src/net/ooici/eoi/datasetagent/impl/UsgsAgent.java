@@ -856,7 +856,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         } else if ("00045".equals(variableCode)) {
             result = VariableParams.StandardVariable.RIVER_PRECIPITATION.getVariableParams();
         } else if ("00095".equals(variableCode)) {
-            result = VariableParams.StandardVariable.SEA_WATER_CONDUCTIVITY.getVariableParams();
+            result = VariableParams.StandardVariable.USGS_SEA_WATER_CONDUCTIVITY.getVariableParams();
         } else {
             throw new IllegalArgumentException("Given variable code is not known: " + variableCode);
         }

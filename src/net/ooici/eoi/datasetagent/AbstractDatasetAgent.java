@@ -5,6 +5,7 @@
 package net.ooici.eoi.datasetagent;
 
 import ion.core.messaging.IonMessage;
+import ion.core.messaging.MessagingName;
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
 import ion.core.utils.StructureManager;
@@ -68,6 +69,7 @@ import ucar.nc2.dataset.NetcdfDataset;
 public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
     private static Logger log = LoggerFactory.getLogger(AbstractDatasetAgent.class);
+    private static final String procName = "EOI_DatasetAgent";
 
     /**
      * Used to determine what the agent does after processing an update.
@@ -90,8 +92,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
-        TEST_WRITE_OOICDM,
-    }
+        TEST_WRITE_OOICDM,}
     /**
      * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
      */
@@ -235,10 +236,12 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             Object data = acquireData(request);
             result = _processDataset(data);
         } catch (Exception ex) {
-            result = new String[]{"failure", ex.getMessage()};
-            log.error("Failure during update...\n" + AgentUtils.getStackTraceString(ex).replaceAll("^", "\t"));
+            String trace = AgentUtils.getStackTraceString(ex).replaceAll("^", "\t");
+            result = new String[]{"failure", trace};
 
-            this.sendDataErrorMsg(StatusCode.AGENT_ERROR, AgentUtils.getStackTraceString(ex));
+            log.error("Failure during update...\n", ex);
+
+            this.sendDataErrorMsg(StatusCode.AGENT_ERROR, trace);
         }
 
         closeMsgBrokerClient();
@@ -360,7 +363,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 /** Send the variables in "chunks" */
                 for (ucar.nc2.Variable v : ncds.getVariables()) {
                     if (log.isDebugEnabled()) {
-                        log.debug("Processing Variable: " + v.getName());
+                        log.debug("Processing Variable: {}", v.getName());
                     }
                     try {
 
@@ -378,7 +381,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             }
 
         } catch (IOException ex) {
-            log.error(ret = "Error converting NetcdfDataset to OOICI CDM::******\n" + ncds.toString() + "\n******");
+            log.error(ret = "Error converting NetcdfDataset to OOICI CDM::******\n{}\n******", ncds.toString());
             statusCode = StatusCode.AGENT_ERROR;
             statusBody = AgentUtils.getStackTraceString(ex);
         } finally {
@@ -461,7 +464,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         long esize = var.getElementSize();
         long size = sec.computeSize() * esize;
         if (log.isDebugEnabled()) {
-            log.debug(indent + "decomp-depth = " + depth + " :: sec-size = " + size);
+            log.debug("{}decomp-depth = {} :: sec-size = {}", new Object[]{indent, depth, size});
         }
         if (size > maxSize) {
             Range rng;
@@ -509,7 +512,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             }
         } else {
             if (log.isDebugEnabled()) {
-                log.debug(indent + "--> proc-sec: " + sec.toString());
+                log.debug("{}--> proc-sec: {}", indent, sec.toString());
             }
 //            if (!runType) {//Not necessary - can't get here if runType (see "sendNetcdfDataset")
                 /* Build the array and the bounded array */
@@ -597,10 +600,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     protected void sendDatasetMsg(byte[] dataMessageContent) {
         switch (runType) {
             case NORMAL:
-                IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent);
-                dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+                IonMessage dataMessage = constructNonRPCMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent, ResponseCodes.OK);
+//                IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent);
+
                 if (log.isDebugEnabled()) {
-                    log.debug(printMessage("@@@--->>> NetcdfDataset dataset (message) to eoi_ingest", dataMessage));
+                    log.debug("@@@--->>> NetcdfDataset dataset (message) to ingest:\n{}", dataMessage);
                 }
                 cl.sendMessage(dataMessage);
                 break;
@@ -625,9 +629,12 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     protected void sendDataChunkMsg(byte[] dataMessageContent) {
         switch (runType) {
             case NORMAL:
-                IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent);
-                dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
-                log.debug(printMessage("@@@--->>> NetcdfDataset data chunk (message) to eoi_ingest", dataMessage));
+                IonMessage dataMessage = constructNonRPCMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent, ResponseCodes.OK);
+//                IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent);
+//                dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+//                dataMessage.getIonHeaders().put("conv-id", "");
+//                dataMessage.getIonHeaders().put("sender-name", procName);
+                log.debug("@@@--->>> NetcdfDataset data chunk (message) to ingest:\n{}", dataMessage);
                 cl.sendMessage(dataMessage);
                 break;
             case TEST_WRITE_OOICDM:
@@ -659,10 +666,13 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         ProtoUtils.addStructureElementToStructureBuilder(sbldr, dacmWrap.getStructureElement());
         ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);
 
-        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
-        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+        IonMessage dataMessage = constructNonRPCMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray(), ResponseCodes.OK);
+//        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
+//        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+//        dataMessage.getIonHeaders().put("conv-id", "");
+//        dataMessage.getIonHeaders().put("sender-name", procName);
         if (log.isDebugEnabled()) {
-            log.debug(printMessage("@@@--->>> NetcdfDataset data \"DONE\" message to eoi_ingest", dataMessage));
+            log.debug("@@@--->>> NetcdfDataset data \"DONE\" message to ingest:\n{}", dataMessage);
         }
         cl.sendMessage(dataMessage);
     }
@@ -686,10 +696,13 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         ProtoUtils.addStructureElementToStructureBuilder(sbldr, dacmWrap.getStructureElement());
         ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);
 
-        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
-        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+        IonMessage dataMessage = constructNonRPCMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray(), ResponseCodes.OK);
+//        IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DONE_OP, sbldr.build().toByteArray());
+//        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
+//        dataMessage.getIonHeaders().put("conv-id", "");
+//        dataMessage.getIonHeaders().put("sender-name", procName);
         if (log.isDebugEnabled()) {
-            log.debug(printMessage("@@@--->>> NetcdfDataset data \"ERROR\" message to eoi_ingest", dataMessage));
+            log.debug("@@@--->>> NetcdfDataset data \"ERROR\" message to ingest:\n{}", dataMessage);
         }
         cl.sendMessage(dataMessage);
     }
@@ -709,6 +722,19 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             cl.detach();
             cl = null;
         }
+    }
+
+    private IonMessage constructNonRPCMessage(MessagingName fromName, MessagingName toName, String op, byte[] content, ResponseCodes status) {
+        IonMessage ret = cl.createMessage(fromName, toName, op, content);
+        ret.getIonHeaders().put("encoding", "ION R1 GPB");
+        ret.getIonHeaders().put("protocol", "");
+        ret.getIonHeaders().put("conv-id", "");
+        ret.getIonHeaders().put("sender-name", procName);
+        ret.getIonHeaders().put("performative", "");
+        ret.getIonHeaders().put("ontology", "");
+        ret.getIonHeaders().put("language", "ion1");
+        ret.getIonHeaders().put("status", status.toString());
+        return ret;
     }
 
     private void writeDatasetProto(byte[] payload) {
@@ -740,25 +766,6 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 }
             }
         }
-    }
-
-    /**
-     * Generates a multi-line string representation of an {@link IonMessage}
-     *
-     * @param title a title (description) for this message.  This text will be at the beginning of the multi-line output string.
-     * @param msg the {@link IonMessage} to represent as a string.
-     * @return a multi-line string representation of the message
-     */
-    public static String printMessage(String title, IonMessage msg) {
-        StringBuilder sb = new StringBuilder("\n" + title + "\n");
-        sb.append("Headers: ").append("\n");
-        java.util.HashMap<String, Object> headers = (java.util.HashMap<String, Object>) msg.getIonHeaders();
-        for (String s : headers.keySet()) {
-            sb.append("\t").append(s).append(" :: ").append(headers.get(s)).append("\n");
-        }
-        sb.append("CONTENT: ").append("\n");
-        sb.append("\t").append(msg.getContent()).append("\n");
-        return sb.toString();
     }
 //    protected String sendNetcdfVariable(String datasetID, ucar.nc2.Variable var, String op) {
 //        return sendNetcdfVariable(datasetID, var, var.getShapeAsSection(), op);

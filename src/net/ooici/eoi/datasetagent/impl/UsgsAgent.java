@@ -256,7 +256,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             }
         }
         if (siteCSV.length() > 0) {
-            siteCSV.deleteCharAt(siteCSV.length() - 1);
+            siteCSV.setLength(siteCSV.length() - 1);
         }
 
 

@@ -240,7 +240,7 @@ public class SosAgent extends AbstractAsciiAgent {
                     name = ucar.nc2.iosp.netcdf3.N3iosp.createValidNetcdf3ObjectName(name);
 
                     log.error("Data header \"{}\" unrecognized - adding generic \"{}\"", oname, name);
-                    params = new VariableParams(null, name, "unrecognized: " + oname, "1");
+                    params = new VariableParams(null, name, oname, "1");
                 }
                 dataCols.add(new Pair<Integer, VariableParams>(i, new VariableParams(params, IObservationGroup.DataType.FLOAT)));
 //                varName += (varName.isEmpty()) ? params.getStandardName() : "-" + params.getStandardName();

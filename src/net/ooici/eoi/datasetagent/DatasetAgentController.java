@@ -292,7 +292,9 @@ public class DatasetAgentController implements ControlListener {
                 } catch (Exception ex) {
                     /* Send a reply_err message back to caller */
                     log.error("ProcThread:" + threadId + ":: Could not perform update", ex);
-                    IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", ex.getMessage());
+                    String trace = AgentUtils.getStackTraceString(ex).replaceAll("^", "\t");
+                    
+                    IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", trace);
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("response", "ION ERROR");
                     reply.getIonHeaders().put("performative", "failure");

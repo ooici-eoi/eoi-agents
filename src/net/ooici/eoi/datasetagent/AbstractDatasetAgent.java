@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import ion.core.IonException;
 import ion.core.messaging.IonMessage;
 import ion.core.messaging.MessagingName;
 import ion.core.utils.GPBWrapper;
@@ -211,43 +212,102 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see #initMsgBrokerClient(HashMap)
      */
     @Override
-    public final String[] doUpdate(net.ooici.core.container.Container.Structure structure, java.util.HashMap<String, String> connectionInfo) {
+    public final String[] doUpdate(net.ooici.core.container.Container.Structure structure, java.util.HashMap<String, String> connectionInfo) throws IonException {
         /* NOTE: Template method.  Do not reorder */
-
-        /* Load the structure into the structManager field */
-        structManager = StructureManager.Factory(structure);
-
-
-        /* Store the EoiDataContext object */
-        IonMsg msg = (IonMsg) structManager.getObjectWrapper(structManager.getHeadId()).getObjectValue();
-        this.context = (EoiDataContextMessage) structManager.getObjectWrapper(msg.getMessageObject()).getObjectValue();
-
-        /* If the connectionInfo object is null, assume this is being called from a test */
-        if (connectionInfo == null) {
-            runType = AgentRunType.TEST_NO_WRITE;
-        }
-
-        if (runType == AgentRunType.NORMAL) {
-            initMsgBrokerClient(connectionInfo);
-        }
+        
         String[] result = null;
+        
+        
+        /** Step 1: Initialize the MsgBroker Client as appropriate */
         try {
-            String request = buildRequest();
-            Object data = acquireData(request);
-            result = _processDataset(data);
+            
+            /* If the connectionInfo object is null, assume this is being called from a test */
+            if (connectionInfo == null) {
+                runType = AgentRunType.TEST_NO_WRITE;
+            }
+            if (runType == AgentRunType.NORMAL) {
+                initMsgBrokerClient(connectionInfo);
+            }
         } catch (Exception ex) {
-            String trace = AgentUtils.getStackTraceString(ex).replaceAll("^", "\t");
-            result = new String[]{"failure", trace};
+            
+            throw new IonException("Failure while initializing the Message Broker Client...", ex);
 
-            log.error("Failure during update...\n", ex);
-
-            this.sendDataErrorMsg(StatusCode.AGENT_ERROR, trace);
         }
+        
+        
+        
+        /* Overarching try/finally to ensure closure of MsgBrokerClient on exit */
+        try {
 
-        closeMsgBrokerClient();
+            /** Step 2: Retrieve the Message Context -- to be passed into the processing methods:
+             *          o  buildRequest()
+             *          o  acquireData()
+             *          o  _processDataset()
+             */
+            try {
+                
+                /* Load the structure into the structManager object */
+                structManager = StructureManager.Factory(structure);
+        
+                /* Store the EoiDataContext object */
+                IonMsg msg = (IonMsg) structManager.getObjectWrapper(structManager.getHeadId()).getObjectValue();
+                this.context = (EoiDataContextMessage) structManager.getObjectWrapper(msg.getMessageObject()).getObjectValue();
+                if (null == this.context)
+                    throw new NullPointerException("Structure manager returned a null Update Context.  Update cannot proceed.");
+                
+            } catch (Exception ex) {
 
+                throw new IonException("Failure while gathering update context", ex);
+                
+            }
+            
+            
+            /** Step 3: Continue processing according to the template: */
+            /* Build the request */
+            String request = null;
+            try {
+                request = buildRequest();
+            } catch (Exception ex) {
+                throw new IonException("Failed to build a request from the given update context.", ex);
+                
+            }
+
+            /* Acquire data from the request */
+            Object data = null;
+            try {
+                data = acquireData(request);
+            } catch (Exception ex) {
+                throw new IonException("Failed to acquire data for the request built from the update context.", ex);
+            }
+            
+            /* Process the acquired data */
+            try {
+                result = _processDataset(data);
+            } catch (Exception ex) {
+                throw new IonException("Failed to process the dataset acquired from the update context request.", ex);
+            }
+            
+            
+        } catch (IonException ex) {
+
+            /* Send a notification of this exception to the ingest*/
+            String trace = AgentUtils.getStackTraceString(ex).replaceAll("^", "\t");
+            this.sendDataErrorMsg(StatusCode.AGENT_ERROR, trace);
+            
+            /* Rethrow the exception so the JAW can also be notified */
+            throw ex;
+            
+        } finally {
+            
+            closeMsgBrokerClient();
+            
+        }
+    
+        
+        
         return result;
     }
+    
 
     /**
      * Processes data as from {@link #acquireData(String)} -- which may be defined by a subclasses implementation
@@ -707,12 +767,38 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         cl.sendMessage(dataMessage);
     }
 
-    private void initMsgBrokerClient(HashMap<String, String> connectionInfo) {
-        toName = new ion.core.messaging.MessagingName(connectionInfo.get("ingest_topic"));
-        cl = new ion.core.messaging.MsgBrokerClient(connectionInfo.get("host"), com.rabbitmq.client.AMQP.PROTOCOL.PORT, connectionInfo.get("xp_name"));
+    /**
+     * Initializes this abstractDatasetAgent's internal MsgBrokerClient using the given connectionInfo
+     * 
+     * @param connectionInfo
+     *            Parameters specifying how to initialize the MsgBrokerClient
+     * 
+     * @throws IonException
+     *             When there is an issue initializing the MsgBrokerClient such as during attach(), bindQueue(), or attachConsumer()
+     * @throws IllegalArgumentException
+     *             When connectionInfo provides missing or invalid arguments
+     */
+    private void initMsgBrokerClient(HashMap<String, String> connectionInfo) throws IonException {
+        String topic = connectionInfo.get("ingest_topic");
+        String host = connectionInfo.get("host");
+        String xp_name = connectionInfo.get("xp_name");
+        
+        if (null == topic)
+            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ingest_topic'");
+        if (null == host)
+            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'host'");
+        if (null == xp_name)
+            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'xp_name'");
+
+        /* Any of these can throw an IonException */
+        toName = new ion.core.messaging.MessagingName(topic);
         fromName = ion.core.messaging.MessagingName.generateUniqueName();
+
+        cl = new ion.core.messaging.MsgBrokerClient(host, com.rabbitmq.client.AMQP.PROTOCOL.PORT, xp_name);
         cl.attach();
+
         recieverQueue = cl.declareQueue(null);
+
         cl.bindQueue(recieverQueue, fromName, null);
         cl.attachConsumer(recieverQueue);
     }

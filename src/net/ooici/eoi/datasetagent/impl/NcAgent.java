@@ -32,6 +32,7 @@ import net.ooici.eoi.ftp.EasyFtp;
 import net.ooici.eoi.ftp.FtpFileFinder;
 import net.ooici.eoi.ftp.FtpFileFinder.UrlParser;
 import net.ooici.eoi.netcdf.NcDumpParse;
+import net.ooici.services.sa.DataSource;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import net.ooici.services.sa.DataSource.RequestType;
 
@@ -45,6 +46,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import ucar.ma2.InvalidRangeException;
+import ucar.ma2.Range;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
@@ -331,6 +333,9 @@ public class NcAgent extends AbstractNcAgent {
                         thrown = ex;
                     }
                     this.addSubRange(trng);
+                    if (log.isInfoEnabled()) {
+                        log.info("Applied subrange - {}:{}:{}", new Object[]{tdim, sti, eti});
+                    }
                 } else {
                     warn = true;
                 }
@@ -344,7 +349,28 @@ public class NcAgent extends AbstractNcAgent {
                     log.warn("Error determining time axis - full time range will be used");
                 }
             }
-//            System.out.println((trng != null) ? trng.getName() + "=" + trng.toString() : "no trng");
+        }
+        /* If the subranges field has items */
+        if (context.getSubRangesCount() > 0) {
+            /* Iterate over the list of subranges and add them */
+            String dimName;
+            for (DataSource.SubRange sr : context.getSubRangesList()) {
+                dimName = sr.getDimName();
+                Range rng = null;
+                try {
+                    if (ncds.findDimension(dimName) == null) {
+                        throw new Exception("Dataset does not contain dimension named \"" + dimName + "\"");
+                    }
+                    rng = new ucar.ma2.Range(dimName, sr.getStartIndex(), sr.getEndIndex());
+                    this.addSubRange(rng);
+                    if (log.isInfoEnabled()) {
+                        log.info("Applied subrange - {}:{}:{}", new Object[]{dimName, sr.getStartIndex(), sr.getEndIndex()});
+                    }
+                } catch (Exception ex) {
+                    log.warn("There was a problem generating subrange for \"" + dimName + "\" with start:end indices " + sr.getStartIndex() + ":" + sr.getEndIndex() + ", the full extent of the dimension will be used", ex);
+                    continue;
+                }
+            }
         }
 
         String response = this.sendNetcdfDataset(ncds, "ingest");
@@ -399,7 +425,7 @@ public class NcAgent extends AbstractNcAgent {
 
         System.out.println("Starting ncds write");
         NetcdfDataset ncds = NetcdfDataset.openDataset(ncml, false, null);
-        
+
         ucar.nc2.FileWriter.writeToFile(ncds, out);
         System.out.println("Write complete!");
 
@@ -592,7 +618,6 @@ public class NcAgent extends AbstractNcAgent {
 
     private static void manualTesting() throws IOException {
         /* the ncml mask to use*/
-        /* for NAM - WARNING!!  This is a HUGE file... not fully supported on the ingest side yet... */
         String ncmlmask = "";
         String dataurl = "";
         String baseUrl = "";
@@ -603,6 +628,8 @@ public class NcAgent extends AbstractNcAgent {
         String filePattern = null;
         String dirPattern = null;
         String joinName = null;
+        List<String> subDims = new ArrayList<String>();
+        List<int[]> subIndices = new ArrayList<int[]>();
         net.ooici.services.sa.DataSource.RequestType requestType = net.ooici.services.sa.DataSource.RequestType.DAP;
 //        long maxSize = -1;
 
@@ -610,6 +637,15 @@ public class NcAgent extends AbstractNcAgent {
         /** ******************** */
         /*  DAP Request Testing  */
         /** ******************** */
+        /* NAM */
+        /* WARNING!!  This is a HUGE file... must utilize the new "SubRange" capabilities to "trim" the dataset... */
+//        dataurl = "http://nomads.ncep.noaa.gov:9090/dods/nam/nam20110606/nam_00z";
+//        sTime = "2011-06-06T00:00:00Z";
+//        eTime = "2011-06-06T03:00:00Z";
+//        subDims.add("lev");
+//        subIndices.add(new int[]{2,2});
+//        subDims.add("lat");
+
         /* for HiOOS Gliders */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"pressure\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"temp\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"conductivity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"salinity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"density\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable></netcdf>";
 //        dataurl = "http://oos.soest.hawaii.edu/thredds/dodsC/hioos/glider/sg139_8/p1390001.nc";
@@ -642,9 +678,9 @@ public class NcAgent extends AbstractNcAgent {
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"AIRT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"ATMS\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RELH\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"LW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"RAIT\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"TEMP\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"SW\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"UWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"VWND\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable><variable name=\"PSAL\"><attribute name=\"coordinates\" value=\"time depth lat lon\" /></variable></netcdf>";
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        ncmlmask = "";
-        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_NTAS_2010_R_M-1.nc";
-        sTime = "2011-05-23T00:00:00Z";
-        eTime = "2011-05-24T00:00:00Z";
+//        dataurl = "http://uop.whoi.edu/oceansites/ooi/OS_NTAS_2010_R_M-1.nc";
+//        sTime = "2011-05-23T00:00:00Z";
+//        eTime = "2011-05-24T00:00:00Z";
 
         /* UOP - NTAS 2 */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
@@ -830,9 +866,19 @@ public class NcAgent extends AbstractNcAgent {
             addlObjects.add(patternWrap);
             cBldr.setSearchPattern(patternWrap.getCASRef());
         }
+        if (!subDims.isEmpty() && !subIndices.isEmpty() && subDims.size() == subIndices.size()) {
+            DataSource.SubRange sr;
+            int[] indices;
+            for (int i = 0; i < subIndices.size(); i++) {
+                indices = subIndices.get(i);
+                sr = DataSource.SubRange.newBuilder().setDimName(subDims.get(i)).setStartIndex(indices[0]).setEndIndex(indices[1]).build();
+                addlObjects.add(GPBWrapper.Factory(sr));
+                cBldr.addSubRanges(sr);
+            }
+        }
         net.ooici.core.container.Container.Structure struct = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cBldr.build()), addlObjects.toArray(new GPBWrapper<?>[]{}));
-        runAgent(struct, AgentRunType.TEST_WRITE_NC);
-//        runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
+//        runAgent(struct, AgentRunType.TEST_WRITE_NC);
+        runAgent(struct, AgentRunType.TEST_WRITE_OOICDM);
     }
 
     private static String[] runAgent(net.ooici.core.container.Container.Structure structure, AgentRunType agentRunType) throws IOException {

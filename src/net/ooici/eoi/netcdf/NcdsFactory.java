@@ -15,10 +15,13 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
+
 import net.ooici.NumberComparator;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import ucar.ma2.Array;
+import ucar.ma2.ArrayByte;
 import ucar.ma2.ArrayDouble;
 import ucar.ma2.ArrayFloat;
 import ucar.ma2.ArrayInt;
@@ -127,6 +130,30 @@ public class NcdsFactory {
                 if (dn.getStandardName() != null) {
                     dvar.addAttribute(new Attribute(CF.STANDARD_NAME, dn.getStandardName()));
                 }
+                
+                /* Add additional fields as well */
+                if (null != dn.getAddlFields()) {
+                    for (Entry<String, Object> e : dn.getAddlFields().entrySet()) {
+                        String key = e.getKey();
+                        Object obj = e.getValue();
+                        
+                        if (obj.getClass().isArray()) {
+                            
+                            dvar.addAttribute(new Attribute(key, Array.factory(obj)));
+                            
+                        } else if (obj.getClass() == Byte.class) {
+
+                            dvar.addAttribute(new Attribute(key, (Byte)obj));
+                            
+                        } else if (obj.getClass() == String.class) {
+                            
+                            dvar.addAttribute(new Attribute(key, obj.toString()));
+                            
+                        }/* TODO: add more cases for possible types of addlFields "values" */
+                        
+                    }
+                }
+                
                 Array adata = Array.factory(ncdtData, new int[]{times.length});
                 IndexIterator aii = adata.getIndexIterator();
                 dvar.setCachedData(adata);
@@ -559,6 +586,8 @@ public class NcdsFactory {
 
     private static DataType getNcDataType(IObservationGroup.DataType obsDT) {
         switch (obsDT) {
+            case BYTE:
+                return DataType.BYTE;
             case INT:
                 return DataType.INT;
             case LONG:
@@ -606,6 +635,12 @@ public class NcdsFactory {
         int len = inarr.length;
         Object oarr = null;
         switch (dataType) {
+            case BYTE:
+                oarr = new byte[len];
+                for (int i = 0; i < len; i++) {
+                    ((byte[]) oarr)[i] = inarr[i].byteValue();
+                }
+                break;
             case INT:
                 oarr = new int[len];
                 for (int i = 0; i < len; i++) {
@@ -640,6 +675,9 @@ public class NcdsFactory {
     private static Array getNcScalar(Number inNum, IObservationGroup.DataType dataType) {
         Array ret = null;
         switch (dataType) {
+            case BYTE:
+                ret = new ArrayByte.D0();
+                ((ArrayByte.D0) ret).set(inNum.byteValue());
             case INT:
                 ret = new ArrayInt.D0();
                 ((ArrayInt.D0) ret).set(inNum.intValue());
@@ -662,6 +700,9 @@ public class NcdsFactory {
 
     private static void putArrayData(IndexIterator ii, DataType dataType, Number data) {
         switch (dataType) {
+            case BYTE:
+                ii.setByteNext(data.byteValue());
+                break;
             case INT:
                 ii.setIntNext(data.intValue());
                 break;

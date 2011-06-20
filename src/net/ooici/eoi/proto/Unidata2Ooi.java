@@ -145,6 +145,7 @@ public class Unidata2Ooi {
                 arrWrap = GPBWrapper.Factory(Cdmarray.stringArray.newBuilder().addValue(val).build());
                 break;
             case BYTE:
+                /* TODO: implement this for byte support */
             case SHORT:
             case INT:
                 int i32Val = ncAtt.getNumericValue().intValue();
@@ -288,6 +289,7 @@ public class Unidata2Ooi {
         GPBWrapper arrWrap = null;
         switch (dt) {
             case BYTE:
+                /* TODO: implement this for byte support */
             case SHORT:
             case INT:
                 Cdmarray.int32Array.Builder i32Bldr = Cdmarray.int32Array.newBuilder();

@@ -26,6 +26,7 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 import net.ooici.eoi.datasetagent.obs.ObservationGroupImpl;
 import net.ooici.eoi.netcdf.VariableParams;
+import net.ooici.eoi.netcdf.VariableParams.StandardVariable;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
@@ -81,6 +82,33 @@ public class UsgsAgent extends AbstractAsciiAgent {
         inSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
+    
+    /** Used to convert qualifier code to a byte storage value */
+    enum Qualifier {
+        PROVISIONAL("P", (byte)1), APPROVED("A", (byte)2);
+        
+        static final byte DEFAULT_VALUE = 0;
+        final String code;
+        final byte byteValue;
+        Qualifier(String code, byte byteValue) {
+            this.code = code;
+            this.byteValue = byteValue;
+        }
+        
+        public static byte getByteValue(String code) {
+            byte result = DEFAULT_VALUE;
+            for (Qualifier value : Qualifier.values()) {
+                if (value.code.equals(code)) {
+                    result = value.byteValue;
+                    break;
+                }
+            }
+            
+            return result;
+        }
+    }
+
+    
     /**
      * Constructs a URL from the given data <code>context</code> by appending necessary USGS-specific query string parameters to the base URL
      * returned by <code>context.getBaseUrl()</code>. This URL may subsequently be passed through {@link #acquireData(String)} to procure
@@ -528,7 +556,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     }
 
                     /* Grab observation data */
-                    // String qualifier = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_QUALIFIERS)).getValue();
+                    String qualifier = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_QUALIFIERS)).getValue();
                     datetime = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_DATETIME)).getValue();
                     String value = ((Element) next).getTextTrim();
                     datetime = datetime.replaceAll("\\:", "");
@@ -559,8 +587,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     /* Add the observation data */
                     obs.addObservation(time, dpth, data, new VariableParams(name, DataType.FLOAT));
 
-                    /* TODO: Add the data observation qualifier */
-                    // og.addObservation(time, dpth, qualifier, new VariableParams(name, DataType.FLOAT));
+                    /* Add the data observation qualifier */
+                    byte qualifier_value = Qualifier.getByteValue(qualifier.toString());
+                    obs.addObservation(time, dpth, qualifier_value, new VariableParams(StandardVariable.USGS_QC_FLAG, DataType.BYTE));
                 }
                 /* If the group has waterSurface, add a the datum variable */
                 if (hasWaterSurface) {
@@ -722,7 +751,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     }
 
                     /* Grab observation data */
-                    // String qualifier = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_QUALIFIERS)).getValue();
+                    String qualifier = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_QUALIFIERS)).getValue();
                     datetime = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_DATETIME)).getValue();
                     String value = ((Element) next).getTextTrim();
                     datetime = datetime.replaceAll("\\:", "");
@@ -754,8 +783,9 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     /* Add the observation data */
                     obs.addObservation(time, dpth, data, new VariableParams(name, DataType.FLOAT));
 
-                    /* TODO: Add the data observation qualifier */
-                    // og.addObservation(time, dpth, qualifier, new VariableParams(name, DataType.FLOAT));
+                    /* Add the data observation qualifier */
+                    byte qualifier_value = Qualifier.getByteValue(qualifier.toString());
+                    obs.addObservation(time, dpth, qualifier_value, new VariableParams(StandardVariable.USGS_QC_FLAG, DataType.BYTE));
 
                 }
 
@@ -918,7 +948,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
-            int switcher = 5;
+            int switcher = 4;
             try {
                 switch (switcher) {
                     case 1://test temp

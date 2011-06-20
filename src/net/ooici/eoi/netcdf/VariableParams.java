@@ -1,5 +1,8 @@
 package net.ooici.eoi.netcdf;
 
+import java.util.HashMap;
+import java.util.Map;
+
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
 
 /**
@@ -11,6 +14,10 @@ import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
  */
 public class VariableParams implements Comparable<VariableParams> {
 
+    
+    
+    
+    
     public enum StandardVariable {
 
         WATER_TEMPERATURE(new VariableParams(null, "water_temperature", "temperature of the water at position, in degrees celsius", "degree_Celsius")),
@@ -79,9 +86,21 @@ public class VariableParams implements Comparable<VariableParams> {
         "magnitude of wind gust", "m s-1")),
         UPWARD_AIR_VELOCITY(new VariableParams("upward_air_velocity", "upward_air_velocity",
         "magnitude of wind in the vertical", "m s-1")),
+        USGS_QC_FLAG(new VariableParams(null, "data_qualifier", "Data Qualifier", null, DataType.BYTE, new HashMap<String, Object>())),
         
         
         ;
+        
+        
+        /** Finish initialization of Additional Fields */
+        static {
+            /* USGS_QC_FLAG */
+            USGS_QC_FLAG.getVariableParams().putAddlField("_FillValue",    (byte)0);
+            USGS_QC_FLAG.getVariableParams().putAddlField("valid_range",   new byte[] {(byte)1, (byte)2});
+            USGS_QC_FLAG.getVariableParams().putAddlField("flag_values",   new byte[] {(byte)1, (byte)2});
+            USGS_QC_FLAG.getVariableParams().putAddlField("flag_meanings", "provisional approved");
+            
+        }
         
 
         private VariableParams param;
@@ -147,6 +166,9 @@ public class VariableParams implements Comparable<VariableParams> {
     private String description;
     private String units;
     private DataType dataType;
+    private Map<String, Object> addlFields;
+    
+    
 
     /**
      * Constructs a new set of VariableParams to represent the "naming" parameters of an NC variable.
@@ -154,7 +176,7 @@ public class VariableParams implements Comparable<VariableParams> {
      * @param standardName
      *            The CF compliant standard_name for this NcDataName
      * @param varName
-     *            The name for this VaraiableParams - applied as the name of the variable in datasets
+     *            The name for this VariableParams - applied as the name of the variable in datasets
      * @param longName
      *            The long_name attribute for this VaraiableParams
      * @param units
@@ -179,11 +201,30 @@ public class VariableParams implements Comparable<VariableParams> {
      *            The DataType for this VariableParams
      */
     public VariableParams(String standardName, String varName, String description, String units, DataType dataType) {
+        this(standardName, varName, description, units, dataType, null);
+    }
+    
+    /**
+     * Constructs a new set of VariableParams to represent the "naming" parameters of an NC variable.
+     * 
+     * @param standardName
+     *            The CF compliant standard_name for this NcDataName
+     * @param varName
+     *            The name for this VaraiableParams - applied as the name of the variable in datasets
+     * @param description
+     *            The long_name attribute for this VaraiableParams
+     * @param units
+     *            The units attribute for this VaraiableParams
+     * @param dataType 
+     *            The DataType for this VariableParams
+     */
+    public VariableParams(String standardName, String varName, String description, String units, DataType dataType, Map<String, Object> addlFields) {
         this.standardName = standardName;
         this.varName = varName;
         this.description = description;
         this.units = units;
         this.dataType = dataType;
+        this.addlFields = addlFields;
     }
 
     public VariableParams(VariableParams attribs, DataType dataType) {
@@ -191,6 +232,7 @@ public class VariableParams implements Comparable<VariableParams> {
         this.varName = attribs.varName;
         this.description = attribs.description;
         this.units = attribs.units;
+        this.addlFields = attribs.addlFields;
         this.dataType = dataType;
     }
     
@@ -198,6 +240,16 @@ public class VariableParams implements Comparable<VariableParams> {
         this(sv.getVariableParams(), dataType);
     }
 
+    
+    
+    private void putAddlField(String key, Object value) {
+        if (null == addlFields) {
+            addlFields = new HashMap<String, Object>();
+        }
+        addlFields.put(key, value);
+    }
+    
+    
     /**
      * Main entry point (for testing purposes only
      * )
@@ -280,6 +332,14 @@ public class VariableParams implements Comparable<VariableParams> {
     public DataType getDataType() {
         return dataType;
     }
+    
+    public Map<String, Object> getAddlFields() {
+        Map<String, Object> result = null;
+        if (null != addlFields) {
+            result = new HashMap<String, Object>(addlFields);
+        }
+        return result;
+    }
 
     @Override
     public int hashCode() {
@@ -299,6 +359,8 @@ public class VariableParams implements Comparable<VariableParams> {
         hash *= 31;
         hash += (null == dataType) ? (0) : (dataType.hashCode());
 
+        hash *= 31;
+        hash += (null == addlFields) ? (0) : (addlFields.hashCode());
 
         return hash;
     }

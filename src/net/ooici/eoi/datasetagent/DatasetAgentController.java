@@ -35,7 +35,7 @@ public class DatasetAgentController implements ControlListener {
     private final ControlThread controlThread;
     private final ExecutorService processService;
     private static String w_host_name = "";
-    private static String w_xp_name = "";       /* Wrapper Service Exchange Point Name aka Topic (usu. magnet.topic) */
+    private static String w_exchange_name = "";       /* Wrapper Service Exchange Point Name aka Topic (usu. magnet.topic) */
 
     private static String w_scoped_name = "";   /* Qualified Wrapper Service Name */
 
@@ -45,18 +45,18 @@ public class DatasetAgentController implements ControlListener {
         if (args.length == 4) {
             try {
                 w_host_name = args[0];
-                w_xp_name = args[1];
+                w_exchange_name = args[1];
                 w_scoped_name = args[2];
                 w_callback_op = args[3];
 
                 if (log.isDebugEnabled()) {
-                    log.debug("Startup args: host_name={}; xp_name={}; scoped_name={}; callback={}", new Object[]{w_host_name, w_xp_name, w_scoped_name, w_callback_op});
+                    log.debug("Startup args: host={}; exchange={}; scoped_name={}; callback={}", new Object[]{w_host_name, w_exchange_name, w_scoped_name, w_callback_op});
                 }
             } catch (IllegalArgumentException ex) {
                 log.error("Incorrect number of startup args.", ex);
             }
 
-            new DatasetAgentController(w_host_name, w_xp_name, w_scoped_name, w_callback_op);
+            new DatasetAgentController(w_host_name, w_exchange_name, w_scoped_name, w_callback_op);
         }
     }
 
@@ -275,9 +275,9 @@ public class DatasetAgentController implements ControlListener {
                 java.util.HashMap<String, String> connInfo = new java.util.HashMap<String, String>();
 //                connInfo.put("exchange", "eoitest");
 //                connInfo.put("service", "eoi_ingest");
-                connInfo.put("host", w_host_name);
-                connInfo.put("xp_name", context.getXpName());
-                connInfo.put("ingest_topic", context.getIngestTopic());
+                connInfo.put("ion.host", w_host_name);
+                connInfo.put("ion.exchange", context.getXpName());
+                connInfo.put("ion.ingest_topic", context.getIngestTopic());
 
                 /*
                  * Perform the update - this can result in multiple messages being sent to the ingest service

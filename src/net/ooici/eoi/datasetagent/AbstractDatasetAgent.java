@@ -524,7 +524,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         long esize = var.getElementSize();
         long size = sec.computeSize() * esize;
         if (log.isDebugEnabled()) {
-            log.debug("{}decomp-depth = {} :: sec-size = {}", new Object[]{indent, depth, size});
+            log.debug("{}decomp-depth = {} :: sec = {} :: sec-size = {}", new Object[]{indent, depth, sec, size});
         }
         if (size > maxSize) {
             Range rng;
@@ -747,6 +747,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         IonMsg.Builder ionMsgBldr = IonMsg.newBuilder();
         ionMsgBldr.setIdentity(UUID.randomUUID().toString());
         ionMsgBldr.setResponseCode(net.ooici.core.message.IonMessage.ResponseCodes.OK);
+        
+        if(log.isDebugEnabled()) {
+            log.debug("Error Message:: status={} : statusBody={}", status, statusBody);
+        }
+        
         /* MessageObject is an instance of DataAcquisitionComplete */
         GPBWrapper<DataAcquisitionCompleteMessage> dacmWrap = GPBWrapper.Factory(DataAcquisitionCompleteMessage.newBuilder().setStatus(status).setStatusBody(statusBody).build());
         ionMsgBldr.setMessageObject(dacmWrap.getCASRef());
@@ -779,22 +784,22 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      *             When connectionInfo provides missing or invalid arguments
      */
     private void initMsgBrokerClient(HashMap<String, String> connectionInfo) throws IonException {
-        String topic = connectionInfo.get("ingest_topic");
-        String host = connectionInfo.get("host");
-        String xp_name = connectionInfo.get("xp_name");
+        String topic = connectionInfo.get("ion.ingest_topic");
+        String host = connectionInfo.get("ion.host");
+        String exchange = connectionInfo.get("ion.exchange");
         
         if (null == topic)
             throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ingest_topic'");
         if (null == host)
             throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'host'");
-        if (null == xp_name)
-            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'xp_name'");
+        if (null == exchange)
+            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'exchange'");
 
         /* Any of these can throw an IonException */
         toName = new ion.core.messaging.MessagingName(topic);
         fromName = ion.core.messaging.MessagingName.generateUniqueName();
 
-        cl = new ion.core.messaging.MsgBrokerClient(host, com.rabbitmq.client.AMQP.PROTOCOL.PORT, xp_name);
+        cl = new ion.core.messaging.MsgBrokerClient(host, com.rabbitmq.client.AMQP.PROTOCOL.PORT, exchange);
         cl.attach();
 
         recieverQueue = cl.declareQueue(null);

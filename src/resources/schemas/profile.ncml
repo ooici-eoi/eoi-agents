@@ -17,7 +17,7 @@
     <attribute name="units" value="degrees_north" />
   </variable>
   <variable name="prof_id" shape="prof" type="int">
-    <attribute name="long name" value="profile id" />
+    <attribute name="long_name" value="profile id" />
     <attribute name="cf_role" value="profile_id"/>
   </variable>
   <variable name="profileAlt" shape="prof" type="int">

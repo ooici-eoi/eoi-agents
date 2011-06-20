@@ -20,7 +20,7 @@
     <attribute name="_CoordinateAxisType" value="Lat" />
   </variable>
   <variable name="stnId" shape="" type="int">
-    <attribute name="long name" value="station id" />
+    <attribute name="long_name" value="station id" />
     <attribute name="cf_role" value="timeseries_id" />
   </variable>
   

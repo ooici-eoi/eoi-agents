@@ -16,7 +16,7 @@
     <attribute name="units" value="degrees_north" />
   </variable>
   <variable name="stnId" shape="station" type="int">
-    <attribute name="long name" value="station id" />
+    <attribute name="long_name" value="station id" />
     <attribute name="cf_role" value="timeseries_id" />
   </variable>
   

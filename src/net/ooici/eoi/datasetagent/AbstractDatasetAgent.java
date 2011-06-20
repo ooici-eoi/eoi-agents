@@ -789,11 +789,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         String exchange = connectionInfo.get("ion.exchange");
         
         if (null == topic)
-            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ingest_topic'");
+            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ion.ingest_topic'");
         if (null == host)
-            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'host'");
+            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ion.host'");
         if (null == exchange)
-            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'exchange'");
+            throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ion.exchange'");
 
         /* Any of these can throw an IonException */
         toName = new ion.core.messaging.MessagingName(topic);

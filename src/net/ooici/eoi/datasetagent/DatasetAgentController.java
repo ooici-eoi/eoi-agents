@@ -7,6 +7,7 @@ package net.ooici.eoi.datasetagent;
 import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 import ion.core.IonBootstrap;
+import ion.core.IonException;
 import ion.core.PollingProcess;
 import ion.core.messaging.IonMessage;
 import ion.core.messaging.MessagingName;
@@ -16,6 +17,7 @@ import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import net.ooici.core.container.Container;
 import net.ooici.core.message.IonMessage.IonMsg;
@@ -34,6 +36,7 @@ public class DatasetAgentController implements ControlListener {
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DatasetAgentController.class);
     private final ControlThread controlThread;
     private final ExecutorService processService;
+    private Future<?> runningTask = null;
     private static String w_host_name = "";
     private static String w_exchange_name = "";       /* Wrapper Service Exchange Point Name aka Topic (usu. magnet.topic) */
 
@@ -92,8 +95,29 @@ public class DatasetAgentController implements ControlListener {
                 /* Perform an update - executes in a seperate thread!! */
                 performUpdate(evt.getSource(), evt.getIonMessage());
                 break;
+            case INGEST_ERROR:
+                if (log.isDebugEnabled()) {
+                    log.debug("Ingestion encountered an error - terminating the current processing thread...");
+                }
+                if (runningTask != null) {
+                    if (!runningTask.isDone() && !runningTask.isCancelled()) {
+                        if (runningTask.cancel(true)) {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Process Terminated Successfully!");
+                            }
+                            runningTask = null;
+                        } else {
+                            if (log.isDebugEnabled()) {
+                                log.debug("Process Not Terminated");
+                            }
+                        }
+                    }
+                }
+                break;
             case SHUTDOWN:
-                log.debug("Shutting down DatasetAgentController {MessagingID=" + controlThread.getMessagingName() + "}");
+                if (log.isDebugEnabled()) {
+                    log.debug("Shutting down DatasetAgentController:: MessagingID={}", controlThread.getMessagingName());
+                }
                 boolean terminated = false;
                 String terminationStatus = "Termination Successful!!";
                 try {
@@ -131,8 +155,10 @@ public class DatasetAgentController implements ControlListener {
     }
 
     public void performUpdate(final Object source, final IonMessage msg) {
-        processService.execute(new Runnable() {
+        runningTask = processService.submit(new Runnable() {
+//        processService.execute(new Runnable() {
 
+            @Override
             public void run() {
                 String threadId = Thread.currentThread().getName();
                 String status = "";
@@ -144,12 +170,12 @@ public class DatasetAgentController implements ControlListener {
                 net.ooici.core.container.Container.Structure struct = null;
                 try {
                     struct = net.ooici.core.container.Container.Structure.parseFrom((byte[]) msg.getContent());
-                    
+
                     StructureManager sm = StructureManager.Factory(msg);
                     /* Store the EoiDataContext object */
                     IonMsg msg = (IonMsg) sm.getObjectWrapper(sm.getHeadId()).getObjectValue();
                     context = (EoiDataContextMessage) sm.getObjectWrapper(msg.getMessageObject()).getObjectValue();
-                    
+
 //                    HashMap<ByteString, Container.StructureElement> elementMap = new HashMap<ByteString, Container.StructureElement>();
 //                    for (Container.StructureElement se : struct.getItemsList()) {
 //                        elementMap.put(se.getKey(), se);
@@ -289,11 +315,13 @@ public class DatasetAgentController implements ControlListener {
                 String[] ooiDsId = null;
                 try {
                     ooiDsId = agent.doUpdate(struct, connInfo);
+                } catch (IngestException ex) {
+                    return; // Bail out of processing
                 } catch (Exception ex) {
                     /* Send a reply_err message back to caller */
                     log.error("ProcThread:" + threadId + ":: Could not perform update", ex);
                     String trace = AgentUtils.getStackTraceString(ex).replaceAll("^", "\t");
-                    
+
                     IonMessage reply = ((ControlProcess) source).createMessage(context.getIngestTopic(), "result", trace);
                     reply.getIonHeaders().put("status", "ERROR");
                     reply.getIonHeaders().put("response", "ION ERROR");
@@ -495,6 +523,11 @@ public class DatasetAgentController implements ControlListener {
                         log.debug("Update Request Received");
                     }
                     clistener.controlEvent(new ControlEvent(this, ControlEventType.UPDATE, msg));
+                } else if (op.equalsIgnoreCase("op_ingest_error")) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Ingestion Error Received");
+                    }
+                    clistener.controlEvent(new ControlEvent(this, ControlEventType.INGEST_ERROR, msg));
                 } else {
                     if (log.isDebugEnabled()) {
                         log.debug("OP: \"{}\" is not understood, must be either \"op_shutdown\" or \"op_update\"", op);

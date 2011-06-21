@@ -14,7 +14,8 @@ public class ControlEvent extends java.util.EventObject {
 
         STATUS,
         SHUTDOWN,
-        UPDATE
+        UPDATE,
+        INGEST_ERROR
     }
     
     private ControlEventType type;

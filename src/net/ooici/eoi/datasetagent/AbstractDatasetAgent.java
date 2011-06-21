@@ -93,7 +93,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
-        TEST_WRITE_OOICDM,}
+        TEST_WRITE_OOICDM,
+    }
     /**
      * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
      */
@@ -214,13 +215,13 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     @Override
     public final String[] doUpdate(net.ooici.core.container.Container.Structure structure, java.util.HashMap<String, String> connectionInfo) throws IonException {
         /* NOTE: Template method.  Do not reorder */
-        
+
         String[] result = null;
-        
-        
+
+
         /** Step 1: Initialize the MsgBroker Client as appropriate */
         try {
-            
+
             /* If the connectionInfo object is null, assume this is being called from a test */
             if (connectionInfo == null) {
                 runType = AgentRunType.TEST_NO_WRITE;
@@ -229,13 +230,13 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 initMsgBrokerClient(connectionInfo);
             }
         } catch (Exception ex) {
-            
+
             throw new IonException("Failure while initializing the Message Broker Client...", ex);
 
         }
-        
-        
-        
+
+
+
         /* Overarching try/finally to ensure closure of MsgBrokerClient on exit */
         try {
 
@@ -245,23 +246,24 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
              *          o  _processDataset()
              */
             try {
-                
+
                 /* Load the structure into the structManager object */
                 structManager = StructureManager.Factory(structure);
-        
+
                 /* Store the EoiDataContext object */
                 IonMsg msg = (IonMsg) structManager.getObjectWrapper(structManager.getHeadId()).getObjectValue();
                 this.context = (EoiDataContextMessage) structManager.getObjectWrapper(msg.getMessageObject()).getObjectValue();
-                if (null == this.context)
+                if (null == this.context) {
                     throw new NullPointerException("Structure manager returned a null Update Context.  Update cannot proceed.");
-                
+                }
+
             } catch (Exception ex) {
 
                 throw new IonException("Failure while gathering update context", ex);
-                
+
             }
-            
-            
+
+
             /** Step 3: Continue processing according to the template: */
             /* Build the request */
             String request = null;
@@ -269,7 +271,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 request = buildRequest();
             } catch (Exception ex) {
                 throw new IonException("Failed to build a request from the given update context.", ex);
-                
+
             }
 
             /* Acquire data from the request */
@@ -279,35 +281,36 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             } catch (Exception ex) {
                 throw new IonException("Failed to acquire data for the request built from the update context.", ex);
             }
-            
+
             /* Process the acquired data */
             try {
                 result = _processDataset(data);
             } catch (Exception ex) {
-                throw new IonException("Failed to process the dataset acquired from the update context request.", ex);
+                if(!(ex instanceof IngestException)) {
+                    throw new IonException("Failed to process the dataset acquired from the update context request.", ex);
+                }
             }
-            
-            
+
+
         } catch (IonException ex) {
 
             /* Send a notification of this exception to the ingest*/
             String trace = AgentUtils.getStackTraceString(ex).replaceAll("^", "\t");
             this.sendDataErrorMsg(StatusCode.AGENT_ERROR, trace);
-            
+
             /* Rethrow the exception so the JAW can also be notified */
             throw ex;
-            
+
         } finally {
-            
+
             closeMsgBrokerClient();
-            
+
         }
-    
-        
-        
+
+
+
         return result;
     }
-    
 
     /**
      * Processes data as from {@link #acquireData(String)} -- which may be defined by a subclasses implementation
@@ -424,6 +427,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 for (ucar.nc2.Variable v : ncds.getVariables()) {
                     if (log.isDebugEnabled()) {
                         log.debug("Processing Variable: {}", v.getName());
+                    }
+                    if (Thread.currentThread().isInterrupted()) {
+                        throw new IngestException("Processing thread interrupted!!");
                     }
                     try {
 
@@ -747,11 +753,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         IonMsg.Builder ionMsgBldr = IonMsg.newBuilder();
         ionMsgBldr.setIdentity(UUID.randomUUID().toString());
         ionMsgBldr.setResponseCode(net.ooici.core.message.IonMessage.ResponseCodes.OK);
-        
-        if(log.isDebugEnabled()) {
+
+        if (log.isDebugEnabled()) {
             log.debug("Error Message:: status={} : statusBody={}", status, statusBody);
         }
-        
+
         /* MessageObject is an instance of DataAcquisitionComplete */
         GPBWrapper<DataAcquisitionCompleteMessage> dacmWrap = GPBWrapper.Factory(DataAcquisitionCompleteMessage.newBuilder().setStatus(status).setStatusBody(statusBody).build());
         ionMsgBldr.setMessageObject(dacmWrap.getCASRef());
@@ -787,13 +793,16 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         String topic = connectionInfo.get("ion.ingest_topic");
         String host = connectionInfo.get("ion.host");
         String exchange = connectionInfo.get("ion.exchange");
-        
-        if (null == topic)
+
+        if (null == topic) {
             throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ion.ingest_topic'");
-        if (null == host)
+        }
+        if (null == host) {
             throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ion.host'");
-        if (null == exchange)
+        }
+        if (null == exchange) {
             throw new IllegalArgumentException("Cannot initialize the MsgBrokerClient: The given connection info is missing an argument for 'ion.exchange'");
+        }
 
         /* Any of these can throw an IonException */
         toName = new ion.core.messaging.MessagingName(topic);

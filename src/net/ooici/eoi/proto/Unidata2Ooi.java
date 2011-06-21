@@ -139,28 +139,54 @@ public class Unidata2Ooi {
         DataType dt = ncAtt.getDataType();
         Cdmattribute.Attribute.Builder attBldr = Cdmattribute.Attribute.newBuilder().setName(ncAtt.getName()).setDataType(AgentUtils.getOoiDataType(dt));
         GPBWrapper arrWrap;
+        IndexIterator ii = ncAtt.getValues().getIndexIterator();
         switch (dt) {
             case STRING:
-                String val = ncAtt.getStringValue();
-                arrWrap = GPBWrapper.Factory(Cdmarray.stringArray.newBuilder().addValue(val).build());
+                String sVal;
+                Cdmarray.stringArray.Builder strBldr = Cdmarray.stringArray.newBuilder();
+                while(ii.hasNext()) {
+                    sVal = (String) ii.getObjectNext();
+                    strBldr.addValue(sVal);
+                }
+                arrWrap = GPBWrapper.Factory(strBldr.build());
                 break;
             case BYTE:
             case SHORT:
             case INT:
-                int i32Val = ncAtt.getNumericValue().intValue();
-                arrWrap = GPBWrapper.Factory(Cdmarray.int32Array.newBuilder().addValue(i32Val).build());
+                int i32Val;
+                Cdmarray.int32Array.Builder i32bldr = Cdmarray.int32Array.newBuilder();
+                while(ii.hasNext()) {
+                    i32Val = ii.getIntNext();
+                    i32bldr.addValue(i32Val);
+                }
+                arrWrap = GPBWrapper.Factory(i32bldr.build());
                 break;
             case LONG:
-                long i64Val = ncAtt.getNumericValue().longValue();
-                arrWrap = GPBWrapper.Factory(Cdmarray.int64Array.newBuilder().addValue(i64Val).build());
+                long i64Val;
+                Cdmarray.int64Array.Builder i64bldr = Cdmarray.int64Array.newBuilder();
+                while(ii.hasNext()) {
+                    i64Val = ii.getLongNext();
+                    i64bldr.addValue(i64Val);
+                }
+                arrWrap = GPBWrapper.Factory(i64bldr.build());
                 break;
             case FLOAT:
-                float f32Val = ncAtt.getNumericValue().floatValue();
-                arrWrap = GPBWrapper.Factory(Cdmarray.f32Array.newBuilder().addValue(f32Val).build());
+                float f32Val;
+                Cdmarray.f32Array.Builder f32bldr = Cdmarray.f32Array.newBuilder();
+                while(ii.hasNext()) {
+                    f32Val = ii.getFloatNext();
+                    f32bldr.addValue(f32Val);
+                }
+                arrWrap = GPBWrapper.Factory(f32bldr.build());
                 break;
             case DOUBLE:
-                double f64Val = ncAtt.getNumericValue().doubleValue();
-                arrWrap = GPBWrapper.Factory(Cdmarray.f64Array.newBuilder().addValue(f64Val).build());
+                double f64Val;
+                Cdmarray.f64Array.Builder f64bldr = Cdmarray.f64Array.newBuilder();
+                while(ii.hasNext()) {
+                    f64Val = ii.getDoubleNext();
+                    f64bldr.addValue(f64Val);
+                }
+                arrWrap = GPBWrapper.Factory(f64bldr.build());
                 break;
             /* TODO: Implement other datatypes */
             default:

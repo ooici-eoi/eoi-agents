@@ -14,10 +14,13 @@ public interface IObservationGroup {
 
     public enum DataType {
 
+        BYTE(Byte.class),
         INT(Integer.class),
         LONG(Long.class),
         FLOAT(Float.class),
         DOUBLE(Double.class);
+        
+        
         Class<?> cls = null;
 
         DataType(Class<?> cls) {

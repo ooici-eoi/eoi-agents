@@ -24,6 +24,8 @@ import net.ooici.core.link.Link.CASRef;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.netcdf.NcUtils;
 import ucar.ma2.Array;
+import ucar.ma2.ArrayChar;
+import ucar.ma2.ArrayChar.StringIterator;
 import ucar.ma2.DataType;
 import ucar.ma2.IndexIterator;
 import ucar.ma2.InvalidRangeException;
@@ -350,6 +352,15 @@ public class Unidata2Ooi {
                     sBldr.addValue(o.toString());
                 }
                 arrWrap = GPBWrapper.Factory(sBldr.build());
+                break;
+            case CHAR:
+                Cdmarray.stringArray.Builder sBldrChar = Cdmarray.stringArray.newBuilder();
+                ArrayChar arrC = (ArrayChar)ncArr;
+                StringIterator si = arrC.getStringIterator();
+                while(si.hasNext()) {
+                    sBldrChar.addValue(si.next());
+                }
+                arrWrap = GPBWrapper.Factory(sBldrChar.build());
                 break;
             /* TODO: Implement other datatypes */
 

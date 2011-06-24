@@ -364,8 +364,8 @@ public abstract class DataSourceCrawler {
             }
         }
     }
-
     
+    /* TODO: may need to add a method to create an FMRC NCML -- must discuss with Stuebe */
 
     private static String generateNcml_join(List<String> contentList, String dimension) throws IOException {
 

@@ -102,7 +102,7 @@ public class NcAgent extends AbstractNcAgent {
 //        
 //        
 //        return result;
-        
+        /* TODO: add checking here to determine if request is dynamic dap or not -- use netcdf_c ?? */
         return buildRequest_dynamicDapMask();
     }
 
@@ -130,6 +130,7 @@ public class NcAgent extends AbstractNcAgent {
 
     
     public String buildRequest_dynamicDapMask() {
+        /* TODO: merge this code with buildRequest_ftp so that we arent duplicating code */
         /** Build an FTP-like mask to aggregate all files included in the temporal extents */
         
         /* Get data from the context to build a request */

@@ -2,7 +2,7 @@
  * File Name:  GenericTest.java
  * Created on: May 3, 2011
  */
-package net.ooici.eoi.ftp;
+package net.ooici.eoi.crawler.impl;
 
 
 import java.io.BufferedInputStream;
@@ -19,6 +19,9 @@ import java.util.zip.GZIPInputStream;
 import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
+import net.ooici.eoi.crawler.AccessClient;
+import net.ooici.eoi.crawler.DataSourceCrawler;
+
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.net.ProtocolCommandEvent;
 import org.apache.commons.net.ProtocolCommandListener;
@@ -32,23 +35,26 @@ import org.apache.commons.net.ftp.FTPReply;
  * @author tlarocque
  * @version 1.0
  */
-public class EasyFtp {
+public class FtpAccessClient implements AccessClient {
 
     /** Static Fields */
-    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(EasyFtp.class);
+    static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FtpAccessClient.class);
     private static final String NEW_LINE = System.getProperty("line.separator");
     
     /** Instance Fields */
     private final FTPClient ftp;
+    private String host;
     private String cddir = "/";
 
 
-    public EasyFtp(final String host) throws IOException {
+    
+    public FtpAccessClient(final String host) throws IOException {
         this(host, "anonymous", "");
     }
 
 
-    public EasyFtp(final String host, final String user, final String pasw) throws IOException {
+    public FtpAccessClient(final String host, final String user, final String pasw) throws IOException {
+        this.host = DataSourceCrawler.removeTrailingSlashes(host);
         ftp = new FTPClient();
         if (log.isDebugEnabled()) {
             ftp.addProtocolCommandListener(new ProtocolCommandListener() {
@@ -90,7 +96,27 @@ public class EasyFtp {
         }
     }
 
-
+    
+    /*
+     * (non-Javadoc)
+     * @see net.ooici.eoi.crawler.AccessClient#getHost()
+     */
+    @Override
+    public String getHost() {
+        return host;
+    }
+    
+    
+    /*
+     * (non-Javadoc)
+     * @see net.ooici.eoi.crawler.AccessClient#getProtocol()
+     */
+    @Override
+    public String getProtocol() {
+        return "ftp";
+    }
+    
+    
     public String cd(String dir) throws IOException {
         String cdto = fixdir(dir);
         ftp.changeWorkingDirectory(cdto);
@@ -226,7 +252,7 @@ public class EasyFtp {
         boolean result = false;
 
         FileOutputStream fos = new FileOutputStream(out);
-        ;
+        
         try {
             result = ftp.retrieveFile(fileLoc, fos);
         } finally {
@@ -447,4 +473,5 @@ public class EasyFtp {
         close();
         super.finalize();
     }
+
 }

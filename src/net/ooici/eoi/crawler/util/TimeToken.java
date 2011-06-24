@@ -2,7 +2,7 @@
  * File Name:  Token.java
  * Created on: May 4, 2011
  */
-package net.ooici.eoi.ftp;
+package net.ooici.eoi.crawler.util;
 
 
 import java.util.ArrayList;

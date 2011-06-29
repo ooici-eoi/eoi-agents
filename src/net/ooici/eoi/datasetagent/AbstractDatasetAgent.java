@@ -93,8 +93,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
-        TEST_WRITE_OOICDM,
-    }
+        TEST_WRITE_OOICDM,}
     /**
      * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
      */
@@ -134,6 +133,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
     /* Instance storage of the Container.Structure as a StructureManager - protected for availability from subclasses */
     protected StructureManager structManager = null;
+    private boolean ingestError = false;
 
     /*
      * (non-Javadoc)
@@ -286,7 +286,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             try {
                 result = _processDataset(data);
             } catch (Exception ex) {
-                if(!(ex instanceof IngestException)) {
+                if (!(ex instanceof IngestException)) {
                     throw new IonException("Failed to process the dataset acquired from the update context request.", ex);
                 }
             }
@@ -412,8 +412,6 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
             if (estSize <= maxSize) {
                 /** Send the full dataset */
-                /* TODO: zDeal with subRanges when sending full datasets */
-                /* TODO: Do we even want this option anymore?!?! Should we ALWAYS send the data "by variable"?? */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, subRanges);
                 sendDatasetMsg(dataMessageContent);
             } else {
@@ -427,9 +425,6 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 for (ucar.nc2.Variable v : ncds.getVariables()) {
                     if (log.isDebugEnabled()) {
                         log.debug("Processing Variable: {}", v.getName());
-                    }
-                    if (Thread.currentThread().isInterrupted()) {
-                        throw new IngestException("Processing thread interrupted!!");
                     }
                     try {
 
@@ -451,6 +446,10 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             statusCode = StatusCode.AGENT_ERROR;
             statusBody = AgentUtils.getStackTraceString(ex);
         } finally {
+            if (ingestError) {
+                throw new IngestException("Processing thread interrupted!!");
+            }
+
             /* Send Message to signify the end of the ingest */
 //            IonMsg.Builder endMsgBldr = IonMsg.newBuilder();
 //            endMsgBldr.setResponseCode(respCode);
@@ -521,6 +520,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @throws InvalidRangeException thrown when one of the ranges within the structure does not match the available data
      */
     protected void decompSendVariable(ucar.nc2.Variable var, ucar.ma2.Section sec, int depth) throws InvalidRangeException, IOException {
+        /* If we've encountered an ingestion error, return immediately */
+        if (ingestError) {
+            return;
+        }
+
         /* Setup indenting */
         String indent = "";
         for (int d = 0; d < depth; d++) {
@@ -580,13 +584,13 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             if (log.isDebugEnabled()) {
                 log.debug("{}--> proc-sec: {}", indent, sec.toString());
             }
-//            if (!runType) {//Not necessary - can't get here if runType (see "sendNetcdfDataset")
-                /* Build the array and the bounded array */
+            /* Build the array and the bounded array */
             ion.core.utils.GPBWrapper arrWrap = Unidata2Ooi.getOoiArray(var, sec);
             Cdmvariable.BoundedArray bndArr = Unidata2Ooi.getBoundedArray(sec, (arrWrap != null) ? arrWrap.getCASRef() : null);
             ion.core.utils.GPBWrapper<Cdmvariable.BoundedArray> baWrap = ion.core.utils.GPBWrapper.Factory(bndArr);
-////                log.debug(baWrap.toString());
-////                log.debug(arrWrap.toString());
+            if (log.isDebugEnabled()) {
+                log.debug("BoundedArrayWrapper:\n{}", baWrap);
+            }
 
             /* Build the supplement message */
             net.ooici.services.dm.IngestionService.SupplementMessage.Builder supMsgBldr = net.ooici.services.dm.IngestionService.SupplementMessage.newBuilder();
@@ -598,18 +602,20 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             /* init the struct bldr */
             net.ooici.core.container.Container.Structure.Builder sbldr = net.ooici.core.container.Container.Structure.newBuilder();
             /* add the supplement wrapper */
-//            ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement(), true);
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, supWrap.getStructureElement());
             /* add the bounded array and ndarray as items */
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, baWrap.getStructureElement());
-            ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
+            if (arrWrap == null) {
+                log.warn("The array for variable='{}' section='{}' is null", var.getName(), sec);
+            } else {
+                ProtoUtils.addStructureElementToStructureBuilder(sbldr, arrWrap.getStructureElement());
+            }
 
             /* Put in an IonMsg as the head pointing to the ds element */
             IonMsg ionMsg = IonMsg.newBuilder().setIdentity(UUID.randomUUID().toString()).setMessageObject(supWrap.getCASRef()).build();
             GPBWrapper ionMsgWrap = GPBWrapper.Factory(ionMsg);
             ProtoUtils.addStructureElementToStructureBuilder(sbldr, ionMsgWrap.getStructureElement(), true);// Set as head
 
-//                sendDataMessage(sbldr.build().toByteArray());
             switch (runType) {
                 case NORMAL:
                     sendDataChunkMsg(sbldr.build().toByteArray());
@@ -618,7 +624,6 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                     writeChunkProto(sbldr.build().toByteArray());
                     break;
             }
-//            }
         }
     }
 
@@ -664,13 +669,20 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
      */
     protected void sendDatasetMsg(byte[] dataMessageContent) {
+        if (Thread.currentThread().isInterrupted()) {
+            ingestError = true;
+            return;
+        }
         switch (runType) {
             case NORMAL:
                 IonMessage dataMessage = constructNonRPCMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent, ResponseCodes.OK);
 //                IonMessage dataMessage = cl.createMessage(fromName, toName, RECV_DATASET_OP, dataMessageContent);
 
-                if (log.isDebugEnabled()) {
-                    log.debug("@@@--->>> NetcdfDataset dataset (message) to ingest:\n{}", dataMessage);
+                if (log.isInfoEnabled()) {
+                    log.info("@@@--->>> Send dataset message to ingest");
+                    if (log.isDebugEnabled()) {
+                        log.debug("\n{}", dataMessage);
+                    }
                 }
                 cl.sendMessage(dataMessage);
                 break;
@@ -693,6 +705,10 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * @see Unidata2Ooi#ncdfToByteArray(NetcdfDataset, boolean)
      */
     protected void sendDataChunkMsg(byte[] dataMessageContent) {
+        if (Thread.currentThread().isInterrupted()) {
+            ingestError = true;
+            return;
+        }
         switch (runType) {
             case NORMAL:
                 IonMessage dataMessage = constructNonRPCMessage(fromName, toName, RECV_CHUNK_OP, dataMessageContent, ResponseCodes.OK);
@@ -700,7 +716,12 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //                dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
 //                dataMessage.getIonHeaders().put("conv-id", "");
 //                dataMessage.getIonHeaders().put("sender-name", procName);
-                log.debug("@@@--->>> NetcdfDataset data chunk (message) to ingest:\n{}", dataMessage);
+                if (log.isInfoEnabled()) {
+                    log.info("@@@--->>> Send data chunk message to ingest");
+                    if (log.isDebugEnabled()) {
+                        log.debug("\n{}", dataMessage);
+                    }
+                }
                 cl.sendMessage(dataMessage);
                 break;
             case TEST_WRITE_OOICDM:
@@ -737,8 +758,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
 //        dataMessage.getIonHeaders().put("conv-id", "");
 //        dataMessage.getIonHeaders().put("sender-name", procName);
-        if (log.isDebugEnabled()) {
-            log.debug("@@@--->>> NetcdfDataset data \"DONE\" message to ingest:\n{}", dataMessage);
+        if (log.isInfoEnabled()) {
+            log.info("@@@--->>> Send data \"DONE\" message to ingest");
+            if (log.isDebugEnabled()) {
+                log.debug("\n{}", dataMessage);
+            }
         }
         cl.sendMessage(dataMessage);
     }
@@ -772,8 +796,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //        dataMessage.getIonHeaders().put("encoding", "ION R1 GPB");
 //        dataMessage.getIonHeaders().put("conv-id", "");
 //        dataMessage.getIonHeaders().put("sender-name", procName);
-        if (log.isDebugEnabled()) {
-            log.debug("@@@--->>> NetcdfDataset data \"ERROR\" message to ingest:\n{}", dataMessage);
+        if (log.isInfoEnabled()) {
+            log.info("@@@--->>> Send \"ERROR\" message to ingest");
+            if (log.isDebugEnabled()) {
+                log.debug("\n{}", dataMessage);
+            }
         }
         cl.sendMessage(dataMessage);
     }
@@ -815,12 +842,18 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         cl.bindQueue(recieverQueue, fromName, null);
         cl.attachConsumer(recieverQueue);
+        if (log.isDebugEnabled()) {
+            log.debug("Message Broker Attached:: messagingName={} : host={} : exchange={}", new Object[]{toName, host, exchange});
+        }
     }
 
     private void closeMsgBrokerClient() {
         if (cl != null) {
             cl.detach();
             cl = null;
+            if (log.isDebugEnabled()) {
+                log.debug("Message Broker Detatched");
+            }
         }
     }
 
@@ -840,13 +873,21 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     private void writeDatasetProto(byte[] payload) {
         datasetName = datasetName.replace(" ", "_");
         new java.io.File(outputDir, datasetName).mkdirs();
-        writeBytes(payload, outputDir + datasetName + "/" + datasetName + ".ooicdm");
+        datasetName = datasetName + "/" + datasetName + ".ooicdm";
+        if (log.isDebugEnabled()) {
+            log.debug("Write proto message to disk --> \"{}\"", datasetName);
+        }
+        writeBytes(payload, outputDir + datasetName);
     }
 
     private void writeChunkProto(byte[] payload) {
         datasetName = datasetName.replace(" ", "_");
         new java.io.File(outputDir, datasetName).mkdirs();
-        writeBytes(payload, outputDir + datasetName + "/" + datasetName + "_" + incrementor++ + ".ooicdm");
+        datasetName = datasetName + "/" + datasetName + "_" + incrementor++ + ".ooicdm";
+        if (log.isDebugEnabled()) {
+            log.debug("Write proto message to disk --> \"{}\"", datasetName);
+        }
+        writeBytes(payload, outputDir + datasetName);
     }
 
     private void writeBytes(byte[] bytes, String name) {
@@ -856,7 +897,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             fos.write(bytes);
             fos.flush();
         } catch (IOException ex) {
-            log.error("Failed to write \"ooicdm\" file", ex);
+            log.error("Failed to write bytes", ex);
         } finally {
             if (fos != null) {
                 try {

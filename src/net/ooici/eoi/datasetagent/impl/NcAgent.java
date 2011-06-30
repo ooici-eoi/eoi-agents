@@ -408,13 +408,13 @@ public class NcAgent extends AbstractNcAgent {
             log.error("Error bootstrapping", ex);
         }
 
-        manualTesting();
+//        manualTesting();
 
 //        writeNcdsForNcml();
 
 //        generateSamples();
 
-//        generateMetadata();
+        generateMetadata();
 
     }
 

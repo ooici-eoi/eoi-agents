@@ -6,13 +6,25 @@ package net.ooici.eoi.datasetagent;
 
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
+import ion.core.utils.StructureManager;
+import ion.integration.eoi.DataResourceBuilder;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 import java.util.TimeZone;
 
+import net.ooici.Pair;
 import net.ooici.cdm.syntactic.Cdmdatatype;
+import net.ooici.core.container.Container;
+import net.ooici.core.message.IonMessage.IonMsg;
+import net.ooici.integration.ais.AisRequestResponse;
+import net.ooici.integration.ais.manageDataResource.ManageDataResource;
+import net.ooici.services.sa.DataSource.SourceType;
 import ucar.ma2.DataType;
 
 /**
@@ -193,6 +205,84 @@ public class AgentUtils {
         
         return sBldr.build();
     }
+    
+    
+    private static StringBuilder sbThrowaway = new StringBuilder();
+    public static Pair<Container.Structure, SourceType> buildEoiContextStructFromDsreg(String dsregFilepath) throws FileNotFoundException, IOException, Exception {
+        
+        /** Step 1: Create a DataResourceCreateRequest Structure */
+        sbThrowaway.setLength(0);
+        Container.Structure drcrStruc = DataResourceBuilder.getDataResourceCreateRequestStructure(dsregFilepath, sbThrowaway);
+        
+        /** Step 2: Convert the DRCR Struct to an EoiContextMessage Structure */
+        return convertDrcrStructToEoiContextStruct(drcrStruc);
+    }
+    
+    
+    public static Pair<Container.Structure, SourceType> convertDrcrStructToEoiContextStruct(Container.Structure struct) {
+        
+        /** Step 1: Decompose the structure ultimately retrieving the DataResourceCreateRequestMessage(GPB:9211) */
+        StructureManager sm = StructureManager.Factory(struct);
+        
+        GPBWrapper<IonMsg> ionWrap = sm.getObjectWrapper(sm.getHeadId());
+        GPBWrapper<AisRequestResponse.ApplicationIntegrationServiceRequestMsg> aisReqWrap = sm.getObjectWrapper(ionWrap.getObjectValue().getMessageObject());
+        GPBWrapper<ManageDataResource.DataResourceCreateRequest> drcrWrap = sm.getObjectWrapper(aisReqWrap.getObjectValue().getMessageParametersReference());
+        ManageDataResource.DataResourceCreateRequest drcr = drcrWrap.getObjectValue();
+        
+        /* Container to hold additional objects referenced by CASRef */
+        List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
+        /* Context Builder -- ultimately used to contrive the resultant structure object */
+        net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cbldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
+        
+        
+        /** Step 2: Transfer or convert necessary fields to produce an EoiContextMessage(GPB:4501)*/
+        /* Simple transfer */
+        cbldr.setSourceType(drcr.getSourceType());
+        cbldr.addAllProperty(drcr.getPropertyList());
+        cbldr.addAllStationId(drcr.getStationIdList());
+        cbldr.setRequestType(drcr.getRequestType());
+        cbldr.setRequestBoundsNorth(drcr.getRequestBoundsNorth());
+        cbldr.setRequestBoundsSouth(drcr.getRequestBoundsSouth());
+        cbldr.setRequestBoundsWest(drcr.getRequestBoundsWest());
+        cbldr.setRequestBoundsEast(drcr.getRequestBoundsEast());
+        cbldr.setBaseUrl(drcr.getBaseUrl());
+        cbldr.setDatasetUrl(drcr.getDatasetUrl());
+        cbldr.setNcmlMask(drcr.getNcmlMask());
+        cbldr.setMaxIngestMillis(drcr.getMaxIngestMillis());
+        
+//        cbldr.setXpName(/* not provided by DRCR */ "");
+//        cbldr.setIngestTopic(/* not provided by DRCR */ "");
+        
+        cbldr.setIonTitle(drcr.getIonTitle());
+        if (drcr.getSubRangesCount() > 0) {
+            cbldr.addAllSubRanges(drcr.getSubRangesList());
+        }
+
+        
+        /* CASRef transfer */
+        if (drcr.getAuthentication().hasKey()) {
+            cbldr.setAuthentication(drcr.getAuthentication());
+            addlObjects.add(sm.getObjectWrapper(drcr.getAuthentication()));
+        }
+        if (drcr.getSearchPattern().hasKey()) {
+            cbldr.setSearchPattern(drcr.getSearchPattern());
+            addlObjects.add(sm.getObjectWrapper(drcr.getSearchPattern()));
+        }
+        
+        
+        /* Calculated fields */
+        long yesterday = new Date().getTime() - 86400000; // 86400000 = 1 day in millis
+        cbldr.setStartDatetimeMillis(yesterday); 
+        cbldr.setEndDatetimeMillis(yesterday + 3600000); // 3600000 = 1 hour in millis
+        
+
+        
+        Container.Structure struc = AgentUtils.getUpdateInitStructure(GPBWrapper.Factory(cbldr.build()), addlObjects.toArray(new GPBWrapper<?>[]{}));
+        SourceType stype = drcr.getSourceType();
+        return new Pair<Container.Structure, SourceType>(struc, stype);
+        
+    }
+    
 
     /**
 	 * SimpleDateFormat used for parsing incoming values mapped to START_TIME and END_TIME. This date format complies to the ISO 8601

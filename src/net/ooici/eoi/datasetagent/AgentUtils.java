@@ -260,11 +260,11 @@ public class AgentUtils {
 
         
         /* CASRef transfer */
-        if (drcr.getAuthentication().hasKey()) {
+        if (drcr.hasAuthentication()) {
             cbldr.setAuthentication(drcr.getAuthentication());
             addlObjects.add(sm.getObjectWrapper(drcr.getAuthentication()));
         }
-        if (drcr.getSearchPattern().hasKey()) {
+        if (drcr.hasSearchPattern()) {
             cbldr.setSearchPattern(drcr.getSearchPattern());
             addlObjects.add(sm.getObjectWrapper(drcr.getSearchPattern()));
         }

@@ -270,10 +270,10 @@ public class AgentUtils {
         }
         
         
-        /* Calculated fields */
-        long yesterday = new Date().getTime() - 86400000; // 86400000 = 1 day in millis
-        cbldr.setStartDatetimeMillis(yesterday); 
-        cbldr.setEndDatetimeMillis(yesterday + 3600000); // 3600000 = 1 hour in millis
+        /* Calculated fields */        
+        long start = new Date().getTime() - drcr.getInitialStarttimeOffsetMillis(); // now - initialStartOffset
+        cbldr.setStartDatetimeMillis(start); 
+        cbldr.setEndDatetimeMillis(start + 3600000); // start + 1 hour
         
 
         

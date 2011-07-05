@@ -130,10 +130,12 @@ public class Unidata2Ooi {
 
     private static GPBWrapper<Cdmdimension.Dimension> getOoiDimension(Dimension ncDim, HashMap<String, Range> subRanges) {
         long dLen = ncDim.getLength();
+        long minOff = 0;
         if (subRanges.containsKey(ncDim.getName())) {
             dLen = subRanges.get(ncDim.getName()).length();
+            minOff = subRanges.get(ncDim.getName()).first();
         }
-        return GPBWrapper.Factory(Cdmdimension.Dimension.newBuilder().setName(ncDim.getName()).setLength(dLen).build());
+        return GPBWrapper.Factory(Cdmdimension.Dimension.newBuilder().setName(ncDim.getName()).setMinOffset(minOff).setLength(dLen).build());
     }
 
     private static GPBWrapper<Cdmattribute.Attribute> getOoiAttribute(Attribute ncAtt) {

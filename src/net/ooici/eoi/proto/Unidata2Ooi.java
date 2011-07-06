@@ -248,7 +248,7 @@ public class Unidata2Ooi {
             GPBWrapper arrWrap = getOoiArray(ncVar, section);
             if (arrWrap != null) {
                 ProtoUtils.addStructureElementToStructureBuilder(structBldr, arrWrap.getStructureElement());
-                bndArr = getBoundedArray(section, arrWrap.getCASRef(), true);
+                bndArr = getBoundedArray(section, arrWrap.getCASRef(), false);
             }
         }
 

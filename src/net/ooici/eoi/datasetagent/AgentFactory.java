@@ -25,10 +25,8 @@ public class AgentFactory {
                 agent = new AomlAgent();
                 break;
             case NETCDF_S:
-                agent = new NcAgent();
-                break;
             case NETCDF_C:
-                agent = new NcGridAgent();
+                agent = new NcAgent();
                 break;
             default:
                 throw new IllegalArgumentException("Invalid source_type = " + st.toString());

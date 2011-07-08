@@ -36,6 +36,8 @@ import net.ooici.eoi.datasetagent.IDatasetAgent;
 import net.ooici.eoi.netcdf.NcDumpParse;
 import net.ooici.services.sa.DataSource;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
+import net.ooici.services.sa.DataSource.RequestType;
+import net.ooici.services.sa.DataSource.SourceType;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -86,26 +88,29 @@ public class NcAgent extends AbstractNcAgent {
 
         String result = null;
 
-//        RequestType type = context.getRequestType();
-//        switch (type) {
-//            case FTP:
-//                result = buildRequest_ftpMask();
-//                break;
-//            case DAP:
-//            /* FALL_THROUGH */
-//            case NONE:
-//            /* FALL_THROUGH */
-//            default:
-//                result = buildRequest_dapMask();
-//        }
-//        
-//        
-//        
-//        return result;
-        /* TODO: add checking here to determine if request is dynamic dap or not -- use netcdf_c ?? */
-        return buildRequest_dynamicDapMask();
+        RequestType type = context.getRequestType();
+        switch (type) {
+            case FTP:
+                result = buildRequest_ftpMask();
+                break;
+            case DAP:
+                /* FALL_THROUGH */
+            case NONE:
+                /* FALL_THROUGH */
+            default:
+                if (context.getSourceType() == SourceType.NETCDF_C) {
+                    result = buildRequest_dynamicDapMask();
+                } else {
+                    result = buildRequest_dapMask();
+                }
+                break;
+        }
+
+        
+        return result;
     }
 
+    
     public String buildRequest_dapMask() {
         String ncmlTemplate = context.getNcmlMask();
         String ncdsLoc = context.getDatasetUrl();

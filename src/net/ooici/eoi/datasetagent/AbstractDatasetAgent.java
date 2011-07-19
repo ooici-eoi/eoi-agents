@@ -32,14 +32,14 @@ import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.NetcdfDataset;
 
 /**
- * The AbstractDatasetAgent provides the core functionallity used in typical implementations of an <code>IDatasetAgent</code>.<br />
+ * The AbstractDatasetAgent provides the core functionality used in typical implementations of an <code>IDatasetAgent</code>.<br />
  * <br />
- * This class defines the standard implementation for the method {@link #doUpdate(net.ooici.services.sa.DataSource.EoiDataContextMessage, HashMap)}<br />
+ * This class defines the standard implementation for the method {@link #doUpdate(net.ooici.core.container.Container.Structure, java.util.HashMap)}<br />
  * <br />
  * <b><code>doUpdate()</code></b> Performs a dataset update sequence by chaining
  * calls to the methods:
  * <ol>
- * <li>{@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+ * <li>{@link #buildRequest()}</li>
  * <li>{@link #acquireData(String)}</li>
  * <li>{@link #_processDataset(Object)}</li>
  * </ol>
@@ -58,7 +58,7 @@ import ucar.nc2.dataset.NetcdfDataset;
  * <b>Implementation Note:</b><br />
  * Concrete classes are required to implement the following methods:
  * <ul>
- * <li>{@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+ * <li>{@link #buildRequest()}</li>
  * <li>{@link #acquireData(String)}</li>
  * <li>{@link #_processDataset(Object)}</li>
  * </ul>
@@ -194,7 +194,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      * Typical update sequences occur over the following steps:<br />
      * <ol>
      * <li>Build a data request for the given <code>context</code><br />
-     * {@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+     * {@link #buildRequest()}</li>
      * <li>Acquire data from the previously built request as either <code>String</code> data (CSV, TSV, XML etc) or a <code>NetCdfDataset</code>
      * <br />
      * {@link #acquireData(String)}</li>

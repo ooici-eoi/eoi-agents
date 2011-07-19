@@ -18,7 +18,7 @@ import ucar.nc2.dataset.NetcdfDataset;
  * <b>Implementation Note:</b><br />
  * Concrete classes are required to implement the following methods:
  * <ul>
- * <li>{@link #buildRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage)}</li>
+ * <li>{@link #buildRequest()}</li>
  * <li>{@link #acquireData(String)}</li>
  * <li>{@link #processDataset(NetcdfDataset)}</li>
  * </ul>

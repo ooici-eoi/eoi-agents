@@ -98,11 +98,12 @@ public class NcAgent extends AbstractNcAgent {
             case NONE:
                 /* FALL_THROUGH */
             default:
-                if (context.getSourceType() == SourceType.NETCDF_C) {
-                    result = buildRequest_dynamicDapMask();
-                } else {
-                    result = buildRequest_dapMask();
-                }
+//                if (context.getSourceType() == SourceType.NETCDF_C) {
+//                    result = buildRequest_dynamicDapMask();
+//                } else {
+//                    result = buildRequest_dapMask();
+//                }
+                result = buildRequest_dapMask();
                 break;
         }
 

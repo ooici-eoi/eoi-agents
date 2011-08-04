@@ -171,7 +171,7 @@ public class NcAgent extends AbstractNcAgent {
             
         } catch (IOException e) {
             // TODO handle this -- failure to gather target files for time range and datasource
-            e.printStackTrace();
+            log.error("Failed to gather target files from datasource for given time range.", e);
         }
 
 
@@ -184,8 +184,8 @@ public class NcAgent extends AbstractNcAgent {
             }
             DataSourceCrawler.generateNcml(temp, remoteFiles, joinDim, context.getNcmlMask());
         } catch (IOException ex) {
-            // TODO: handle this -- failure to generate NCML aggregation for FTP files..
-            ex.printStackTrace();
+            // TODO: handle this -- failure to generate NCML aggregation for DAP files..
+            log.error("Failed to generate NCML aggregation for DAP files.", ex);
         }
 
         String filepath = temp.getAbsolutePath();
@@ -235,7 +235,7 @@ public class NcAgent extends AbstractNcAgent {
             remoteFiles = crawler.getTargetFilesRelativeToBase(startTime, endTime);
         } catch (IOException e) {
             // TODO handle this -- failure to gather target files for time range and datasource
-            e.printStackTrace();
+            log.error("Failure to gather target files from datasource for given time range.", e);
         }
 
 
@@ -261,13 +261,14 @@ public class NcAgent extends AbstractNcAgent {
                     }
 
 
-                    /* Test unzipping... */
+                    /* Unzipping... */
                     unzipped = FtpAccessClient.unzip(download, !log.isDebugEnabled()).get(0);
                     if (log.isDebugEnabled()) {
                         log.debug(unzipped);
                     }
                 } catch (IOException ex) {
-                    // TODO: handle this -- failure to download file 
+                    // TODO: handle this -- failure to download file
+                    log.error("Failed to download file '{}'.  Cause: {}", key, ex);
                 }
 
                 /* Insert the new output name back into the map */
@@ -276,7 +277,7 @@ public class NcAgent extends AbstractNcAgent {
             }
         } catch (IOException ex) {
             // TODO: handle this -- total failure to download files from ftp site
-            ex.printStackTrace();
+            log.error("Failed to access datasource via FTP", ex);
         }
 
 
@@ -290,7 +291,7 @@ public class NcAgent extends AbstractNcAgent {
             DataSourceCrawler.generateNcml(temp, localFiles, joinDim, context.getNcmlMask());
         } catch (IOException ex) {
             // TODO: handle this -- failure to generate NCML aggregation for FTP files..
-            ex.printStackTrace();
+            log.error("Failed to generate NCML aggregation for FTP files", ex);
         }
 
         String filepath = temp.getAbsolutePath();
@@ -601,7 +602,7 @@ public class NcAgent extends AbstractNcAgent {
             try {
                 resp = runAgent(sBldr.build(), AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Exception encountered while Running agent with param 'TEST_NO_WRITE'", e);
                 datasets.put(src + " (FAILED)", null);
                 continue;
             }

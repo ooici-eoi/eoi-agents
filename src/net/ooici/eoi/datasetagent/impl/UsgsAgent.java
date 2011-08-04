@@ -670,6 +670,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             String title = siteName + " (" + locationParam + ") - Daily Values";// + dataType + " " + variableName;
             title = title.replace(",", "").replace(".", "");
             globalAttributes.put("title", title);
+            globalAttributes.put("institution", "USGS NWIS");
 
             /* history */
             globalAttributes.put("history", "Converted from WaterML1.0 to OOI CDM by " + UsgsAgent.class.getName());

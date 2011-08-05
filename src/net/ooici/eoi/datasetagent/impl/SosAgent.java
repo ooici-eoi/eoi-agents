@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import ion.core.IonException;
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.IonUtils;
 import java.io.BufferedReader;
@@ -27,6 +28,7 @@ import net.ooici.eoi.netcdf.VariableParams;
 import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
+import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage.StatusCode;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import ucar.nc2.dataset.NetcdfDataset;
 
@@ -435,12 +437,21 @@ public class SosAgent extends AbstractAsciiAgent {
     @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
-
-        NetcdfDataset ncds = obs2Ncds(obsList);
-
-        /* Send this via the send dataset method of AbstractDatasetAgent */
-        ret.add(this.sendNetcdfDataset(ncds, "ingest"));
-
+        NetcdfDataset ncds = null;
+        try {
+            ncds = obs2Ncds(obsList);
+            if (ncds != null) {
+                /* Send the dataset via the send dataset method of AbstractDatasetAgent */
+                ret.add(this.sendNetcdfDataset(ncds, "ingest"));
+            } else {
+                /* Send the an error via the send dataset method of AbstractDatasetAgent */
+                String err = "Abort from this update:: The returned NetcdfDataset is null";
+                this.sendDataErrorMsg(StatusCode.AGENT_ERROR, err);
+                ret.add(err);
+            }
+        } catch (IonException ex) {
+            ret.add(AgentUtils.getStackTraceString(ex));
+        }
         return ret.toArray(new String[0]);
     }
 

@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent;
 
+import ion.core.IonException;
 import net.ooici.eoi.netcdf.NcdsFactory;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import java.text.SimpleDateFormat;
@@ -11,9 +12,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.TimeZone;
+import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage.StatusCode;
 
 import ucar.nc2.dataset.NetcdfDataset;
-
 
 /**
  * The AbstractAsciiAgent provides the core functionallity used in typical implementations of dataset agents which act on services that
@@ -48,7 +49,6 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         outSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
-    
     public static class AsciiValidationException extends RuntimeException {
 
         private static final long serialVersionUID = -637461134752222692L;
@@ -68,7 +68,6 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         public AsciiValidationException(Throwable cause) {
             super(cause);
         }
-        
     }
 
     /**
@@ -126,13 +125,13 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         }
         IObservationGroup[] obs = null;
 
-        validateData((String)data);
+        validateData((String) data);
         obs = parseObs((String) data).toArray(new IObservationGroup[0]);
-        
+
         if (null == obs || obs.length == 0 || obs[0].isEmpty()) {
             throw new IllegalStateException("Empty observation list cannot be processed!");
         }
-        
+
         return processDataset(obs);
     }
 
@@ -159,7 +158,6 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
      * @return a list of <code>IObservationGroup</code> objects representing the observations parsed from the given <code>asciiData</code>
      */
     abstract protected List<IObservationGroup> parseObs(String asciiData);
-
 
     /**
      * Constructs a <code>NetcdfDataset</code> representation of the given list of <code>IObservationGroup</code> objects.<br />
@@ -208,13 +206,32 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
      * @param obsList
      * @return
      */
-    protected NetcdfDataset obs2Ncds(IObservationGroup... obsList) {
+    protected NetcdfDataset obs2Ncds(IObservationGroup... obsList) throws IonException {
         log.debug("Creating NC Dataset...");
         NetcdfDataset ncds = null;
 
-        if (obsList.length == 0 || (obsList.length == 1  & obsList[0].isEmpty())) {
-            return ncds;
+        if (obsList.length == 0 || (obsList.length == 1 & obsList[0].isEmpty())) {
+            String err = "Abort from this update:: There are no observations";
+            this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
+            throw new IonException(err);
         }
+        if (log.isDebugEnabled()) {
+            log.debug("{IsInitial : {}, NumTimes : {}}", context.getIsInitial(), obsList[0].getTimes().length);
+        }
+        if (!context.getIsInitial()) {
+            if (obsList[0].getTimes().length == 1) {
+                String err = "Abort from this update:: This is a supplement update and there is only one timestep in the observation list indicating that there is no new data";
+                this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
+                throw new IonException(err);
+            }
+            /* Remove the first timestep from each observation group */
+            for(IObservationGroup og : obsList) {
+                og.trimFirstTimestep();
+            }
+        }
+
+
+
         IObservationGroup obs;
         /* Figure out what type of dataset to generate */
         if (obsList.length == 1) {
@@ -235,11 +252,11 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
             for (int i = 1; i < obsList.length; i++) {
                 obs = obsList[i];
                 /* Trajectory check */
-                if(!ids.contains(obs.getStnid())) {
+                if (!ids.contains(obs.getStnid())) {
                     ids.add(obs.getStnid());
                 }
                 /* Profile check */
-                if(!dcs.contains(obs.getDepths().length)) {
+                if (!dcs.contains(obs.getDepths().length)) {
                     dcs.add(obs.getDepths().length);
                 }
             }
@@ -247,7 +264,7 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
             isProfile = dcs.size() > 1;
 
             if (isTraj) {
-                if(isProfile) {
+                if (isProfile) {
                     ncds = NcdsFactory.buildTrajectoryProfile(obsList);
                 } else {
                     ncds = NcdsFactory.buildTrajectory(obsList);
@@ -263,7 +280,7 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         }
 
         ncds.finish();
-        
+
         return ncds;
     }
 }

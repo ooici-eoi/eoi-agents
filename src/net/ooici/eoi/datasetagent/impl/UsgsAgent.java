@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.datasetagent.impl;
 
+import ion.core.IonException;
 import ion.core.utils.GPBWrapper;
 import ion.core.utils.IonUtils;
 import java.io.BufferedReader;
@@ -31,6 +32,7 @@ import net.ooici.eoi.datasetagent.AbstractAsciiAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.netcdf.NcDumpParse;
+import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage.StatusCode;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 
 import org.jdom.Document;
@@ -82,19 +84,19 @@ public class UsgsAgent extends AbstractAsciiAgent {
         inSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
     }
 
-    
     /** Used to convert qualifier code to a byte storage value */
     enum Qualifier {
-        PROVISIONAL("P", (byte)1), APPROVED("A", (byte)2);
-        
+
+        PROVISIONAL("P", (byte) 1), APPROVED("A", (byte) 2);
         static final byte DEFAULT_VALUE = 0;
         final String code;
         final byte byteValue;
+
         Qualifier(String code, byte byteValue) {
             this.code = code;
             this.byteValue = byteValue;
         }
-        
+
         public static byte getByteValue(String code) {
             byte result = DEFAULT_VALUE;
             for (Qualifier value : Qualifier.values()) {
@@ -103,12 +105,11 @@ public class UsgsAgent extends AbstractAsciiAgent {
                     break;
                 }
             }
-            
+
             return result;
         }
     }
 
-    
     /**
      * Constructs a URL from the given data <code>context</code> by appending necessary USGS-specific query string parameters to the base URL
      * returned by <code>context.getBaseUrl()</code>. This URL may subsequently be passed through {@link #acquireData(String)} to procure
@@ -911,12 +912,20 @@ public class UsgsAgent extends AbstractAsciiAgent {
     @Override
     public String[] processDataset(IObservationGroup... obsList) {
         List<String> ret = new ArrayList<String>();
-        NetcdfDataset ncds = obs2Ncds(obsList);
-        if (ncds != null) {
-            /* Send this via the send dataset method of AbstractDatasetAgent */
-            ret.add(this.sendNetcdfDataset(ncds, "ingest"));
-        } else {
-            ret.add("ERROR");
+        NetcdfDataset ncds = null;
+        try {
+            ncds = obs2Ncds(obsList);
+            if (ncds != null) {
+                /* Send the dataset via the send dataset method of AbstractDatasetAgent */
+                ret.add(this.sendNetcdfDataset(ncds, "ingest"));
+            } else {
+                /* Send the an error via the send dataset method of AbstractDatasetAgent */
+                String err = "Abort from this update:: The returned NetcdfDataset is null";
+                this.sendDataErrorMsg(StatusCode.AGENT_ERROR, err);
+                ret.add(err);
+            }
+        } catch (IonException ex) {
+            ret.add(AgentUtils.getStackTraceString(ex));
         }
         return ret.toArray(new String[0]);
     }

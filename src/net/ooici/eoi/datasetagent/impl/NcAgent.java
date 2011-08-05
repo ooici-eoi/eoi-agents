@@ -24,17 +24,20 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.TreeMap;
 
+import net.ooici.eoi.crawler.DataSourceCrawler;
+import net.ooici.eoi.crawler.impl.DapDataSourceCrawler;
+import net.ooici.eoi.crawler.impl.FtpAccessClient;
+import net.ooici.eoi.crawler.impl.FtpDataSourceCrawler;
+import net.ooici.eoi.crawler.util.UrlParser;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.datasetagent.IDatasetAgent;
-import net.ooici.eoi.ftp.EasyFtp;
-import net.ooici.eoi.ftp.FtpFileFinder;
-import net.ooici.eoi.ftp.FtpFileFinder.UrlParser;
 import net.ooici.eoi.netcdf.NcDumpParse;
 import net.ooici.services.sa.DataSource;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import net.ooici.services.sa.DataSource.RequestType;
+import net.ooici.services.sa.DataSource.SourceType;
 
 import org.apache.commons.httpclient.Credentials;
 import org.apache.commons.httpclient.UsernamePasswordCredentials;
@@ -91,16 +94,24 @@ public class NcAgent extends AbstractNcAgent {
                 result = buildRequest_ftpMask();
                 break;
             case DAP:
-            /* FALL_THROUGH */
+                /* FALL_THROUGH */
             case NONE:
-            /* FALL_THROUGH */
+                /* FALL_THROUGH */
             default:
+//                if (context.getSourceType() == SourceType.NETCDF_C) {
+//                    result = buildRequest_dynamicDapMask();
+//                } else {
+//                    result = buildRequest_dapMask();
+//                }
                 result = buildRequest_dapMask();
+                break;
         }
 
+        
         return result;
     }
 
+    
     public String buildRequest_dapMask() {
         String ncmlTemplate = context.getNcmlMask();
         String ncdsLoc = context.getDatasetUrl();
@@ -123,6 +134,70 @@ public class NcAgent extends AbstractNcAgent {
         return openLoc;
     }
 
+    
+    public String buildRequest_dynamicDapMask() {
+        /* TODO: merge this code with buildRequest_ftp so that we arent duplicating code */
+        /** Build an FTP-like mask to aggregate all files included in the temporal extents */
+        
+        /* Get data from the context to build a request */
+        long startTime = context.getStartDatetimeMillis();
+        long endTime = context.getEndDatetimeMillis();
+
+        /* Get the host and directory from the base_url field */
+        UrlParser p = new UrlParser(context.getBaseUrl());
+        String host = p.getHost();
+        String baseDir = p.getDirectory();
+
+        /* Get the pattern parameters from the search_pattern field (CASRef) */
+        String filePattern = "";
+        String dirPattern = "";
+        String joinDim = "";
+        if (context.hasSearchPattern()) {
+            final net.ooici.services.sa.DataSource.SearchPattern pattern = (net.ooici.services.sa.DataSource.SearchPattern) structManager.getObjectWrapper(context.getSearchPattern()).getObjectValue();
+
+            filePattern = pattern.getFilePattern();
+            dirPattern = pattern.getDirPattern();
+            joinDim = pattern.getJoinName();
+        }
+
+
+        /** Get a list of files at the FTP host between the start and end times */
+        DataSourceCrawler crawler = new DapDataSourceCrawler(host, baseDir, filePattern, dirPattern);
+        
+        Map<String, Long> remoteFiles = null;
+        try {
+
+            remoteFiles = crawler.getTargetFilesFullPath(startTime, endTime);
+            
+        } catch (IOException e) {
+            // TODO handle this -- failure to gather target files for time range and datasource
+            log.error("Failed to gather target files from datasource for given time range.", e);
+        }
+
+
+        /** Generating an NCML to aggregate all files (via unions/joins) */
+        File temp = null;
+        try {
+            temp = File.createTempFile("ooi-", ".ncml");
+            if (!log.isDebugEnabled()) {
+                temp.deleteOnExit();
+            }
+            DataSourceCrawler.generateNcml(temp, remoteFiles, joinDim, context.getNcmlMask());
+        } catch (IOException ex) {
+            // TODO: handle this -- failure to generate NCML aggregation for DAP files..
+            log.error("Failed to generate NCML aggregation for DAP files.", ex);
+        }
+
+        String filepath = temp.getAbsolutePath();
+        if (log.isDebugEnabled()) {
+            log.debug("\n\nGenerated NCML aggregation...\n\t\"{}\"", filepath);
+        }
+        
+        
+        return filepath;
+    }
+    
+    
     public String buildRequest_ftpMask() {
         /** Get data from the context to build a the "request" */
         /* -- with the FTP client, the request is actually the resultant
@@ -153,12 +228,14 @@ public class NcAgent extends AbstractNcAgent {
 
 
         /** Get a list of files at the FTP host between the start and end times */
+        DataSourceCrawler crawler = new FtpDataSourceCrawler(host, baseDir, filePattern, dirPattern);
+        
         Map<String, Long> remoteFiles = null;
         try {
-            remoteFiles = FtpFileFinder.getTargetFiles(host, baseDir, filePattern, dirPattern, startTime, endTime);
+            remoteFiles = crawler.getTargetFilesRelativeToBase(startTime, endTime);
         } catch (IOException e) {
             // TODO handle this -- failure to gather target files for time range and datasource
-            e.printStackTrace();
+            log.error("Failure to gather target files from datasource for given time range.", e);
         }
 
 
@@ -168,7 +245,7 @@ public class NcAgent extends AbstractNcAgent {
         }
         Map<String, Long> localFiles = new TreeMap<String, Long>();
         try {
-            EasyFtp ftp = new EasyFtp(host);
+            FtpAccessClient ftp = new FtpAccessClient(host);
             ftp.cd(baseDir);
 
             File tempFile = File.createTempFile("prefix", "");
@@ -184,13 +261,14 @@ public class NcAgent extends AbstractNcAgent {
                     }
 
 
-                    /* Test unzipping... */
-                    unzipped = EasyFtp.unzip(download, !log.isDebugEnabled()).get(0);
+                    /* Unzipping... */
+                    unzipped = FtpAccessClient.unzip(download, !log.isDebugEnabled()).get(0);
                     if (log.isDebugEnabled()) {
                         log.debug(unzipped);
                     }
                 } catch (IOException ex) {
-                    // TODO: handle this -- failure to download file 
+                    // TODO: handle this -- failure to download file
+                    log.error("Failed to download file '{}'.  Cause: {}", key, ex);
                 }
 
                 /* Insert the new output name back into the map */
@@ -199,7 +277,7 @@ public class NcAgent extends AbstractNcAgent {
             }
         } catch (IOException ex) {
             // TODO: handle this -- total failure to download files from ftp site
-            ex.printStackTrace();
+            log.error("Failed to access datasource via FTP", ex);
         }
 
 
@@ -210,10 +288,10 @@ public class NcAgent extends AbstractNcAgent {
             if (!log.isDebugEnabled()) {
                 temp.deleteOnExit();
             }
-            FtpFileFinder.generateNcml(temp, localFiles, joinDim, context.getNcmlMask());
+            DataSourceCrawler.generateNcml(temp, localFiles, joinDim, context.getNcmlMask());
         } catch (IOException ex) {
             // TODO: handle this -- failure to generate NCML aggregation for FTP files..
-            ex.printStackTrace();
+            log.error("Failed to generate NCML aggregation for FTP files", ex);
         }
 
         String filepath = temp.getAbsolutePath();
@@ -524,7 +602,7 @@ public class NcAgent extends AbstractNcAgent {
             try {
                 resp = runAgent(sBldr.build(), AgentRunType.TEST_NO_WRITE);
             } catch (Exception e) {
-                e.printStackTrace();
+                log.error("Exception encountered while Running agent with param 'TEST_NO_WRITE'", e);
                 datasets.put(src + " (FAILED)", null);
                 continue;
             }
@@ -746,6 +824,35 @@ public class NcAgent extends AbstractNcAgent {
         /* Rutgers ROMS */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2009_da/his";
+        
+        
+        /** **************************** */
+        /*  Dynamic DAP Request Testing  */
+        /** **************************** */
+        /* MODIS A test (pull 10 minutes of data -- 2 files) */
+        requestType = net.ooici.services.sa.DataSource.RequestType.FTP;
+        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><attribute name=\"title\" value=\"NCEP GFS3\"/></netcdf>";
+        sTime = "2011-04-20T05:50:00Z";
+        eTime = "2011-04-20T18:10:00Z";
+        baseUrl = "http://nomads.ncdc.noaa.gov/thredds/dodsC/gfs-hi/";
+        dirPattern = "%yyyy%%MM%/%yyyy%%MM%%dd%/";
+        filePattern = "gfs_3_%yyyy%%MM%%dd%_%HH%%mm%_[\\d]{3}\\.grb";
+        joinName = "time";
+        /*
+         * 
+            Example:        http://nomads.ncdc.noaa.gov/thredds/dodsC/gfs-hi/201104/20110422/gfs_3_20110422_1800_180.grb
+            NCML Mask:      <?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><attribute name=\"title\" value=\"NCEP GFS4\"/></netcdf>
+            dir_pattern:    
+            file_pattern:   
+            Base URL:       
+            Base Dir:       
+         */
+        
+        
+        
+        
+        
+        
         /** ******************** */
         /*  FTP Request Testing  */
         /** ******************** */
@@ -826,6 +933,11 @@ public class NcAgent extends AbstractNcAgent {
 //        dirPattern = "%yyyy%/%DDD%/";
 //        filePattern = "%yyyy%%MM%%dd%-EUR-L2P_GHRSST-SSTsubskin-AVHRR_METOP_A-eumetsat_sstmgr_metop02_%yyyy%%MM%%dd%_%HH%%mm%%ss%-v01\\.7-fv01.0\\.nc\\.bz2";
 //        joinName = "time";
+        
+        
+        
+        
+        
         List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         net.ooici.services.sa.DataSource.SourceType sourceType = net.ooici.services.sa.DataSource.SourceType.NETCDF_S;

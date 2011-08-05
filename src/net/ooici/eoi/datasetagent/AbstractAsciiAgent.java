@@ -119,7 +119,9 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
      */
     @Override
     protected final String[] _processDataset(Object data) {
-        if (!(data instanceof String)) {
+        if (null == data) {
+            throw new NullPointerException("Cannot process NULL data");
+        } else if (!(data instanceof String)) {
             throw new IllegalArgumentException(new StringBuilder("Supplied data must an instance of ").append(String.class.getName()).append("; '").append(data.getClass().getName()).append("' type was received").toString());
         }
         IObservationGroup[] obs = null;

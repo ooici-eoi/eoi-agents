@@ -4,6 +4,7 @@
  */
 package net.ooici.eoi.netcdf;
 
+import ion.core.IonException;
 import java.io.IOException;
 import java.util.HashMap;
 import net.ooici.eoi.datasetagent.AgentUtils;
@@ -19,6 +20,7 @@ import ucar.nc2.constants.CF;
 import ucar.nc2.constants.FeatureType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
+import ucar.nc2.dataset.CoordinateAxis2D;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.units.Unit;
 import ucar.units.UnitFormat;
@@ -43,7 +45,11 @@ public class AttributeFactory {
         String startdate = "";
         String enddate = "";
         CoordinateAxis ca = ncds.findCoordinateAxis(AxisType.Time);
+        Throwable thrown = null;
         if (ca != null) {
+            if (ca instanceof CoordinateAxis2D) {
+                ca = ncds.findCoordinateAxis(AxisType.RunTime);
+            }
             CoordinateAxis1DTime cat = null;
             if (ca instanceof CoordinateAxis1DTime) {
                 cat = (CoordinateAxis1DTime) ca;
@@ -51,8 +57,7 @@ public class AttributeFactory {
                 try {
                     cat = CoordinateAxis1DTime.factory(ncds, new ucar.nc2.dataset.VariableDS(null, ncds.findVariable(ca.getName()), true), null);
                 } catch (IOException ex) {
-//                    warn = true;
-//                    thrown = ex;
+                    thrown = ex;
                 }
             }
             if (cat != null) {
@@ -68,11 +73,15 @@ public class AttributeFactory {
 
                 startdate = AgentUtils.ISO8601_DATE_FORMAT.format(cat.getTimeDate(sti));
                 enddate = AgentUtils.ISO8601_DATE_FORMAT.format(cat.getTimeDate(eti));
-            } else {
-//                warn = true;
             }
+        } else {
+            thrown = new IonException("The dataset does not contain a valid temporal coordinate axis");
         }
 
+        if(thrown != null) {
+            throw new IonException("Unable to determine start/end metadata", thrown);
+        }
+        
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_TIME_COVERAGE_START, startdate));
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_TIME_COVERAGE_END, enddate));
     }
@@ -106,7 +115,7 @@ public class AttributeFactory {
 
         for (Variable v : ncds.getVariables()) {
             Attribute a = v.findAttribute("positive");
-            if(a == null) {
+            if (a == null) {
                 a = v.findAttribute("_CoordinateZisPositive");
             }
             if (a != null) {

@@ -51,6 +51,7 @@ import ucar.ma2.Range;
 import ucar.nc2.constants.AxisType;
 import ucar.nc2.dataset.CoordinateAxis;
 import ucar.nc2.dataset.CoordinateAxis1DTime;
+import ucar.nc2.dataset.CoordinateAxis2D;
 import ucar.nc2.dataset.NetcdfDataset;
 import ucar.nc2.util.net.HttpClientManager;
 
@@ -314,6 +315,9 @@ public class NcAgent extends AbstractNcAgent {
             Throwable thrown = null;
             ucar.ma2.Range trng = null;
             if (ca != null) {
+                if(ca instanceof CoordinateAxis2D) {
+                    ca = ncds.findCoordinateAxis(AxisType.RunTime);
+                }
                 if (ca instanceof CoordinateAxis1DTime) {
                     cat = (CoordinateAxis1DTime) ca;
                 } else {
@@ -669,6 +673,20 @@ public class NcAgent extends AbstractNcAgent {
 //        subDims.add("lev");
 //        subIndices.add(new int[]{2,2});
 //        subDims.add("lat");
+        
+        /* NAM - FMRC */
+        dataurl = "http://motherlode.ucar.edu:8080/thredds/dodsC/fmrc/NCEP/NAM/CONUS_12km/NCEP-NAM-CONUS_12km-noaaport_fmrc.ncd";
+        sTime = "2011-08-05T00:00:00Z";
+        eTime = "2011-08-06T03:00:00Z";
+        subDims.add("pressure");
+        subIndices.add(new int[]{0,0});
+        subDims.add("pressure1");
+        subIndices.add(new int[]{0,0});
+        subDims.add("pressure2");
+        subIndices.add(new int[]{0,0});
+        subDims.add("pressure_difference_layer");
+        subIndices.add(new int[]{0,0});
+//        subDims.add("lat");
 
         /* for HiOOS Gliders */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><variable name=\"pressure\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"temp\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"conductivity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"salinity\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable><variable name=\"density\"><attribute name=\"coordinates\" value=\"time longitude latitude depth\"/></variable></netcdf>";
@@ -770,6 +788,12 @@ public class NcAgent extends AbstractNcAgent {
         /* Rutgers ROMS */
 //        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"></netcdf>";
 //        dataurl = "http://tashtego.marine.rutgers.edu:8080/thredds/dodsC/roms/espresso/2009_da/his";
+        /* NDBC HFRADAR */
+//        ncmlmask = "<?xml version=\"1.0\" encoding=\"UTF-8\"?><netcdf xmlns=\"http://www.unidata.ucar.edu/namespaces/netcdf/ncml-2.2\" location=\"***lochold***\"><attribute name=\"data_url\" value=\"http://sdf.ndbc.noaa.gov/thredds/dodsC/hfradar_usegc_6km\"/><attribute name=\"CF:featureType\" value=\"grid\"/></netcdf>";
+//        dataurl = "http://sdf.ndbc.noaa.gov/thredds/dodsC/hfradar_usegc_6km";
+//        sTime = "2011-08-02T16:00:00Z";
+//        eTime = "2011-08-02T18:09:00Z";
+
         /** ******************** */
         /*  FTP Request Testing  */
         /** ******************** */
@@ -853,6 +877,7 @@ public class NcAgent extends AbstractNcAgent {
         List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         net.ooici.services.sa.DataSource.SourceType sourceType = net.ooici.services.sa.DataSource.SourceType.NETCDF_S;
+        cBldr.setIsInitial(true);
         cBldr.setSourceType(sourceType);
         cBldr.setRequestType(requestType);
         cBldr.setDatasetUrl(dataurl).setNcmlMask(ncmlmask).setBaseUrl(baseUrl);

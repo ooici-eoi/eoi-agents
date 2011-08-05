@@ -19,6 +19,8 @@
         <dependency name="netcdf" rev="4.2"/>
         <dependency name="unidataCommon" rev="4.2"/>
         <dependency name="opendap" rev="2.2"/>
+        <!-- Required for netcdf aggregations (FMRC) -->
+        <dependency name="je" rev="4.0.92" />
         
         
 <!--        <dependency name="zz-ooi-netcdf-full" rev="4.2.4" conf="*->*,!sources,!javadoc" />-->

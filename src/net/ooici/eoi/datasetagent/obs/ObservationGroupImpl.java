@@ -58,6 +58,24 @@ public class ObservationGroupImpl extends AbstractObservationGroup {
     }
 
     @Override
+    public boolean trimFirstTimestep() {
+        boolean ret = false;
+        if (times.size() > 0) {
+            Number firstTime = times.get(0);
+            /* For each of the VariableParams and for each depth, remove the corresponding time+depth entry */
+            for (VariableParams vp : obsMap.keySet()) {
+                for (Number d : depths) {
+                    obsMap.get(vp).remove(new TimeDepthPair(firstTime, d));
+                }
+            }
+            /* Remove the first time */
+            times.remove(0);
+            ret = true;
+        }
+        return ret;
+    }
+
+    @Override
     public int getNumObs() {
         return obsMap.get(obsMap.keySet().iterator().next()).size();
     }

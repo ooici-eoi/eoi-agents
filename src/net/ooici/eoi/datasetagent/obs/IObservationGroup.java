@@ -161,6 +161,12 @@ public interface IObservationGroup {
     void addScalarVariable(VariableParams dataAttribs, Number value);
 
     /**
+     * Removes the initial timestep from the collection.  This is used prior to ingesting a supplement to avoid duplication of the initial timestep as it is already in the ION datastore
+     * @return true if the removal was successful; false otherwise
+     */
+    boolean trimFirstTimestep();
+    
+    /**
      * @return a list of all VariableParams values present for scalar variables.
      */
     List<VariableParams> getScalarNames();

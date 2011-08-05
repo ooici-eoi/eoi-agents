@@ -32,6 +32,7 @@ import net.ooici.eoi.ftp.EasyFtp;
 import net.ooici.eoi.ftp.FtpFileFinder;
 import net.ooici.eoi.ftp.FtpFileFinder.UrlParser;
 import net.ooici.eoi.netcdf.NcDumpParse;
+import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage.StatusCode;
 import net.ooici.services.sa.DataSource;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 import net.ooici.services.sa.DataSource.RequestType;
@@ -296,6 +297,15 @@ public class NcAgent extends AbstractNcAgent {
              * Ideally, we'd find a way to 'remove' the unwanted times from the dataset, but not sure if this is possible
              * This would allow the 'sendNetcdfDataset' method to stay very generic (since obs requests will already have dealt with time)
              */
+            if (log.isDebugEnabled()) {
+                log.debug("Start Time: {}", (sTime != null) ? AgentUtils.ISO8601_DATE_FORMAT.format(sTime) : "no start time specified, use 0");
+                log.debug("End Time: {}", (eTime != null) ? AgentUtils.ISO8601_DATE_FORMAT.format(eTime) : "no end time specified, use 'now'");
+            }
+
+            if (log.isDebugEnabled()) {
+                log.debug("IsInitial : {}", context.getIsInitial());
+            }
+
             int sti = -1, eti = -1;
             String tdim = "";
             CoordinateAxis ca = ncds.findCoordinateAxis(AxisType.Time);
@@ -327,6 +337,20 @@ public class NcAgent extends AbstractNcAgent {
                         eti = cat.findTimeIndexFromDate(new Date());
                     }
                     try {
+                        /* Only if this is a supplement rather than an initial update:
+                         * Adjust the start time index +1 to avoid duplicate data
+                         * Bail if (eti - sti <= 0) */
+                        if (!context.getIsInitial()) {
+                            /* Adjust the start time index +1 to avoid duplicate data */
+                            sti++;
+                            if (eti - sti <= 0) {
+                                /* Bail if (eti - sti <= 0) */
+                                String err = new StringBuilder("Abort from this update:: The time subrange [").append(tdim).append(":").append(sti).append(":").append(eti).append(":").append("] indicates that there is no new data").toString();
+                                log.warn(err);
+                                this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
+                                return new String[]{err};
+                            }
+                        }
                         trng = new ucar.ma2.Range(tdim, sti, eti);
                     } catch (InvalidRangeException ex) {
                         warn = true;

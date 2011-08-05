@@ -871,7 +871,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     }
 
     private void writeDatasetProto(byte[] payload) {
-        datasetName = datasetName.replace(" ", "_");
+        String datasetName = this.datasetName.replace(" ", "_");
         new java.io.File(outputDir, datasetName).mkdirs();
         datasetName = datasetName + "/" + datasetName + ".ooicdm";
         if (log.isDebugEnabled()) {
@@ -881,7 +881,7 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
     }
 
     private void writeChunkProto(byte[] payload) {
-        datasetName = datasetName.replace(" ", "_");
+        String datasetName = this.datasetName.replace(" ", "_");
         new java.io.File(outputDir, datasetName).mkdirs();
         datasetName = datasetName + "/" + datasetName + "_" + incrementor++ + ".ooicdm";
         if (log.isDebugEnabled()) {

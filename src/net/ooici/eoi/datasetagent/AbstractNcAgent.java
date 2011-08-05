@@ -47,7 +47,9 @@ public abstract class AbstractNcAgent extends AbstractDatasetAgent implements IN
      */
     @Override
     protected final String[] _processDataset(Object data) {
-        if (!(data instanceof NetcdfDataset)) {
+        if (null == data) {
+            throw new NullPointerException("Cannot process NULL data");
+        } else if (!(data instanceof NetcdfDataset)) {
             throw new IllegalArgumentException(new StringBuilder("Supplied data must an instance of ")
                                                .append(NetcdfDataset.class.getName())
                                                .append("; '")

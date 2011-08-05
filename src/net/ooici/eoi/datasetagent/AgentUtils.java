@@ -8,8 +8,12 @@ import ion.core.utils.GPBWrapper;
 import ion.core.utils.ProtoUtils;
 
 import java.io.IOException;
+import java.net.Proxy;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.TimeZone;
 
 import net.ooici.cdm.syntactic.Cdmdatatype;
@@ -31,7 +35,19 @@ public class AgentUtils {
 	 * @param url
 	 * @return
 	 */
-    public static String getDataString(String url) {
+	public static String getDataString(String url) {
+	    return getDataString(url, 0);
+	}
+	
+	
+	/**
+	 * Retrieves the character data from the resource indicated by the given URL.  This method is used by
+	 * Agents when making requests for data via customized URL query strings.
+	 * 
+	 * @param url
+	 * @return
+	 */
+    public static String getDataString(String url, int connectionTimeoutMillis) {
         StringBuilder sb = new StringBuilder();
         java.io.BufferedReader reader = null;
         java.io.Reader rdr;
@@ -39,6 +55,7 @@ public class AgentUtils {
             if (url.startsWith("http://")) {
                 /* Retrieve a stream of data from the given url... */
                 java.net.HttpURLConnection conn = (java.net.HttpURLConnection) new java.net.URL(url).openConnection();
+                conn.setConnectTimeout(connectionTimeoutMillis);
                 rdr = new java.io.InputStreamReader(conn.getInputStream());
                 
                 /* Check the response for errors via response codes */
@@ -213,4 +230,49 @@ public class AgentUtils {
 		throwable.printStackTrace(printWriter);
 		return result.toString();
 	}
+    
+    
+    /**
+     * Factory to create a Calendar object with its TimeZone set to "UTC" and its current time to 0 (1970-01-01T:00:00:00)
+     *  
+     * @return a Calendar
+     */
+    public static Calendar createUtcCal() {
+        return createUtcCal(0);
+    }
+
+
+    /**
+     * Factory to create a Calendar object with its TimeZone set to "UTC" and its current time to 0 (1970-01-01T:00:00:00)
+     *  
+     * @param millis
+     *        
+     *  
+     * @return a Calendar
+     */
+    public static Calendar createUtcCal(long millis) {
+        Calendar result = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+        result.setTimeInMillis(millis);
+        return result;
+    }
+
+
+    public static Calendar createUtcCal(Date time) {
+        Calendar result = new GregorianCalendar(TimeZone.getTimeZone("UTC"));
+        result.setTime(time);
+        return result;
+    }
+    
+
+    public static String getUrlFilename(String filepath) {
+        return filepath.replaceFirst("^.+/(?=.+)", "");
+    }
+    
+
+    public static String getUrlParent(String filepath) {
+        return filepath.replaceFirst("/[^/]+$", "/");
+    }
+    
+    
+    
 }

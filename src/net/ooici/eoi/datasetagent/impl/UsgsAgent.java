@@ -22,6 +22,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TimeZone;
 import java.util.TreeMap;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import net.ooici.eoi.datasetagent.obs.IObservationGroup;
 import net.ooici.eoi.datasetagent.obs.IObservationGroup.DataType;
@@ -74,6 +76,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
     public static final double CONVERT_FT_TO_M = 0.3048;
     public static final double CONVERT_FT3_TO_M3 = Math.pow(CONVERT_FT_TO_M, 3);
     private boolean isDailyValue = false;
+    private WSType wsType = WSType.IV;
     private String data_url;
 
     /** Static Initializer */
@@ -82,6 +85,13 @@ public class UsgsAgent extends AbstractAsciiAgent {
         valueSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
         inSdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.sss");
         inSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+    }
+
+    enum WSType {
+
+        IV,
+        DV,
+        IDV
     }
 
     /** Used to convert qualifier code to a byte storage value */
@@ -129,10 +139,13 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
         String baseurl = context.getBaseUrl();
         if (baseurl.endsWith("nwis/iv?")) {
-            result = buildWaterServicesRequest();
+            result = buildWaterServicesIVRequest();
+        } else if (baseurl.endsWith("nwis/dv?")) {
+            result = buildWaterServicesDVRequest();
+            wsType = WSType.DV;
         } else if (baseurl.endsWith("NWISQuery/GetDV1?")) {
-            result = buildDailyValuesRequest(context);
-            isDailyValue = true;
+            result = buildInterimWaterServicesDVRequest();
+            wsType = WSType.IDV;
         }
 
 // <editor-fold defaultstate="collapsed" desc="OLD - COMMENTED">
@@ -229,7 +242,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return data_url;
     }
 
-    private String buildWaterServicesRequest() {
+    private String buildWaterServicesIVRequest() {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
@@ -246,14 +259,14 @@ public class UsgsAgent extends AbstractAsciiAgent {
         if (context.hasStartDatetimeMillis()) {
             sTime = new Date(context.getStartDatetimeMillis());
         }
+        if (context.hasEndDatetimeMillis()) {
+            eTime = new Date(context.getEndDatetimeMillis());
+        }
 //        try {
 //            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
 //        } catch (ParseException e) {
 //            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
 //        }
-        if (context.hasEndDatetimeMillis()) {
-            eTime = new Date(context.getEndDatetimeMillis());
-        }
 //        try {
 //            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
 //        } catch (ParseException e) {
@@ -291,7 +304,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
 
 
         /** Build the query URL */
-        result.append(baseUrl);
+        result.append(baseUrl).append("&format=waterml,1.1");
         result.append("&sites=").append(siteCSV);
         result.append("&parameterCd=").append(propertiesString);
         result.append("&startDT=").append(sTimeString);
@@ -300,7 +313,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return result.toString();
     }
 
-    private String buildDailyValuesRequest(net.ooici.services.sa.DataSource.EoiDataContextMessage context) {
+    private String buildInterimWaterServicesDVRequest() {
         StringBuilder result = new StringBuilder();
 
         String baseUrl = context.getBaseUrl();
@@ -348,6 +361,78 @@ public class UsgsAgent extends AbstractAsciiAgent {
         if (eTimeString != null && !eTimeString.isEmpty()) {
             result.append("&EndDate=").append(eTimeString);
         }
+
+        return result.toString();
+    }
+
+    private String buildWaterServicesDVRequest() {
+        StringBuilder result = new StringBuilder();
+
+        String baseUrl = context.getBaseUrl();
+//        String sTimeString = context.getStartTime();
+//        String eTimeString = context.getEndTime();
+        String properties[] = context.getPropertyList().toArray(new String[0]);
+        String siteCodes[] = context.getStationIdList().toArray(new String[0]);
+
+
+        /** TODO: null-check here */
+        /** Configure the date-time parameter */
+        Date sTime = null;
+        Date eTime = null;
+        if (context.hasStartDatetimeMillis()) {
+            sTime = new Date(context.getStartDatetimeMillis());
+        }
+        if (context.hasEndDatetimeMillis()) {
+            eTime = new Date(context.getEndDatetimeMillis());
+        }
+//        try {
+//            sTime = AgentUtils.ISO8601_DATE_FORMAT.parse(sTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.START_TIME + "Unparsable value = " + sTimeString, e);
+//        }
+//        try {
+//            eTime = AgentUtils.ISO8601_DATE_FORMAT.parse(eTimeString);
+//        } catch (ParseException e) {
+//            throw new IllegalArgumentException("Could not convert DATE string for context key " + DataSourceRequestKeys.END_TIME + "Unparsable value = " + eTimeString, e);
+//        }
+        DateFormat usgsUrlSdf = new SimpleDateFormat("yyyy-MM-dd");
+        usgsUrlSdf.setTimeZone(TimeZone.getTimeZone("UTC"));
+        String sTimeString = usgsUrlSdf.format(sTime);
+        String eTimeString = usgsUrlSdf.format(eTime);
+
+        /** Build the propertiesString*/
+        StringBuilder propertiesString = new StringBuilder();
+        for (String property : properties) {
+            if (null != property) {
+                propertiesString.append(property.trim()).append(",");
+            }
+        }
+        if (propertiesString.length() > 0) {
+            propertiesString.setLength(propertiesString.length() - 1);
+        }
+
+
+
+        /** Build the list of sites (siteCSV)*/
+        StringBuilder siteCSV = new StringBuilder();
+        for (String siteCode : siteCodes) {
+            if (null != siteCode) {
+                siteCSV.append(siteCode.trim()).append(",");
+            }
+        }
+        if (siteCSV.length() > 0) {
+            siteCSV.setLength(siteCSV.length() - 1);
+        }
+
+
+
+        /** Build the query URL */
+        result.append(baseUrl).append("&format=waterml,1.1");
+        result.append("&sites=").append(siteCSV);
+        result.append("&parameterCd=").append(propertiesString);
+        result.append("&statCd=00003");
+        result.append("&startDT=").append(sTimeString);
+        result.append("&endDT=").append(eTimeString);
 
         return result.toString();
     }
@@ -401,10 +486,16 @@ public class UsgsAgent extends AbstractAsciiAgent {
         List<IObservationGroup> obsList = new ArrayList<IObservationGroup>();
         StringReader srdr = new StringReader(asciiData);
         try {
-            if (!isDailyValue) {
-                obsList.add(ws_parseObservations(srdr));
-            } else {
-                obsList.add(dv_parseObservations(srdr));
+            switch (wsType) {
+                case IV:
+                    obsList.add(wsIV_parseObservations(srdr));
+                    break;
+                case DV:
+                    obsList.add(wsDV_parseObservations(srdr));
+                    break;
+                case IDV:
+                    obsList.add(wsIDV_parseObservations(srdr));
+                    break;
             }
         } finally {
             if (srdr != null) {
@@ -425,7 +516,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      *            a <code>Reader</code> object linked to a stream of USGS ascii data from the Waterservices Service
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
-    public IObservationGroup ws_parseObservations(Reader rdr) {
+    public IObservationGroup wsIV_parseObservations(Reader rdr) {
         /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
 
         /** XPATH queries */
@@ -620,7 +711,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
      *            a <code>Reader</code> object linked to a stream of USGS ascii data from the Daily Values Service
      * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
      */
-    public IObservationGroup dv_parseObservations(Reader rdr) {
+    public IObservationGroup wsIDV_parseObservations(Reader rdr) {
         /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
 
         /** XPATH queries */
@@ -827,6 +918,234 @@ public class UsgsAgent extends AbstractAsciiAgent {
         return obs;
     }
 
+    /**
+     * Parses the String data from the given reader into a list of observation groups.<br />
+     * <br />
+     * <b>Note:</b><br />
+     * The given reader is guaranteed to return from this method in a <i>closed</i> state.
+     * 
+     * @param rdr
+     *            a <code>Reader</code> object linked to a stream of USGS ascii data from the Waterservices Service
+     * @return a List of IObservationGroup objects if observations are parsed, otherwise this list will be empty
+     */
+    public IObservationGroup wsDV_parseObservations(Reader rdr) {
+        /* TODO: Fix exception handling in this method, it is too generic; try/catch blocks should be as confined as possible */
+
+        /** XPATH queries */
+        final String XPATH_ELEMENT_TIME_SERIES = ".//ns1:timeSeries";
+        final String XPATH_ELEMENT_SITE_CODE = "./ns1:sourceInfo/ns1:siteCode";
+        final String XPATH_ATTRIBUTE_AGENCY_CODE = "./ns1:sourceInfo/ns1:siteCode/@agencyCode";
+        final String XPATH_ELEMENT_LATITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:latitude"; /* NOTE: geogLocation is (1..*) */
+
+        final String XPATH_ELEMENT_LONGITUDE = "./ns1:sourceInfo/ns1:geoLocation/ns1:geogLocation/ns1:longitude"; /* NOTE: geogLocation is (1..*) */
+
+        final String XPATH_ELEMENT_VALUES = "./ns1:values";
+        final String XPATH_ELEMENT_VALUE = "./ns1:value";
+        final String XPATH_ELEMENT_VARIABLE_CODE = "./ns1:variable/ns1:variableCode";
+        final String XPATH_ELEMENT_VARIABLE_NAME = "./ns1:variable/ns1:variableName";
+        final String XPATH_ELEMENT_VARIABLE_NaN_VALUE = "./ns1:variable/ns1:noDataValue";
+        final String XPATH_ATTRIBUTE_QUALIFIERS = "./@qualifiers";
+        final String XPATH_ATTRIBUTE_DATETIME = "./@dateTime";
+
+
+        IObservationGroup obs = null;
+        SAXBuilder builder = new SAXBuilder();
+        Document doc = null;
+        String datetime = "[no date information]"; /* datetime defined here (outside try) for error reporting */
+
+        try {
+            doc = builder.build(rdr);
+
+            /** Grab Global Attributes (to be copied into each observation group */
+            Namespace ns1 = Namespace.getNamespace("ns1", "http://www.cuahsi.org/waterML/1.1/");
+//          Namespace ns2 = Namespace.getNamespace("ns2", "http://waterservices.usgs.gov/WaterML-1.1.xsd");
+//          Namespace xsi = Namespace.getNamespace("xsi", "http://www.w3.org/2001/XMLSchema");
+
+
+            Element root = doc.getRootElement();
+            Element queryInfo = root.getChild("queryInfo", ns1);
+            Map<String, String> globalAttributes = new HashMap<String, String>();
+
+
+            /* Extract the Global Attributes */
+            /* title */
+            String queryUrl = xpathSafeSelectValue(queryInfo, ".//ns2:queryURL", null);
+//            globalAttributes.put("title", "USGS rivers data timeseries.  Requested from \"" + queryUrl + "\"");
+            String siteName = xpathSafeSelectValue(root, "//ns1:sourceInfo/ns1:siteName", null);
+            String locationParam = xpathSafeSelectValue(root, "//ns1:queryInfo/ns1:criteria/ns1:locationParam", null);
+            locationParam = locationParam.substring(locationParam.indexOf(":") + 1, locationParam.indexOf("]"));
+            String variableName = xpathSafeSelectValue(root, "//ns1:variable/ns1:variableName", null);
+            int cut = variableName.indexOf(",");
+            if (cut >= 1) {
+                variableName = variableName.substring(0, cut);
+            }
+            String title = siteName + " (" + locationParam + ") - Daily Value";// + variableName;
+            title = title.replace(",", "").replace(".", "");
+            globalAttributes.put("title", title);
+            globalAttributes.put("institution", "USGS NWIS");
+
+            /* history */
+            globalAttributes.put("history", "Converted from WaterML1.1 to OOI CDM by " + UsgsAgent.class.getName());
+
+            /* references */
+
+            globalAttributes.put("references", "http://waterservices.usgs.gov/rest/DV-Service.html");
+
+            /* source */
+            globalAttributes.put("source", "Instantaneous Values Webservice (http://waterservices.usgs.gov/mwis/dv?)");
+
+            /* conventions - from schema */
+//            globalAttributes.put("Conventions", "CF-1.5");
+
+            /* Data URL */
+            /* CAN'T have this because it changes every update and we don't have a way of merging attributes across multiple updates */
+//            globalAttributes.put("data_url", data_url);
+
+
+            /** Get a list of provided time series */
+            List<?> timeseriesList = XPath.selectNodes(doc, XPATH_ELEMENT_TIME_SERIES);
+
+            /** Build an observation group for each unique sitecode */
+            Object nextTimeseries = null;
+            Iterator<?> iterTimeseries = timeseriesList.iterator();
+            boolean hasWaterSurface;
+            while (iterTimeseries.hasNext()) {
+                hasWaterSurface = false;
+
+                /* Grab the next element */
+                nextTimeseries = iterTimeseries.next();
+                if (null == nextTimeseries) {
+                    continue;
+                }
+
+
+                /** Grab data for the current site */
+                String stnId = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_SITE_CODE)).getTextTrim();
+                String latitude = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_LATITUDE)).getTextTrim();
+                String longitude = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_LONGITUDE)).getTextTrim();
+                String noDataString = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_VARIABLE_NaN_VALUE)).getTextTrim();
+
+                float lat = Float.parseFloat(latitude);
+                float lon = Float.parseFloat(longitude);
+                // float noDataValue = Float.parseFloat(noDataString);
+
+
+                /* Check to see if the observation group already exists */
+                if (obs == null) {
+                    /* Create a new observation group if one does not currently exist */
+                    obs = new ObservationGroupImpl(getNextGroupId(), stnId, lat, lon);
+                }
+
+
+
+                /** Grab variable data */
+                String variableCode = ((Element) XPath.selectSingleNode(nextTimeseries, XPATH_ELEMENT_VARIABLE_CODE)).getTextTrim();
+                // String variableUnits = getUnitsForVariableCode(variableCode);
+                // String variableName = getStdNameForVariableCode(variableCode);
+                VariableParams name = getDataNameForVariableCode(variableCode);
+                /* Check to see if this is the waterSurface var */
+                hasWaterSurface = (!hasWaterSurface) ? name == VariableParams.StandardVariable.RIVER_WATER_SURFACE_HEIGHT.getVariableParams() : hasWaterSurface;
+
+                /* May be multiple sets of values for a "variable" (i.e. middle, bottom, surface) */
+                List<?> valuesList = XPath.selectNodes(nextTimeseries, XPATH_ELEMENT_VALUES);
+                Iterator<?> valuesIter = valuesList.iterator();
+                Object valuesSet = null;
+                Pattern pattern = Pattern.compile("\\((.*)\\)");
+                Matcher match = null;
+                while (valuesIter.hasNext()) {
+                    String varNameSuffix = "";
+                    String longNameSuffix = "";
+                    valuesSet = valuesIter.next();
+                    if (valuesSet == null) {
+                        continue;
+                    }
+                    Object method = XPath.selectSingleNode(valuesSet, "./ns1:method/ns1:methodDescription");
+                    if (method != null) {
+                        String methString = ((Element) method).getTextTrim();
+                        if (methString != null & !methString.isEmpty()) {
+                            longNameSuffix = methString;
+                            match = pattern.matcher(methString);
+                            if(match.find()) {
+                                varNameSuffix = match.group(1);
+                            } else {
+                                varNameSuffix = methString;
+                            }
+                            varNameSuffix = varNameSuffix.toLowerCase().replace(" ", "_");
+//                            varNameSuffix = methString.substring(methString.indexOf("(") + 1, methString.indexOf(")"));
+                        }
+                    }
+//                }
+
+                    /** Add each timeseries value (observation) to the observation group */
+                    /* Get a list of each observation */
+//                List<?> observationList = XPath.selectNodes(nextTimeseries, XPATH_ELEMENT_VALUE);
+                    List<?> observationList = XPath.selectNodes(valuesSet, XPATH_ELEMENT_VALUE);
+
+
+                    /* Add an observation for each "value" parsed */
+                    Object next = null;
+                    Iterator<?> iter = observationList.iterator();
+                    while (iter.hasNext()) {
+                        /* Grab the next element */
+                        next = iter.next();
+                        if (null == next) {
+                            continue;
+                        }
+
+                        /* Grab observation data */
+                        String qualifier = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_QUALIFIERS)).getValue();
+                        datetime = ((org.jdom.Attribute) XPath.selectSingleNode(next, XPATH_ATTRIBUTE_DATETIME)).getValue();
+                        String value = ((Element) next).getTextTrim();
+//                    datetime = datetime.replaceAll("\\:", "").concat("Z");
+
+
+                        /* Convert observation data */
+                        int time = 0;
+                        float data = 0;
+                        float dpth = 0;
+
+                        time = (int) (inSdf.parse(datetime).getTime() * 0.001);
+                        // data = Float.parseFloat(value);
+
+                        /* DON'T EVER CONVERT - Only convert data if we are dealing with Steamflow */
+//                    if (name == VariableParams.RIVER_STREAMFLOW) {
+//                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value) * CONVERT_FT3_TO_M3); /* convert from (f3 s-1) --> (m3 s-1) */
+//                    } else {
+//                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
+//                    }
+
+                        data = (noDataString.equals(value)) ? (Float.NaN) : (float) (Double.parseDouble(value));
+                        dpth = 0;
+
+                        /* Add the observation data */
+//                    obs.addObservation(time, dpth, data, new VariableParams(name, DataType.FLOAT));
+                        String vName = (!varNameSuffix.isEmpty()) ? name.getShortName().concat("_").concat(varNameSuffix) : name.getShortName();
+                        String lName = (!longNameSuffix.isEmpty()) ? name.getDescription().concat(" ").concat(longNameSuffix) : name.getDescription();
+                        obs.addObservation(time, dpth, data, new VariableParams(name.getStandardName(), vName, lName, name.getUnits(), DataType.FLOAT));
+
+                        /* Add the data observation qualifier */
+                        byte qualifier_value = Qualifier.getByteValue(qualifier.toString());
+                        obs.addObservation(time, dpth, qualifier_value, new VariableParams(StandardVariable.USGS_QC_FLAG, DataType.BYTE));
+                    }
+                }
+                /* If the group has waterSurface, add a the datum variable */
+                if (hasWaterSurface) {
+                    obs.addScalarVariable(new VariableParams(VariableParams.StandardVariable.RIVER_WATER_SURFACE_REF_DATUM_ALTITUDE, DataType.FLOAT), 0f);
+                }
+            }
+            obs.addAttributes(globalAttributes);
+
+        } catch (JDOMException ex) {
+            log.error("Error while parsing xml from the given reader", ex);
+        } catch (IOException ex) {
+            log.error("General IO exception.  Please see stack-trace", ex);
+        } catch (ParseException ex) {
+            log.error("Could not parse date information from XML result for: " + datetime, ex);
+        }
+
+        return obs;
+    }
+
     private static String xpathSafeSelectValue(Object context, String path, String defaultValue, Namespace... namespaces) {
 
         Object result = null;
@@ -957,6 +1276,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
         if (manual) {
             net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
             cBldr.setSourceType(net.ooici.services.sa.DataSource.SourceType.USGS);
+            cBldr.setIsInitial(true);
             cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/iv?");
             int switcher = 4;
             try {
@@ -989,14 +1309,18 @@ public class UsgsAgent extends AbstractAsciiAgent {
                         cBldr.addStationId("01646500");
                         break;
                     case 4:
-                        cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
-                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2003-01-01T00:00:00Z").getTime());
+//                        cBldr.setBaseUrl("http://interim.waterservices.usgs.gov/NWISQuery/GetDV1?");
+                        cBldr.setBaseUrl("http://waterservices.usgs.gov/nwis/dv?");
+                        cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-01-01T00:00:00Z").getTime());
 //                    cBldr.setStartTime("2011-02-01T00:00:00Z");
-                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-04-19T00:00:00Z").getTime());
+                        cBldr.setEndDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-08-07T00:00:00Z").getTime());
                         cBldr.addProperty("00010");
-//                    cBldr.addProperty("00060");
-//                    cBldr.addStationId("01463500");
-                        cBldr.addStationId("01646500");
+                        cBldr.addProperty("00060");
+                        cBldr.addProperty("00065");//gauge height
+                        cBldr.addProperty("00045");//precip
+                        cBldr.addProperty("00095");//?? 
+                        cBldr.addStationId("01463500");
+//                        cBldr.addStationId("01646500");
                         break;
                     case 5://test all supported parameters
                         cBldr.setStartDatetimeMillis(AgentUtils.ISO8601_DATE_FORMAT.parse("2011-05-12T00:00:00Z").getTime());

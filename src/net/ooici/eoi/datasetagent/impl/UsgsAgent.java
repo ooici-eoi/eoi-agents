@@ -992,7 +992,7 @@ public class UsgsAgent extends AbstractAsciiAgent {
             globalAttributes.put("references", "http://waterservices.usgs.gov/rest/DV-Service.html");
 
             /* source */
-            globalAttributes.put("source", "Instantaneous Values Webservice (http://waterservices.usgs.gov/mwis/dv?)");
+            globalAttributes.put("source", "Daily Values Webservice (http://waterservices.usgs.gov/mwis/dv?)");
 
             /* conventions - from schema */
 //            globalAttributes.put("Conventions", "CF-1.5");

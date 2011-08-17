@@ -97,13 +97,15 @@
 	<target name="javadoc" depends="" description="==> Generate Javadoc">
 		<javadoc sourcepath="${src.dir}"
 			classpathref="runtime.classpath"
-		   defaultexcludes="yes"
+		   defaultexcludes="no"
+		   excludepackagenames="trystuff"
+		   access="private"
 		   destdir="${docs.dir}"
 		   author="true"
 		   version="true"
 		   use="true"
-		   windowtitle="ION Core">
-			<doctitle><![CDATA[<h1>ION Core</h1>]]></doctitle>
+		   windowtitle="EOI Java Dataset Agent Framework">
+			<doctitle><![CDATA[<h1>EOI Java Dataset Agent Framework</h1>]]></doctitle>
 			<bottom><![CDATA[<i>Copyright &#169; 2010 UC Regents. All Rights Reserved.</i>]]></bottom>
 			<tag name="todo" scope="all" description="To do:"/>
 		</javadoc>

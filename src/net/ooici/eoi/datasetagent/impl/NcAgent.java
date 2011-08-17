@@ -349,7 +349,13 @@ public class NcAgent extends AbstractNcAgent {
                 HttpClientManager.init(provider, "OOICI-ION");
             }
 
+            if(log.isDebugEnabled()) {
+                log.debug("Opening NetcdfDataset '{}'", request);
+            }
             ncds = NetcdfDataset.openDataset(request, EnumSet.of(NetcdfDataset.Enhance.CoordSystems), -1, null, null);
+            if(log.isDebugEnabled()) {
+                log.debug("NetcdfDataset '{}' opened successfully!", request);
+            }
         } catch (IOException ex) {
             log.error("Error opening dataset \"" + request + "\"", ex);
         }

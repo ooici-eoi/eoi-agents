@@ -26,7 +26,9 @@ import ucar.nc2.dataset.NetcdfDataset;
 /**
  *
  * @author cmueller
+ * @deprecated Do NOT use this class for entering the EOI Java Dataset Agent Framework.  Use the {@link JavaAgentLauncher} class instead.
  */
+@Deprecated
 public class DatasetAgentController implements ControlListener {
 
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(DatasetAgentController.class);

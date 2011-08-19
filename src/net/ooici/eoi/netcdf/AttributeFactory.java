@@ -44,12 +44,16 @@ public class AttributeFactory {
     public static void addTimeBoundsMetadata(NetcdfDataset ncds, HashMap<String, Range> subRanges) {
         String startdate = "";
         String enddate = "";
-        CoordinateAxis ca = ncds.findCoordinateAxis(AxisType.Time);
+//        CoordinateAxis ca = ncds.findCoordinateAxis(AxisType.Time);
+        CoordinateAxis ca = ncds.findCoordinateAxis(AxisType.RunTime);
+        if(ca == null) {
+            ca = ncds.findCoordinateAxis(AxisType.Time);
+        }
         Throwable thrown = null;
         if (ca != null) {
-            if (ca instanceof CoordinateAxis2D) {
-                ca = ncds.findCoordinateAxis(AxisType.RunTime);
-            }
+//            if (ca instanceof CoordinateAxis2D) {
+//                ca = ncds.findCoordinateAxis(AxisType.RunTime);
+//            }
             CoordinateAxis1DTime cat = null;
             if (ca instanceof CoordinateAxis1DTime) {
                 cat = (CoordinateAxis1DTime) ca;

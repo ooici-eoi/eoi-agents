@@ -4,10 +4,10 @@
  */
 package net.ooici.eoi.crawler.impl;
 
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -26,8 +26,8 @@ import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.net.ProtocolCommandEvent;
 import org.apache.commons.net.ProtocolCommandListener;
 import org.apache.commons.net.ftp.FTPClient;
+import org.apache.commons.net.ftp.FTPFile;
 import org.apache.commons.net.ftp.FTPReply;
-
 
 /**
  * TODO Add class comments
@@ -40,18 +40,15 @@ public class FtpAccessClient implements AccessClient {
     /** Static Fields */
     static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FtpAccessClient.class);
     private static final String NEW_LINE = System.getProperty("line.separator");
-    
     /** Instance Fields */
     private final FTPClient ftp;
     private String host;
     private String cddir = "/";
+    private FTPFile[] rFiles = null;
 
-
-    
     public FtpAccessClient(final String host) throws IOException {
         this(host, "anonymous", "");
     }
-
 
     public FtpAccessClient(final String host, final String user, final String pasw) throws IOException {
         this.host = DataSourceCrawler.removeTrailingSlashes(host);
@@ -61,15 +58,13 @@ public class FtpAccessClient implements AccessClient {
 
                 @Override
                 public void protocolReplyReceived(ProtocolCommandEvent pce) {
-                    log.debug(new StringBuilder("<<<---@@@ RECEIVE: ").append(pce.getCommand()).append(": ")
-                        .append(pce.getMessage().trim()).toString());
+                    log.debug(new StringBuilder("<<<---@@@ RECEIVE: ").append(pce.getCommand()).append(": ").append(pce.getMessage().trim()).toString());
                 }
 
                 @Override
                 public void protocolCommandSent(ProtocolCommandEvent pce) {
                     /* Spaces here make the logged output "line up" */
-                    log.debug(new StringBuilder("  @@@--->>> SENT: ").append(pce.getCommand()).append(": ")
-                        .append(pce.getMessage().trim()).toString());
+                    log.debug(new StringBuilder("  @@@--->>> SENT: ").append(pce.getCommand()).append(": ").append(pce.getMessage().trim()).toString());
                 }
             });
         }
@@ -96,7 +91,6 @@ public class FtpAccessClient implements AccessClient {
         }
     }
 
-    
     /*
      * (non-Javadoc)
      * @see net.ooici.eoi.crawler.AccessClient#getHost()
@@ -105,8 +99,7 @@ public class FtpAccessClient implements AccessClient {
     public String getHost() {
         return host;
     }
-    
-    
+
     /*
      * (non-Javadoc)
      * @see net.ooici.eoi.crawler.AccessClient#getProtocol()
@@ -115,8 +108,7 @@ public class FtpAccessClient implements AccessClient {
     public String getProtocol() {
         return "ftp";
     }
-    
-    
+
     public String cd(String dir) throws IOException {
         String cdto = fixdir(dir);
         ftp.changeWorkingDirectory(cdto);
@@ -124,21 +116,33 @@ public class FtpAccessClient implements AccessClient {
         return cddir;
     }
 
-
     public String pwd() throws IOException {
         return ftp.printWorkingDirectory();
     }
 
+    public long getFileSize(String name) throws IOException {
+        return getFileSize(name, false);
+    }
+
+    public long getFileSize(String name, boolean refreshList) throws IOException {
+        if (rFiles == null || refreshList) {
+            rFiles = ftp.listFiles();
+        }
+        for (FTPFile f : rFiles) {
+            if(f.getName().equals(name)) {
+                return f.getSize();
+            }
+        }
+        throw new FileNotFoundException("Could not find the file '" + name + "' on the ftp server in the current working directory '" + ftp.printWorkingDirectory() + "'");
+    }
 
     public String list() throws IOException {
         return list(null);
     }
 
-
     public String list(final String loc) throws IOException {
         return list(loc, null);
     }
-
 
     public String list(final String loc, final String regex) throws IOException {
         StringBuilder result = new StringBuilder();
@@ -148,28 +152,27 @@ public class FtpAccessClient implements AccessClient {
         // String filename = null;
         for (String filename : files) {
             // filename = file.getName();
-            if (null != filename && (regex == null || filename.matches(regex)))
+            if (null != filename && (regex == null || filename.matches(regex))) {
                 result.append(filename).append(NEW_LINE);
+            }
             // result.append(file.file.getRawListing()).append(NEW_LINE);
         }
 
-        if (result.length() >= NEW_LINE.length())
+        if (result.length() >= NEW_LINE.length()) {
             result.delete(result.length() - NEW_LINE.length(), result.length());
+        }
 
 
         return result.toString();
     }
 
-
     public String nlist() throws IOException {
         return nlist(null);
     }
 
-
     public String nlist(final String loc) throws IOException {
         return nlist(loc, null);
     }
-
 
     public String nlist(final String loc, final String regex) throws IOException {
         StringBuilder result = new StringBuilder();
@@ -181,20 +184,22 @@ public class FtpAccessClient implements AccessClient {
                     filename = filename.substring(0, filename.length() - 1);
                 }
                 int start = filename.lastIndexOf("/");
-                if (start >= 0 && ++start < filename.length())
+                if (start >= 0 && ++start < filename.length()) {
                     filename = filename.substring(start);
-                if (regex == null || filename.matches(regex))
+                }
+                if (regex == null || filename.matches(regex)) {
                     result.append(filename).append(NEW_LINE);
+                }
             }
         }
 
-        if (result.length() >= NEW_LINE.length())
+        if (result.length() >= NEW_LINE.length()) {
             result.delete(result.length() - NEW_LINE.length(), result.length());
+        }
 
 
         return result.toString();
     }
-
 
     private String fixdir(final String loc) {
         String result = "";
@@ -209,12 +214,10 @@ public class FtpAccessClient implements AccessClient {
         return result;
     }
 
-
     public String download(String fileLoc, String outDir) throws IOException {
         return download(fileLoc, outDir, false);
     }
-    
-        
+
     public String download(String fileLoc, String outDir, boolean deleteOnExit) throws IOException {
 
         if (fileLoc.endsWith("/")) {
@@ -222,14 +225,22 @@ public class FtpAccessClient implements AccessClient {
         }
 
         int start = fileLoc.lastIndexOf("/");
-        if (start == -1)
+        if (start == -1) {
             start = 0;
-        else
+        } else {
             start++;
+        }
 
         StringBuilder outPath = new StringBuilder(outDir);
         if (!outDir.endsWith(File.separator)) {
             outPath.append(File.separatorChar);
+        }
+        File outDirF = new File(outDir);
+        if (!outDirF.exists()) {
+            boolean success = outDirF.mkdirs();
+            if (log.isDebugEnabled()) {
+                log.debug("{} temp directory: {}", (success) ? "Successfully made" : "Failed to make", outDirF.getAbsolutePath());
+            }
         }
 
         String fileName = fileLoc.substring(start, fileLoc.length());
@@ -246,13 +257,12 @@ public class FtpAccessClient implements AccessClient {
         return outPath.toString();
     }
 
-
     public boolean download(String fileLoc, File out) throws IOException {
 
         boolean result = false;
 
         FileOutputStream fos = new FileOutputStream(out);
-        
+
         try {
             result = ftp.retrieveFile(fileLoc, fos);
         } finally {
@@ -270,7 +280,6 @@ public class FtpAccessClient implements AccessClient {
         return result;
     }
 
-
     public static List<String> unzip(String filepath, boolean deleteOnExit) throws IOException {
         List<String> results = new ArrayList<String>();
 
@@ -286,7 +295,6 @@ public class FtpAccessClient implements AccessClient {
 
         return results;
     }
-    
 
     public static List<String> unzip_zip(String filepath, boolean deleteOnExit) throws IOException {
         List<String> result = new ArrayList<String>();
@@ -316,23 +324,26 @@ public class FtpAccessClient implements AccessClient {
                 result.add(outFilepath);
 
             } finally {
-                if (null != fos)
+                if (null != fos) {
                     try {
                         fos.flush();
                         fos.close();
                     } catch (IOException ex) { /* NO-OP */
+
                     }
-                if (null != is)
+                }
+                if (null != is) {
                     try {
                         is.close();
                     } catch (IOException ex) { /* NO-OP */
+
                     }
+                }
             }
         }
 
         return result;
     }
-
 
     public static List<String> unzip_gzip(String filepath, boolean deleteOnExit) throws IOException {
         List<String> result = new ArrayList<String>();
@@ -348,7 +359,7 @@ public class FtpAccessClient implements AccessClient {
             if (deleteOnExit) {
                 outfile.deleteOnExit();
             }
-            
+
             fos = new FileOutputStream(outfile);
             is = new FileInputStream(filepath);
             gzip = new GZIPInputStream(is);
@@ -357,27 +368,32 @@ public class FtpAccessClient implements AccessClient {
             result.add(outFilepath);
 
         } finally {
-            if (null != fos)
+            if (null != fos) {
                 try {
                     fos.flush();
                     fos.close();
                 } catch (IOException ex) { /* NO-OP */
+
                 }
-            if (null != gzip)
+            }
+            if (null != gzip) {
                 try {
                     gzip.close();
                 } catch (IOException ex) { /* NO-OP */
+
                 }
-            if (null != is)
+            }
+            if (null != is) {
                 try {
                     is.close();
                 } catch (IOException ex) { /* NO-OP */
+
                 }
+            }
         }
 
         return result;
     }
-
 
     public static List<String> unzip_bzip2(String filepath, boolean deleteOnExit) throws IOException {
         List<String> result = new ArrayList<String>();
@@ -393,7 +409,7 @@ public class FtpAccessClient implements AccessClient {
             if (deleteOnExit) {
                 outfile.deleteOnExit();
             }
-            
+
             fos = new FileOutputStream(outfile);
             is = new FileInputStream(filepath);
             bzip = new BZip2CompressorInputStream(is);
@@ -402,32 +418,37 @@ public class FtpAccessClient implements AccessClient {
             result.add(outFilepath);
 
         } finally {
-            if (null != fos)
+            if (null != fos) {
                 try {
                     fos.flush();
                     fos.close();
                 } catch (IOException ex) { /* NO-OP */
+
                 }
-            if (null != bzip)
+            }
+            if (null != bzip) {
                 try {
                     bzip.close();
                 } catch (IOException ex) { /* NO-OP */
+
                 }
-            if (null != is)
+            }
+            if (null != is) {
                 try {
                     is.close();
                 } catch (IOException ex) { /* NO-OP */
+
                 }
+            }
         }
 
         return result;
     }
-    
-    
+
     private static String chooseUnzipFilepath(String filepath) {
         String outFilepath = filepath.replaceFirst("(\\.bz2|\\.bzip2)?$", "");
         int ctr = 0;
-        
+
         if (new File(outFilepath).exists()) {
             while (new File(new StringBuilder(outFilepath).append('(').append(ctr).append(')').toString()).exists()) {
                 ++ctr;
@@ -437,7 +458,6 @@ public class FtpAccessClient implements AccessClient {
         return outFilepath;
     }
 
-    
     private static void copyStream(final InputStream is, final OutputStream os, final int buffer) throws IOException {
 
         byte[] bytes = new byte[buffer];
@@ -447,7 +467,6 @@ public class FtpAccessClient implements AccessClient {
         }
 
     }
-
 
     public void close() {
         if (null != ftp) {
@@ -473,5 +492,4 @@ public class FtpAccessClient implements AccessClient {
         close();
         super.finalize();
     }
-
 }

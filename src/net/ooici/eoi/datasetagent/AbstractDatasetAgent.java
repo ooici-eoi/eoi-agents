@@ -423,8 +423,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
                 /** Send the variables in "chunks" */
                 for (ucar.nc2.Variable v : ncds.getVariables()) {
-                    if (log.isDebugEnabled()) {
-                        log.debug("Processing Variable: {}", v.getName());
+                    if (log.isInfoEnabled()) {
+                        log.info("Processing Variable: {}", v.getName());
                     }
                     try {
 
@@ -533,8 +533,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         long esize = var.getElementSize();
         long size = sec.computeSize() * esize;
-        if (log.isDebugEnabled()) {
-            log.debug("{}decomp-depth = {} :: sec = {} :: sec-size = {}", new Object[]{indent, depth, sec, size});
+        if (log.isInfoEnabled()) {
+            log.info("{}decomp-depth = {} :: sec = {} :: sec-size = {}", new Object[]{indent, depth, sec, size});
         }
         if (size > maxSize) {
             Range rng;
@@ -581,8 +581,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 sec.replaceRange(depth, rng);
             }
         } else {
-            if (log.isDebugEnabled()) {
-                log.debug("{}--> proc-sec: {}", indent, sec.toString());
+            if (log.isInfoEnabled()) {
+                log.info("{}--> process-sec: {}", indent, sec.toString());
             }
             /* Build the array and the bounded array */
             ion.core.utils.GPBWrapper arrWrap = Unidata2Ooi.getOoiArray(var, sec);

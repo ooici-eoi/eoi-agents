@@ -218,7 +218,7 @@ public abstract class DataSourceCrawler {
 
 
         if (log.isDebugEnabled()) {
-            log.debug("***Receieved files:");
+            log.debug("***Filtered file listing:");
             for (String file : result.keySet()) {
                 log.debug("\t" + file);
             }

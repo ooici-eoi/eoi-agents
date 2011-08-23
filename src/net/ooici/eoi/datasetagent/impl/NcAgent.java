@@ -481,7 +481,7 @@ public class NcAgent extends AbstractNcAgent {
                         if (!context.getIsInitial()) {
                             /* Adjust the start time index +1 to avoid duplicate data */
                             sti++;
-                            if (eti - sti <= 0) {
+                            if (eti - sti < 0) {
                                 /* Bail if (eti - sti <= 0) */
                                 String err = new StringBuilder("Abort from this update:: The time subrange [").append(tdim).append(":").append(sti).append(":").append(eti).append(":").append("] indicates that there is no new data").toString();
                                 log.warn(err);

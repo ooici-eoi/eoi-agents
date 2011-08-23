@@ -270,8 +270,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             try {
                 request = buildRequest();
             } catch (Exception ex) {
-                throw new IonException("Failed to build a request from the given update context.", ex);
-
+                if(ex instanceof IngestException) {
+                    return new String[]{AgentUtils.getStackTraceString(ex)};
+                } else {
+                    throw new IonException("Failed to build a request from the given update context.", ex);
+                }
             }
 
             /* Acquire data from the request */
@@ -279,14 +282,20 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             try {
                 data = acquireData(request);
             } catch (Exception ex) {
-                throw new IonException("Failed to acquire data for the request built from the update context.", ex);
+                if(ex instanceof IngestException) {
+                    return new String[]{AgentUtils.getStackTraceString(ex)};
+                } else {
+                    throw new IonException("Failed to acquire data for the request built from the update context.", ex);
+                }
             }
 
             /* Process the acquired data */
             try {
                 result = _processDataset(data);
             } catch (Exception ex) {
-                if (!(ex instanceof IngestException)) {
+                if(ex instanceof IngestException) {
+                    return new String[]{AgentUtils.getStackTraceString(ex)};
+                } else {
                     throw new IonException("Failed to process the dataset acquired from the update context request.", ex);
                 }
             }

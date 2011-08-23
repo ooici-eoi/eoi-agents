@@ -22,8 +22,10 @@ import java.util.Arrays;
 import java.util.Date;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.TreeMap;
 
@@ -36,6 +38,7 @@ import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
 import net.ooici.eoi.datasetagent.IDatasetAgent;
+import net.ooici.eoi.datasetagent.IngestException;
 import net.ooici.eoi.netcdf.NcDumpParse;
 import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage.StatusCode;
 import net.ooici.services.sa.DataSource;
@@ -236,8 +239,47 @@ public class NcAgent extends AbstractNcAgent {
         } catch (IOException ex) {
             throw new IonException("Failure to gather target files from datasource for given time range.", ex);
         }
+        
+        if (remoteFiles.isEmpty()) {
+            String err = new StringBuilder("The source has no data files matching the specified time range [").append(AgentUtils.ISO8601_DATE_FORMAT.format(sTime)).append(" : ").append(AgentUtils.ISO8601_DATE_FORMAT.format(eTime)).append("]").toString();
+            this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
+            throw new IngestException(err);
+        }
 
-
+        /** Check that each date has the correct # of files, only process those dates that are "complete" */
+        if(log.isDebugEnabled()) {
+            log.debug("Original number of files to retrieve: {}", remoteFiles.size());
+        }
+        Map<Long, List<Entry<String, Long>>> dateCounter = new HashMap<Long, List<Entry<String, Long>>>();
+        Iterator<Entry<String, Long>> iter = remoteFiles.entrySet().iterator();
+        Entry<String, Long> entry;
+        List<Entry<String, Long>> entryList;
+        while (iter.hasNext()) {
+            entry = iter.next();
+            entryList = dateCounter.get(entry.getValue());
+            if(entryList == null) {
+                entryList = new ArrayList<Entry<String, Long>>();
+                dateCounter.put(entry.getValue(), entryList);
+            }
+            entryList.add(entry);
+        }
+        int tsCount = context.getTimestepFileCount();
+        for(Entry<Long, List<Entry<String, Long>>> ent : dateCounter.entrySet()) {
+            if(ent.getValue().size() != tsCount) {
+                for(Entry<String, Long> e : ent.getValue()) {
+                    remoteFiles.remove(e.getKey());
+                }
+            }
+        }
+        if (remoteFiles.isEmpty()) {
+            String err = new StringBuilder("The set of data files matching the specified time range [").append(AgentUtils.ISO8601_DATE_FORMAT.format(sTime)).append(" : ").append(AgentUtils.ISO8601_DATE_FORMAT.format(eTime)).append("] is incomplete: ").append(tsCount).append(" required").toString();
+            this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
+            throw new IngestException(err);
+        }
+        if(log.isDebugEnabled()) {
+            log.debug("Number of files to retrieve after file_count filtering: {}", remoteFiles.size());
+        }
+        
         /** Download all necessary files */
         if (log.isDebugEnabled()) {
             log.debug("\n\nDOWNLOADING...");
@@ -326,7 +368,7 @@ public class NcAgent extends AbstractNcAgent {
         } catch (IOException ex) {
             throw new IonException("Failed to access datasource via FTP", ex);
         }
-
+        
         String filepath = null;
 //        /** Generating an NCML to aggregate all files (via unions/joins) */
 //        File temp = null;

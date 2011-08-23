@@ -150,6 +150,9 @@ public abstract class DataSourceCrawler {
 
             filenames = Arrays.asList(client.nlist(dir, regex).split("[\r\n]+"));
             for (String filename : filenames) {
+                if(filename.isEmpty()) {
+                    continue;
+                }
                 // log.debug(filename);
 
                 Matcher m = p.matcher(filename);

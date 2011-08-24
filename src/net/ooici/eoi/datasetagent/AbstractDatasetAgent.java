@@ -93,7 +93,8 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
          * Runs the agent in "test mode" with results written to disk as "ooicdm" files - the update is processed normally, the response is the 'cdl' dump for the dataset, and the dataset is written to disk @ "{outputDir}/{dataset_title}/{ds_title}.ooicdm"
          * If the dataset is decomposed, multiple "cdm" files are written with an incremental numeral suffix
          */
-        TEST_WRITE_OOICDM,}
+        TEST_WRITE_OOICDM,
+    }
     /**
      * This is to allow for testing without sending data messages (ii.e. to test agent implementations) - set to "TEST_NO_WRITE" or "TEST_WRITE_NC" to run in "test" mode
      */
@@ -269,15 +270,18 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             String request = null;
             try {
                 request = buildRequest();
+            } catch (IngestException ex) {
+                return new String[]{AgentUtils.getStackTraceString(ex)};
             } catch (Exception ex) {
                 throw new IonException("Failed to build a request from the given update context.", ex);
-
             }
 
             /* Acquire data from the request */
             Object data = null;
             try {
                 data = acquireData(request);
+            } catch (IngestException ex) {
+                return new String[]{AgentUtils.getStackTraceString(ex)};
             } catch (Exception ex) {
                 throw new IonException("Failed to acquire data for the request built from the update context.", ex);
             }
@@ -285,10 +289,10 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             /* Process the acquired data */
             try {
                 result = _processDataset(data);
+            } catch (IngestException ex) {
+                return new String[]{AgentUtils.getStackTraceString(ex)};
             } catch (Exception ex) {
-                if (!(ex instanceof IngestException)) {
-                    throw new IonException("Failed to process the dataset acquired from the update context request.", ex);
-                }
+                throw new IonException("Failed to process the dataset acquired from the update context request.", ex);
             }
 
 

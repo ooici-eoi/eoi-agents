@@ -12,7 +12,7 @@ MANIFEST.MF
 ########################################################
 # untracked "testing" package - also ignored from builds
 ########################################################
-src/ooici
+src/trystuff
 
 ######################################
 # Transient settings sub-directories #

@@ -265,14 +265,53 @@
     
     <target name="post-dist" description="==> Called after all actions in the dist target - empty by default, override in build.xml to use" />
 	
-    <target name="test-all" description="==> Runs JUnit tests for all classes ending in 'Test.java')">
-        <mkdir dir="test-report" />
+	<!-- start ivy targets -->
+	<property name="ivy.jar.version" value="2.2.0"/>
+	<property name="ivy.jar.name" value="ivy-${ivy.jar.version}.jar"/>
+	<property name="ivy.home" value="${user.home}/.ivy2"/>
+	<available property="ivy.installed" file="${ivy.home}/${ivy.jar.name}"/>
+
+	<target name="ivy-install" unless="ivy.installed">
+		<mkdir dir="${ivy.home}"/>
+		<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.jar.version}/${ivy.jar.name}" dest="${ivy.home}/${ivy.jar.name}"/>
+	</target>
+
+	<target name="ivy-init" depends="ivy-install">
+		<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpath="${ivy.home}/${ivy.jar.name}"/>
+	</target>
+
+	<target name="gen-pom" depends="ivy-init">
+		<ivy:makepom ivyfile="ivy.xml" pomfile="dist/lib/${project.name}-${version}.pom">
+			<mapping conf="default" scope="compile"/>
+		</ivy:makepom>
+	</target>
+
+	<target name="ivy-publish-local" depends="dist, ivy-init,gen-pom" description="publish jar/source to maven repo mounted at ~/.m2/repository">
+                <!-- snapshots only exist locally, so kick the cache. -->
+                <ivy:publish resolver="maven-local-publish" forcedeliver="true" overwrite="true" publishivy="true">
+                        <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
+                </ivy:publish>
+        </target>
+
+	<target name="ivy-publish-share" depends="dist,ivy-init,gen-pom" description="publish jar/source to maven repo mounted at ~/repo">
+		<ivy:publish resolver="maven-share" forcedeliver="true" overwrite="true" publishivy="true">
+			<artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
+		</ivy:publish>
+	</target>
+	<!-- end ivy targets -->
+	
+    <target name="test-all" description="--> Runs JUnit tests for all classes named '*Test.java' or 'Test*.java'">
+        <mkdir dir="${test-report.dir}" />
         <junit printsummary="yes" haltonfailure="no">
             <classpath refid="runtime.classpath" />
-		
-            <batchtest fork="yes">
+            <formatter type="plain"/>
+            <assertions>
+                <enable/>
+            </assertions>
+            <batchtest fork="yes" todir="${test-report.dir}">
                 <fileset dir="${src.dir}">
                     <include name="**/*Test.java"/>
+                    <include name="**/Test*.java"/>
                 </fileset>
             </batchtest>
         </junit>

@@ -19,7 +19,7 @@
           NOTE: may want this to depends="clean" because when a dependency is removed,
           the jar(s) are not removed from the 'lib' directory after re-running 'ant resolve'
          ================================= -->
-    <target name="resolve" description="==> Retreive dependencies with ivy">
+    <target name="resolve" description="==> Retreive dependencies with ivy (defined in 'ivy.xml')">
         <antcall target="clean-ionj-cache"/>
         <mkdir dir="${override-repo.dir}" />
         <ivy:retrieve sync="true" overwriteMode="always"/>
@@ -28,7 +28,7 @@
     <!-- ================================= 
 	  target: resolve-dev
 	 ================================= -->
-    <target name="resolve-dev" description="==> Retrieve dependencies with ivy from local directories">
+    <target name="resolve-dev" description="==> Retrieve dependencies with ivy from local directories (as defined by the 'dev-project.list' property in 'build.properties')">
         <!--    Resolve the project normally to get all non-project dependencies    -->
         <echo message="===> Resolve the project normally to obtain third-party dependencies"/>
         <antcall target="resolve"/>
@@ -92,11 +92,11 @@
         <ivy:report todir="${ivy.report.dir}"/>
     </target>
 
-    <target name="compile" description="==> Compile the project using remote dependencies">
+    <target name="compile" description="==> Compile the project using remote dependencies (defined in 'ivy.xml'">
         <antcall target="resolve"/>
         <antcall target="_compile"/>
     </target>
-    <target name="compile-dev" description="==> Compile the project using local project dependencies">
+    <target name="compile-dev" description="==> Compile the project using local project dependencies (as defined by the 'dev-project.list' property in 'build.properties')">
         <antcall target="resolve-dev"/>
         <antcall target="_compile"/>
     </target>
@@ -104,7 +104,7 @@
     <!-- ================================= 
           target: compile
          ================================= -->
-    <target name="_compile" depends="" description="==> Base compilation target: do not use directly, use 'compile' or 'compile-dev' instead">
+    <target name="_compile" depends="" description="==> Base compilation target: DO NOT USE DIRECTLY, use 'compile' or 'compile-dev' instead">
         <antcall target="pre-compile" />
         <mkdir dir="${build.dir}" />
         <javac srcdir="${src.dir}" destdir="${build.dir}" debug="true" excludes="trystuff/**">
@@ -183,13 +183,13 @@
         </javadoc>
     </target>
 	
-    <target name="dist" description="==> Distribution using remote dependencies">
+    <target name="dist" description="==> Distribution using remote dependencies (as defined in 'ivy.xml')">
         <antcall target="clean"/>
         <antcall target="compile"/>
         <antcall target="_dist"/>
     </target>
 	
-    <target name="dist-dev" description="==> Distribution using local dependencies">
+    <target name="dist-dev" description="==> Distribution using local dependencies (as defined by the 'dev-project.list' property in 'build.properties')">
         <antcall target="clean"/>
         <antcall target="compile-dev"/>
         <antcall target="_dist"/>
@@ -198,7 +198,7 @@
 	<!-- ================================= 
           target: _dist              
          ================================= -->
-    <target name="_dist" depends="javadoc" description="==> Package Distribution">
+    <target name="_dist" depends="javadoc" description="==> Base distribution target: DO NOT USE DIRECTLY, use 'dist' or 'dist-dev' instead">
 	    <!-- Create the distribution directory -->
         <mkdir dir="${dist.dir}" />
         <mkdir dir="${dist.dir}/lib"/>

@@ -100,11 +100,20 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
      */
     private AgentRunType runType = AgentRunType.NORMAL;
     /**
-     * This is the value used to decompose the dataset when sending.
+     * This is one the possible values used to decompose the dataset when sending.
      * This is the maximum <i>total bytes</i> of <b>data</b> that will be sent in one message.
-     * It does not include wrapper and message size.
+     * It does not include wrapper and message size.<p>
+     * The <b>lesser</b> of this value OR the {@link #maxElements} will be used to decompose.<p>
+     * The default size is 5,242,880 bytes
      */
     private long maxSize = 5242880;//Default is 5 MB
+    /**
+     * This is another possible value used to decompose the dataset when sending.
+     * This is the maximum <i>total number</i> of <b>elements</b> that will be sent in one message.<p>
+     * The <b>lesser</b> of this value OR the {@link #maxSize} will be used to decompose.<p>
+     * The default number of elements is 750,000
+     */
+    private long maxElements = 750000;//Default is 750,000 elements
     /**
      * This is the value used to divide the dimension length when decomposing within a given dimension.
      */
@@ -413,8 +422,12 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         try {
             /** Estimate the size of the dataset */
             long estSize = NcUtils.estimateSize(ncds, subRanges);
+            long numElm = NcUtils.countElements(ncds, subRanges);
 
-            if (estSize <= maxSize) {
+            if(log.isDebugEnabled()) {
+                log.debug("size={}:max={} :: elms={}:max={}", new Object[]{estSize, maxSize, numElm, maxElements});
+            }
+            if (estSize <= maxSize && numElm <= maxElements) {
                 /** Send the full dataset */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, subRanges);
                 sendDatasetMsg(dataMessageContent);
@@ -536,11 +549,12 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         }
 
         long esize = var.getElementSize();
-        long size = sec.computeSize() * esize;
+        long elms = sec.computeSize();
+        long size = elms * esize;
         if (log.isInfoEnabled()) {
-            log.info("{}decomp-depth = {} :: sec = {} :: sec-size = {}", new Object[]{indent, depth, sec, size});
+            log.info("{}decomp-depth = {} :: sec = {} :: sec-size = {} :: num-elms = {}", new Object[]{indent, depth, sec, size, elms});
         }
-        if (size > maxSize) {
+        if (size > maxSize || elms > maxElements) {
             Range rng;
             Range.Iterator iter;
             int i;
@@ -551,10 +565,11 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
             if (sec.getRank() - 1 == depth) {
                 rng = sec.getRange(depth);
                 Range inrng;
-                while (size > maxSize) {
+                while (size > maxSize || elms > maxElements) {
                     inrng = sec.getRange(depth);
-                    size = sec.computeSize() * esize;
-                    if (size > maxSize) {
+                    elms = sec.computeSize();
+                    size = elms * esize;
+                    if (size > maxSize || elms > maxElements) {
                         int end = inrng.first() + (inrng.length() / decompDivisor);
                         end = (end > inrng.last()) ? inrng.last() : end;
                         sec.replaceRange(depth, new Range(rng.getName(), inrng.first(), end));
@@ -570,15 +585,19 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 iter = rng.getIterator();
                 int ii;
                 long ms;
+                long me;
                 while (iter.hasNext()) {
                     i = iter.next();
                     sec.replaceRange(depth, new Range(rng.getName(), i, i));
-                    size = sec.computeSize() * esize;
+                    elms = sec.computeSize();
+                    size = elms * esize;
                     ms = maxSize - size;
-                    while (size < ms & iter.hasNext()) {
+                    me = maxElements - elms;
+                    while ((size < ms && elms < me) && iter.hasNext()) {
                         ii = iter.next();
                         sec.replaceRange(depth, new Range(rng.getName(), i, ii));
-                        size = sec.computeSize() * esize;
+                        elms = sec.computeSize();
+                        size = elms * esize;
                     }
                     decompSendVariable(var, sec, depth + 1);
                 }

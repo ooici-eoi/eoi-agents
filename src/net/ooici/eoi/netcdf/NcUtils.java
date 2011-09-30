@@ -16,6 +16,46 @@ public class NcUtils {
     private NcUtils() {
     }
 
+    /**
+     * Counts the number of <b>data</b> elements in the NetcdfDataset.  Delegates to {@link #countElements(ucar.nc2.dataset.NetcdfDataset, java.util.HashMap, boolean) } with <i>ranges</i> == null and <i>verbose</i> == false
+     * @param ncd the NetcdfDataset
+     * @return the total number of <b>data</b> elements in the NetcdfDataset
+     */
+    public static long countElements(ucar.nc2.dataset.NetcdfDataset ncd) {
+        return countElements(ncd, null, false);
+    }
+    
+    /**
+     * Counts the number of <b>data</b> elements in the NetcdfDataset after applying the provided ranges.  Delegates to {@link #countElements(ucar.nc2.dataset.NetcdfDataset, java.util.HashMap, boolean) } with <i>verbose</i> == false
+     * @param ncd the NetcdfDataset
+     * @param ranges the ranges to apply
+     * @return the total number of <b>data</b> elements in the NetcdfDataset
+     */
+    public static long countElements(ucar.nc2.dataset.NetcdfDataset ncd, java.util.HashMap<String, ucar.ma2.Range> ranges) {
+        return countElements(ncd, ranges, false);
+    }
+    
+    /**
+     * Counts the number of <b>data</b> elements in the NetcdfDataset after applying the provided ranges. Calls {@link #countElements(ucar.nc2.Variable, java.util.HashMap, boolean) } for each variable in the NetcdfDataset.
+     * @param ncd the NetcdfDataset
+     * @param ranges the ranges to apply
+     * @param verbose prints debugging information if true
+     * @return the total number of <b>data</b> elements in the NetcdfDataset
+     */
+    public static long countElements(ucar.nc2.dataset.NetcdfDataset ncd, java.util.HashMap<String, ucar.ma2.Range> ranges, boolean verbose) {
+        long numElms = 0;
+        for (ucar.nc2.Variable v : ncd.getVariables()) {
+            numElms += countElements(v, ranges, verbose);
+        }
+        return numElms;
+    }
+    
+    /**
+     * Estimates the total size of the given NetcdfDataset after accounting for the provided "sub-ranges".
+     * @param ncd the NetcdfDataest
+     * @param ranges the "sub-ranges"
+     * @return the total size of the NetcdfDataset in bytes
+     */
     public static long estimateSize(ucar.nc2.dataset.NetcdfDataset ncd, java.util.HashMap<String, ucar.ma2.Range> ranges) {
         long size = 0;
         for (ucar.nc2.Variable v : ncd.getVariables()) {
@@ -25,9 +65,9 @@ public class NcUtils {
     }
 
     /**
-     * Estimates the filesize of the given NetcdfDataset.  Delegates to {@link estimateSize(NetcdfDataset ncd, boolean verbose) } with verbose == true
+     * Estimates the total size of the given NetcdfDataset.  Delegates to {@link estimateSize(NetcdfDataset ncd, boolean verbose) } with verbose == false
      * @param ncd a NetcdfDataset
-     * @return the estimated file size of the NC Dataset in bytes
+     * @return the estimated file size of the NetcdfDataset in bytes
      */
     public static long estimateSize(ucar.nc2.dataset.NetcdfDataset ncd) {
         return estimateSize(ncd, false);
@@ -74,7 +114,29 @@ public class NcUtils {
         }
         return v.getElementSize() * sz;
     }
+    
+    /**
+     * Counts the number of <b>data</b> elements in the variable after applying the provided ranges
+     * @param var the variable
+     * @param ranges the ranges to apply
+     * @param verbose print debugging information if true
+     * @return the number of <b>data</b> elements in the variable after applying the ranges
+     */
+    public static long countElements(ucar.nc2.Variable var, java.util.HashMap<String, ucar.ma2.Range> ranges, boolean verbose) {
+        ucar.ma2.Section sec = getSubRangedSection(var, ranges);
+        long elm = sec.computeSize();
+        if (verbose) {
+            System.out.println("\t" + var.getName() + ": " + elm + " elements");
+        }
+        return elm;
+    }
 
+    /**
+     * Calculates the "sub-ranged" section based on the variable and ranges provided
+     * @param v the variable to sub-range
+     * @param ranges the ranges to sub-range with
+     * @return the sub-ranged section
+     */
     public static ucar.ma2.Section getSubRangedSection(ucar.nc2.Variable v, java.util.HashMap<String, ucar.ma2.Range> ranges) {
         ucar.ma2.Section sec = new ucar.ma2.Section(v.getShapeAsSection());
         if (ranges != null) {

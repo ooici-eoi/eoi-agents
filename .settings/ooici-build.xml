@@ -286,7 +286,7 @@
 		</ivy:makepom>
 	</target>
 
-	<target name="ivy-publish-local" depends="dist, ivy-init,gen-pom" description="publish jar/source to maven repo mounted at ~/.m2/repository">
+	<target name="ivy-publish-local" depends="dist, ivy-init,gen-pom,resolve" description="publish jar/source to maven repo mounted at ~/.m2/repository">
                 <!-- snapshots only exist locally, so kick the cache. -->
                 <ivy:publish resolver="maven-local-publish" forcedeliver="true" overwrite="true" publishivy="true">
                         <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />

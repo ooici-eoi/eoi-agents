@@ -34,54 +34,54 @@
         <antcall target="resolve"/>
         
         <script language="javascript"><![CDATA[
-    	importClass(java.io.File);
-    	str = self.getProject().getProperty("dev-project.list");
-    	strs = str.split(";");
-    	echo = self.getProject().createTask("echo");
-    	fs = project.createDataType("fileset");
-		fs.setIncludes("**/*.jar");
-		outstr = "";
+        importClass(java.io.File);
+        str = self.getProject().getProperty("dev-project.list");
+        strs = str.split(";");
+        echo = self.getProject().createTask("echo");
+        fs = project.createDataType("fileset");
+        fs.setIncludes("**/*.jar");
+        outstr = "";
         delstr = "";
-    	for (i=0; i<strs.length; i++) {
-            // call the dist task of the dep-proj
-            echo.setMessage("===> Build the dependent project '" + strs[i] + "'");
-            echo.perform();
-            anttask = self.getProject().createTask("ant");
-            anttask.setDir(new File(strs[i]));
-            anttask.setAntfile("build.xml");
-            anttask.setTarget("dist");
-            anttask.setInheritAll(false);
-            anttask.setInheritRefs(false);
-            anttask.perform();
+        for (i=0; i<strs.length; i++) {
+          // call the dist task of the dep-proj
+          echo.setMessage("===> Build the dependent project '" + strs[i] + "'");
+          echo.perform();
+          anttask = self.getProject().createTask("ant");
+          anttask.setDir(new File(strs[i]));
+          anttask.setAntfile("build.xml");
+          anttask.setTarget("dist");
+          anttask.setInheritAll(false);
+          anttask.setInheritRefs(false);
+          anttask.perform();
         
-    		// dep-proj/dist/lib/ directory
-    		s1 = strs[i] + "/dist/lib/";
-			fs.setDir(new File(s1));
-    		ds = fs.getDirectoryScanner(project);
-			srcFiles = ds.getIncludedFiles();
-			for(j=0; j<srcFiles.length; j++) {
-                // Setup the delete and copy tasks
-                deltask = self.getProject().createTask("delete");
-                deltask.setDir(new File("lib"));
-                copytask = self.getProject().createTask("copy");
-                copytask.setTodir(new File("lib"));
-                
-                // Delete existing jars to avoid version conflicts
-                delstr=srcFiles[0].replaceAll("\\d.*\\.jar", "*");
-				echo.setMessage("===> Delete existing local dependency: " + delstr);
-		        echo.perform();
-                deltask.setIncludes(delstr);
-                deltask.perform();
-                
-                // Copy the new dependency
-                copystr = s1 + srcFiles[0];
-				echo.setMessage("===> Copy the new local dependency: " + copystr);
-		        echo.perform();
-                copytask.setFile(new File(copystr));
-                copytask.perform();
-			}
-    	}
-    	]]>
+          // dep-proj/dist/lib/ directory
+          s1 = strs[i] + "/dist/lib/";
+          fs.setDir(new File(s1));
+          ds = fs.getDirectoryScanner(project);
+          srcFiles = ds.getIncludedFiles();
+          for(j=0; j<srcFiles.length; j++) {
+            // Setup the delete and copy tasks
+            deltask = self.getProject().createTask("delete");
+            deltask.setDir(new File("lib"));
+            copytask = self.getProject().createTask("copy");
+            copytask.setTodir(new File("lib"));
+            
+            // Delete existing jars to avoid version conflicts
+            delstr=srcFiles[0].replaceAll("\\d.*\\.jar", "*");
+            echo.setMessage("===> Delete existing local dependency: " + delstr);
+            echo.perform();
+            deltask.setIncludes(delstr);
+            deltask.perform();
+            
+            // Copy the new dependency
+            copystr = s1 + srcFiles[0];
+            echo.setMessage("===> Copy the new local dependency: " + copystr);
+            echo.perform();
+            copytask.setFile(new File(copystr));
+            copytask.perform();
+          }
+        }
+        ]]>
         </script>
     </target>
        

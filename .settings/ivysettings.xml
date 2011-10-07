@@ -26,7 +26,7 @@
     <!-- Set the defaultCacheDir - The cache location is local to the project so that "ant deep-clean" will not
     wipe out the libraries for all projects on the machine, just the one where "ant deep-clean" was run -->
     <caches defaultCacheDir="${ivy.cache.dir}" />
-    <settings defaultResolver="default"/>
+    <settings defaultResolver="public"/>
     <resolvers>
     	<!-- Chain resolver - sequentially tries each repository.  returnFirst="true" results in the first matching artifact
     	being used: subsequent repositories are not checked -->
@@ -75,16 +75,5 @@
                 <filesystem name="maven-share" m2compatible="true">
                         <artifact pattern="/var/www/releases/maven/repo/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
                 </filesystem>
-
-                <chain name="default">
-<!--                        <resolver ref="maven-local"/> -->
-                        <resolver ref="public"/>
-                </chain>
-
     </resolvers>
-
-    <include url="${ivy.default.settings.dir}/ivysettings-shared.xml"/>
-    <include url="${ivy.default.settings.dir}/ivysettings-local.xml"/>
-    <include url="${ivy.default.settings.dir}/ivysettings-main-chain.xml"/>
-    <include url="${ivy.default.settings.dir}/ivysettings-default-chain.xml"/>
 </ivysettings>

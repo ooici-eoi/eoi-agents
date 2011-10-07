@@ -92,12 +92,10 @@
         <ivy:report todir="${ivy.report.dir}"/>
     </target>
 
-    <target name="compile" description="==> Compile the project using remote dependencies (defined in 'ivy.xml'">
-        <antcall target="resolve"/>
+    <target name="compile" depends="resolve" description="==> Compile the project using remote dependencies (defined in 'ivy.xml'">
         <antcall target="_compile"/>
     </target>
-    <target name="compile-dev" description="==> Compile the project using local project dependencies (as defined by the 'dev-project.list' property in 'build.properties')">
-        <antcall target="resolve-dev"/>
+    <target name="compile-dev" depends="resolve-dev" description="==> Compile the project using local project dependencies (as defined by the 'dev-project.list' property in 'build.properties')">
         <antcall target="_compile"/>
     </target>
 
@@ -183,15 +181,11 @@
         </javadoc>
     </target>
 	
-    <target name="dist" description="==> Distribution using remote dependencies (as defined in 'ivy.xml')">
-        <antcall target="clean"/>
-        <antcall target="compile"/>
+    <target name="dist" depends="clean,compile" description="==> Distribution using remote dependencies (as defined in 'ivy.xml')">
         <antcall target="_dist"/>
     </target>
 	
-    <target name="dist-dev" description="==> Distribution using local dependencies (as defined by the 'dev-project.list' property in 'build.properties')">
-        <antcall target="clean"/>
-        <antcall target="compile-dev"/>
+    <target name="dist-dev" depends="clean,compile-dev" description="==> Distribution using local dependencies (as defined by the 'dev-project.list' property in 'build.properties')">
         <antcall target="_dist"/>
     </target>
 	
@@ -286,14 +280,14 @@
 		</ivy:makepom>
 	</target>
 
-	<target name="ivy-publish-local" depends="dist,ivy-init,gen-pom,resolve" description="publish jar/source to maven repo mounted at ~/.m2/repository">
+	<target name="ivy-publish-local" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/.m2/repository">
     <!-- snapshots only exist locally, so kick the cache. -->
     <ivy:publish resolver="maven-local-publish" forcedeliver="true" overwrite="true" publishivy="true">
       <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
     </ivy:publish>
   </target>
 
-	<target name="ivy-publish-share" depends="dist,ivy-init,gen-pom" description="publish jar/source to maven repo mounted at ~/repo">
+	<target name="ivy-publish-share" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/repo">
 		<ivy:publish resolver="maven-share" forcedeliver="true" overwrite="true" publishivy="true">
 			<artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
 		</ivy:publish>

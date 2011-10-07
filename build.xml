@@ -8,7 +8,7 @@
     <property file="${settings.dir}/ooici.properties" />
     <!-- import the ooici_build.xml -->
     <import file="${settings.dir}/ooici-build.xml" />
-    
+
     <!--
     	Targets that can be overridden:
     		- pre-compile:		Called before javac compilation - empty by default, override in build.xml to use
@@ -17,8 +17,8 @@
       		- post-dist:		Called after all actions in the dist target - empty by default, override in build.xml to use
       		- clean-more:		Called at the end of 'clean' - empty by default, override in build.xml to use
     -->
-    
-    <!-- ================================= 
+
+    <!-- =================================
           target: post-compile
          ================================= -->
     <target name="post-compile" >
@@ -30,5 +30,5 @@
         <!-- copy the log4j.properties file -->
         <copy file="${src.dir}/log4j.properties" todir="${build.dir}" />
     </target>
-    
+
 </project>

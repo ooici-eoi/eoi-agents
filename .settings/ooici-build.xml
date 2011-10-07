@@ -1,7 +1,7 @@
 
 <project name="ooici_base" default="dist" xmlns:ivy="antlib:org.apache.ivy.ant" basedir="..">
     <!-- properties inherited -->
-    
+
     <!-- paths used for compilation and run  -->
     <path id="lib.path.id">
         <fileset dir="${lib.dir}" />
@@ -13,8 +13,8 @@
     <path id="package.classpath">
         <path refid="lib.path.id" />
     </path>
-    
-    <!-- ================================= 
+
+    <!-- =================================
           target: resolve
           NOTE: may want this to depends="clean" because when a dependency is removed,
           the jar(s) are not removed from the 'lib' directory after re-running 'ant resolve'
@@ -24,15 +24,15 @@
         <mkdir dir="${override-repo.dir}" />
         <ivy:retrieve sync="true" overwriteMode="always"/>
     </target>
-    
-    <!-- ================================= 
-	  target: resolve-dev
-	 ================================= -->
+
+    <!-- =================================
+          target: resolve-dev
+         ================================= -->
     <target name="resolve-dev" description="==> Retrieve dependencies with ivy from local directories (as defined by the 'dev-project.list' property in 'build.properties')">
         <!--    Resolve the project normally to get all non-project dependencies    -->
         <echo message="===> Resolve the project normally to obtain third-party dependencies"/>
         <antcall target="resolve"/>
-        
+
         <script language="javascript"><![CDATA[
         importClass(java.io.File);
         str = self.getProject().getProperty("dev-project.list");
@@ -53,7 +53,7 @@
           anttask.setInheritAll(false);
           anttask.setInheritRefs(false);
           anttask.perform();
-        
+
           // dep-proj/dist/lib/ directory
           s1 = strs[i] + "/dist/lib/";
           fs.setDir(new File(s1));
@@ -65,14 +65,14 @@
             deltask.setDir(new File("lib"));
             copytask = self.getProject().createTask("copy");
             copytask.setTodir(new File("lib"));
-            
+
             // Delete existing jars to avoid version conflicts
             delstr=srcFiles[0].replaceAll("\\d.*\\.jar", "*");
             echo.setMessage("===> Delete existing local dependency: " + delstr);
             echo.perform();
             deltask.setIncludes(delstr);
             deltask.perform();
-            
+
             // Copy the new dependency
             copystr = s1 + srcFiles[0];
             echo.setMessage("===> Copy the new local dependency: " + copystr);
@@ -84,9 +84,9 @@
         ]]>
         </script>
     </target>
-       
-    <!-- ================================= 
-          target: report-deps              
+
+    <!-- =================================
+          target: report-deps
          ================================= -->
     <target name="report-deps" depends="resolve" description="==> Generates a report of dependencies">
         <ivy:report todir="${ivy.report.dir}"/>
@@ -99,7 +99,7 @@
         <antcall target="_compile"/>
     </target>
 
-    <!-- ================================= 
+    <!-- =================================
           target: compile
          ================================= -->
     <target name="_compile" depends="" description="==> Base compilation target: DO NOT USE DIRECTLY, use 'compile' or 'compile-dev' instead">
@@ -110,13 +110,13 @@
         </javac>
         <antcall target="post-compile" />
     </target>
-    
+
     <target name="pre-compile" description="==> Called before javac compilation - empty by default, override in build.xml to use" />
-    
+
     <target name="post-compile" description="==> Called after javac compilation - empty by default, override in build.xml to use" />
-	
-    <!-- ================================= 
-          target: clean              
+
+    <!-- =================================
+          target: clean
          ================================= -->
     <target name="clean" description="==> Clean the project">
         <delete dir="${build.dir}" />
@@ -127,40 +127,40 @@
         <delete file="MANIFEST.MF" />
         <antcall target="clean-more" />
     </target>
-    
+
     <target name="clean-more" description="==> Called at the end of 'clean' - empty by default, override in build.xml to use" />
-	
-    <!-- ================================= 
-          target: clean-ivy-cache              
+
+    <!-- =================================
+          target: clean-ivy-cache
          ================================= -->
     <target name="clean-ivy-cache" description="==> Clean the ivy cache">
         <ivy:cleancache />
     </target>
-	
-	<!-- ================================= 
+
+    <!-- =================================
           target: clean-ooici-cache
          ================================= -->
     <target name="clean-ooici-cache" description="==> Clean the ivy cache of the ooici dependencies only">
         <delete dir="${ivy.cache.dir}/net.ooici" />
     </target>
-	
-	<!-- ================================= 
+
+    <!-- =================================
           target: clean-ionj-cache
          ================================= -->
     <target name="clean-ionj-cache" description="==> Clean the ivy cache of the ioncore-java dependency only">
         <delete dir="${ivy.cache.dir}/net.ooici/ioncore-java" />
     </target>
-	
-	<!-- ================================= 
+
+    <!-- =================================
           target: deep-clean
          ================================= -->
     <target name="deep-clean" description="==> Cleans both this directory and the ivy cache">
         <antcall target="clean" />
         <antcall target="clean-ivy-cache" />
     </target>
-	
-	<!-- ================================= 
-          target: javadoc              
+
+    <!-- =================================
+          target: javadoc
          ================================= -->
     <target name="javadoc" depends="" description="==> Generate Javadoc">
         <javadoc sourcepath="${src.dir}"
@@ -180,17 +180,17 @@
             <tag name="todo" scope="all" description="To do:"/>
         </javadoc>
     </target>
-	
+
     <target name="dist" depends="clean,compile" description="==> Distribution using remote dependencies (as defined in 'ivy.xml')">
         <antcall target="_dist"/>
     </target>
-	
+
     <target name="dist-dev" depends="clean,compile-dev" description="==> Distribution using local dependencies (as defined by the 'dev-project.list' property in 'build.properties')">
         <antcall target="_dist"/>
     </target>
-	
-	<!-- ================================= 
-          target: _dist              
+
+    <!-- =================================
+          target: _dist
          ================================= -->
     <target name="_dist" depends="javadoc" description="==> Base distribution target: DO NOT USE DIRECTLY, use 'dist' or 'dist-dev' instead">
 	    <!-- Create the distribution directory -->
@@ -199,8 +199,8 @@
         <mkdir dir="${dist.dir}/docs"/>
 
         <antcall target="pre-dist" />
-		
-		<!-- Convert project class path to string property -->
+
+      <!-- Convert project class path to string property -->
         <pathconvert property="manifest.classpath" pathsep=" ">
             <path refid="package.classpath"/>
             <mapper>
@@ -212,14 +212,14 @@
         </pathconvert>
 
         <tstamp/><!-- needed for TODAY -->
-		<!-- Create the manifest.mf file -->
+      <!-- Create the manifest.mf file -->
         <manifest file="MANIFEST.MF">
 			<!--
 			<attribute name="Built-By" value="${manifest.built.by}"/>
 			<attribute name="Created-By" value="${manifest.created.by}"/>
 			-->
             <attribute name="Main-Class" value="${runtime.main.class}"/>
-            <attribute name="Implementation-Version" value="${version}"/>   
+            <attribute name="Implementation-Version" value="${version}"/>
             <attribute name="Built-Date" value="${TODAY}"/>
 <!--			<attribute name="Class-Path" value="${manifest.classpath}" />-->
             <attribute name="Class-Path" value=". ${manifest.classpath}" />
@@ -231,7 +231,7 @@
 	    	manifest="MANIFEST.MF" /> -->
 
 	    <!-- Create JAR file with all library classes -->
-        <jar jarfile="${dist.dir}/lib/${project.name}-${version}.jar" 
+        <jar jarfile="${dist.dir}/lib/${project.name}-${version}.jar"
 	    	manifest="MANIFEST.MF" >
             <fileset dir="${build.dir}">
                 <exclude name="**/log4j.properties"/>
@@ -241,59 +241,59 @@
 	    <!-- Create ZIP file with the javadoc -->
         <zip destfile="${dist.dir}/docs/${project.name}-${version}-javadoc.zip"
 			basedir="${docs.dir}"
-		/>		
+      />
 
-		<!-- Create ZIP file for the entire directory -->
-		<!-- <zip destfile="${dist.dir}/${project.name}-archive.zip"
-			basedir="."
-			excludes="${dist.dir}/${project.name}-archive.zip,${build}/**,.git/**"
-		/>-->
-		
-		<!-- Remove the MANIFEST.MF file -->
-        <delete file="MANIFEST.MF" />
-		
-        <antcall target="post-dist" />
+      <!-- Create ZIP file for the entire directory -->
+      <!-- <zip destfile="${dist.dir}/${project.name}-archive.zip"
+        basedir="."
+        excludes="${dist.dir}/${project.name}-archive.zip,${build}/**,.git/**"
+      />-->
+
+      <!-- Remove the MANIFEST.MF file -->
+      <delete file="MANIFEST.MF" />
+
+      <antcall target="post-dist" />
     </target>
-		
+
     <target name="pre-dist" description="==> Called before all actions in the dist target - empty by default, override in build.xml to use" />
-    
+
     <target name="post-dist" description="==> Called after all actions in the dist target - empty by default, override in build.xml to use" />
-	
-	<!-- start ivy targets -->
-	<property name="ivy.jar.version" value="2.2.0"/>
-	<property name="ivy.jar.name" value="ivy-${ivy.jar.version}.jar"/>
-	<property name="ivy.home" value="${user.home}/.ivy2"/>
-	<available property="ivy.installed" file="${ivy.home}/${ivy.jar.name}"/>
 
-	<target name="ivy-install" unless="ivy.installed">
-		<mkdir dir="${ivy.home}"/>
-		<get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.jar.version}/${ivy.jar.name}" dest="${ivy.home}/${ivy.jar.name}"/>
-	</target>
+    <!-- start ivy targets -->
+    <property name="ivy.jar.version" value="2.2.0"/>
+    <property name="ivy.jar.name" value="ivy-${ivy.jar.version}.jar"/>
+    <property name="ivy.home" value="${user.home}/.ivy2"/>
+    <available property="ivy.installed" file="${ivy.home}/${ivy.jar.name}"/>
 
-	<target name="ivy-init" depends="ivy-install">
-		<taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpath="${ivy.home}/${ivy.jar.name}"/>
-	</target>
+    <target name="ivy-install" unless="ivy.installed">
+      <mkdir dir="${ivy.home}"/>
+      <get src="http://repo1.maven.org/maven2/org/apache/ivy/ivy/${ivy.jar.version}/${ivy.jar.name}" dest="${ivy.home}/${ivy.jar.name}"/>
+    </target>
 
-	<target name="gen-pom" depends="ivy-init">
-		<ivy:makepom ivyfile="ivy.xml" pomfile="dist/lib/${project.name}-${version}.pom">
-			<mapping conf="default" scope="compile"/>
-		</ivy:makepom>
-	</target>
+    <target name="ivy-init" depends="ivy-install">
+      <taskdef resource="org/apache/ivy/ant/antlib.xml" uri="antlib:org.apache.ivy.ant" classpath="${ivy.home}/${ivy.jar.name}"/>
+    </target>
 
-	<target name="ivy-publish-local" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/.m2/repository">
-    <!-- snapshots only exist locally, so kick the cache. -->
-    <ivy:publish resolver="maven-local-publish" forcedeliver="true" overwrite="true" publishivy="true">
-      <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
-    </ivy:publish>
-  </target>
+    <target name="gen-pom" depends="ivy-init">
+      <ivy:makepom ivyfile="ivy.xml" pomfile="dist/lib/${project.name}-${version}.pom">
+        <mapping conf="default" scope="compile"/>
+      </ivy:makepom>
+    </target>
 
-	<target name="ivy-publish-share" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/repo">
-		<ivy:publish resolver="maven-share" forcedeliver="true" overwrite="true" publishivy="true">
-			<artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
-		</ivy:publish>
-	</target>
-	<!-- end ivy targets -->
-	
+    <target name="ivy-publish-local" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/.m2/repository">
+      <!-- snapshots only exist locally, so kick the cache. -->
+      <ivy:publish resolver="maven-local-publish" forcedeliver="true" overwrite="true" publishivy="true">
+        <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
+      </ivy:publish>
+    </target>
+
+    <target name="ivy-publish-share" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/repo">
+      <ivy:publish resolver="maven-share" forcedeliver="true" overwrite="true" publishivy="true">
+        <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
+      </ivy:publish>
+    </target>
+    <!-- end ivy targets -->
+
     <target name="test-all" description="--> Runs JUnit tests for all classes named '*Test.java' or 'Test*.java'">
         <mkdir dir="${test-report.dir}" />
         <junit printsummary="yes" haltonfailure="no">

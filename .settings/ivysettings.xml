@@ -14,22 +14,22 @@
    "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
    KIND, either express or implied.  See the License for the
    specific language governing permissions and limitations
-   under the License.    
+   under the License.
 -->
 <ivysettings>
     <!-- for documentation about this file, see
     http://ant.apache.org/ivy/history/trunk/settings.html -->
-    
+
     <!-- import ivysettings.properties -->
     <properties file="ivysettings.properties" />
-    
+
     <!-- Set the defaultCacheDir - The cache location is local to the project so that "ant deep-clean" will not
     wipe out the libraries for all projects on the machine, just the one where "ant deep-clean" was run -->
     <caches defaultCacheDir="${ivy.cache.dir}" />
     <settings defaultResolver="public"/>
     <resolvers>
-    	<!-- Chain resolver - sequentially tries each repository.  returnFirst="true" results in the first matching artifact
-    	being used: subsequent repositories are not checked -->
+        <!-- Chain resolver - sequentially tries each repository.  returnFirst="true" results in the first matching artifact
+        being used: subsequent repositories are not checked -->
         <chain name="public" returnFirst="true" >
         	<!-- This is an "overriding" repository - libraries encountered here will take precedence over those from
         	subsequent repositories.  This mechanism allows testing of new libraries/revisions prior to moving them to the
@@ -49,15 +49,15 @@
             	<artifact pattern="${ooici.repo.base}/[artifact]-[revision].[ext]" />
             	<artifact pattern="${ooici.repo.base}/[artifact]_[revision].[ext]" />
             </url>
-            
+
             <!-- This is the default maven 2 repository -->
             <ibiblio name="m2repo" m2compatible="true" />
             <!-- Msgpack repository - see: the "Java" section of this page: https://github.com/msgpack/msgpack-rpc -->
             <ibiblio name="msgpack_repo" m2compatible="true" root="http://msgpack.org/maven2/"
                 pattern="[organisation]/[artifact]/[revision]/[artifact]-[revision].[ext]"/>
-        	<ibiblio name="spring_fw_repo" m2compatible="true" root="http://maven.springframework.org/milestone/" pattern="[organisation]/[artifact]/[revision]/[artifact]-[revision].[ext]"/> 
-        	
-        	
+            <ibiblio name="spring_fw_repo" m2compatible="true" root="http://maven.springframework.org/milestone/" pattern="[organisation]/[artifact]/[revision]/[artifact]-[revision].[ext]"/>
+
+
             <!--
             Add additional public repositories here.
             eg == java.net repo, containing useful java apis ==
@@ -65,15 +65,15 @@
                                      pattern="[organisation]/[type]s/[artifact]-[revision].[ext]"/>
              -->
         </chain>
-        
-        <!-- for publishing to local m2 since ibiblio doesn't support it -->
-                <filesystem name="maven-local-publish" m2compatible="true">
-                        <artifact pattern="${ivy.pub.dir}/repository/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
-                </filesystem>
 
-                <!-- for publishing via an sshfs share -->
-                <filesystem name="maven-share" m2compatible="true">
-                        <artifact pattern="/var/www/releases/maven/repo/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
-                </filesystem>
+        <!-- for publishing to local m2 since ibiblio doesn't support it -->
+        <filesystem name="maven-local-publish" m2compatible="true">
+                <artifact pattern="${ivy.pub.dir}/repository/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
+        </filesystem>
+
+        <!-- for publishing via an sshfs share -->
+        <filesystem name="maven-share" m2compatible="true">
+                <artifact pattern="/var/www/releases/maven/repo/[organisation]/[module]/[revision]/[artifact]-[revision](-[classifier]).[ext]"/>
+        </filesystem>
     </resolvers>
 </ivysettings>

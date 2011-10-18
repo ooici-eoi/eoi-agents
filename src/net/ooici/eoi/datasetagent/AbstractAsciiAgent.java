@@ -209,11 +209,14 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
      * @return
      */
     protected NetcdfDataset obs2Ncds(IObservationGroup... obsList) throws IonException {
-        log.debug("Creating NC Dataset...");
+        if (log.isDebugEnabled()) {
+            log.debug("Creating NC Dataset...");
+        }
         NetcdfDataset ncds = null;
 
         if (obsList.length == 0 || (obsList.length == 1 & obsList[0].isEmpty())) {
             String err = "Abort from this update:: There are no observations";
+            log.error(err);
             this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
             throw new IonException(err);
         }
@@ -223,11 +226,12 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
         if (!context.getIsInitial()) {
             if (obsList[0].getTimes().length == 1) {
                 String err = "Abort from this update:: This is a supplement update and there is only one timestep in the observation list indicating that there is no new data";
+                log.error(err);
                 this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
                 throw new IonException(err);
             }
             /* Remove the first timestep from each observation group */
-            for(IObservationGroup og : obsList) {
+            for (IObservationGroup og : obsList) {
                 og.trimFirstTimestep();
             }
         }
@@ -240,12 +244,18 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
             obs = obsList[0];
             /* Only one station - just deal with depth */
             if (obs.getDepths().length > 1) {
+                if (log.isDebugEnabled()) {
+                    log.debug("Dataset is a Station Profile");
+                }
                 ncds = NcdsFactory.buildStationProfile(obs);
             } else {
+                if (log.isDebugEnabled()) {
+                    log.debug("Dataset is a Station");
+                }
                 ncds = NcdsFactory.buildStation(obs);
             }
         } else {
-            /* For SOS - if there is more than 1 observation group, and only 1 station ID, it's a trajectory */
+            /* For SOS - if there is more than 1 observation group, and only 1 station ID, Dataset is a trajectory */
             boolean isTraj = false;
             boolean isProfile = false;
             List<String> ids = new ArrayList<String>();
@@ -267,21 +277,35 @@ public abstract class AbstractAsciiAgent extends AbstractDatasetAgent implements
 
             if (isTraj) {
                 if (isProfile) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Dataset is a Trajectory Profile");
+                    }
                     ncds = NcdsFactory.buildTrajectoryProfile(obsList);
                 } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Dataset is a Trajectory");
+                    }
                     ncds = NcdsFactory.buildTrajectory(obsList);
                 }
             } else {
-                /* If not a trajectory - it's a multistation */
+                /* If not a trajectory - Dataset is a multistation */
                 if (isProfile) {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Dataset is a Multi Station Profile");
+                    }
                     ncds = NcdsFactory.buildStationProfileMulti(obsList);
                 } else {
+                    if (log.isDebugEnabled()) {
+                        log.debug("Dataset is a Multi Station");
+                    }
                     ncds = NcdsFactory.buildStationMulti(obsList);
                 }
             }
         }
 
-        ncds.finish();
+        if (ncds != null) {
+            ncds.finish();
+        }
 
         return ncds;
     }

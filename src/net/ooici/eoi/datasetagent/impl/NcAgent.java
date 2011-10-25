@@ -37,7 +37,6 @@ import net.ooici.eoi.crawler.util.UrlParser;
 import net.ooici.eoi.datasetagent.AbstractNcAgent;
 import net.ooici.eoi.datasetagent.AgentFactory;
 import net.ooici.eoi.datasetagent.AgentUtils;
-import net.ooici.eoi.datasetagent.IDatasetAgent;
 import net.ooici.eoi.datasetagent.IngestException;
 import net.ooici.eoi.netcdf.NcDumpParse;
 import net.ooici.services.dm.IngestionService.DataAcquisitionCompleteMessage.StatusCode;
@@ -239,7 +238,7 @@ public class NcAgent extends AbstractNcAgent {
         } catch (IOException ex) {
             throw new IonException("Failure to gather target files from datasource for given time range.", ex);
         }
-        
+
         if (remoteFiles.isEmpty()) {
             String err = new StringBuilder("The source has no data files matching the specified time range [").append(AgentUtils.ISO8601_DATE_FORMAT.format(sTime)).append(" : ").append(AgentUtils.ISO8601_DATE_FORMAT.format(eTime)).append("]").toString();
             this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
@@ -247,7 +246,7 @@ public class NcAgent extends AbstractNcAgent {
         }
 
         /** Check that each date has the correct # of files, only process those dates that are "complete" */
-        if(log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("Original number of files to retrieve: {}", remoteFiles.size());
         }
         Map<Long, List<Entry<String, Long>>> dateCounter = new HashMap<Long, List<Entry<String, Long>>>();
@@ -257,16 +256,16 @@ public class NcAgent extends AbstractNcAgent {
         while (iter.hasNext()) {
             entry = iter.next();
             entryList = dateCounter.get(entry.getValue());
-            if(entryList == null) {
+            if (entryList == null) {
                 entryList = new ArrayList<Entry<String, Long>>();
                 dateCounter.put(entry.getValue(), entryList);
             }
             entryList.add(entry);
         }
         int tsCount = context.getTimestepFileCount();
-        for(Entry<Long, List<Entry<String, Long>>> ent : dateCounter.entrySet()) {
-            if(ent.getValue().size() != tsCount) {
-                for(Entry<String, Long> e : ent.getValue()) {
+        for (Entry<Long, List<Entry<String, Long>>> ent : dateCounter.entrySet()) {
+            if (ent.getValue().size() != tsCount) {
+                for (Entry<String, Long> e : ent.getValue()) {
                     remoteFiles.remove(e.getKey());
                 }
             }
@@ -276,33 +275,34 @@ public class NcAgent extends AbstractNcAgent {
             this.sendDataErrorMsg(StatusCode.NO_NEW_DATA, err);
             throw new IngestException(err);
         }
-        if(log.isDebugEnabled()) {
+        if (log.isDebugEnabled()) {
             log.debug("Number of files to retrieve after file_count filtering: {}", remoteFiles.size());
         }
-        
+
         /** Download all necessary files */
         if (log.isDebugEnabled()) {
             log.debug("\n\nDOWNLOADING...");
         }
         Map<String, Long> localFiles = new TreeMap<String, Long>();
         File tempFile = null;
-        String TEMP_DIR = null;
+        String tempDirPath = null;
+        File tempDir = null;
         List<String> existing = null;
         try {
             FtpAccessClient ftp = new FtpAccessClient(host);
             ftp.cd(baseDir);
 
             tempFile = File.createTempFile("prefix", "");
-//            TEMP_DIR = tempFile.getParent() + File.separatorChar + UUID.randomUUID().toString() + File.separatorChar;
-            TEMP_DIR = tempFile.getParent() + File.separatorChar + context.getDatasetId() + File.separatorChar;
-            File outDirF = new File(TEMP_DIR);
-            if (!outDirF.exists()) {
-                boolean success = outDirF.mkdirs();
+//            tempDirPath = tempFile.getParent() + File.separatorChar + UUID.randomUUID().toString() + File.separatorChar;
+            tempDirPath = tempFile.getParent() + File.separatorChar + context.getDatasetId() + File.separatorChar;
+            tempDir = new File(tempDirPath);
+            if (!tempDir.exists()) {
+                boolean success = tempDir.mkdirs();
                 if (log.isDebugEnabled()) {
-                    log.debug("{} temp directory: {}", (success) ? "Successfully made" : "Failed to make", outDirF.getAbsolutePath());
+                    log.debug("{} temp directory: {}", (success) ? "Successfully made" : "Failed to make", tempDir.getAbsolutePath());
                 }
             }
-            existing = Arrays.asList(new File(TEMP_DIR).list(new FilenameFilter() {
+            existing = Arrays.asList(new File(tempDirPath).list(new FilenameFilter() {
 
                 @Override
                 public boolean accept(File dir, String name) {
@@ -318,7 +318,7 @@ public class NcAgent extends AbstractNcAgent {
                 /* Download the file if we don't already have it */
                 String download = null;
                 if (existing.contains(key)) {
-                    download = TEMP_DIR.concat(key);
+                    download = tempDirPath.concat(key);
                     File f = new File(download);
                     long lsize = f.length();
                     long rsize = ftp.getFileSize(key);
@@ -337,7 +337,7 @@ public class NcAgent extends AbstractNcAgent {
                     int i = 0;
                     while (i <= 2) {
                         try {
-                            download = ftp.download(key, TEMP_DIR);
+                            download = ftp.download(key, tempDirPath);
                             if (log.isDebugEnabled()) {
                                 log.debug("\n====> Downloaded file: {}", download);
                             }
@@ -368,7 +368,32 @@ public class NcAgent extends AbstractNcAgent {
         } catch (IOException ex) {
             throw new IonException("Failed to access datasource via FTP", ex);
         }
-        
+
+        /* Cleanup any files in the temp directory that are more than 24 hours old */
+        if (tempDir != null) {
+            if (log.isDebugEnabled()) {
+                log.debug("Remove any files in \"{}\" more than 48 hours old");
+            }
+            File[] files = tempDir.listFiles();
+            StringBuilder sb = new StringBuilder("Files deleted (d) or to be deleted on VM exit (tbd): {\n");
+            long now = new Date().getTime();
+            for (File f : files) {
+                if ((now - f.lastModified()) > 172800000l) {
+                    sb.append("\t").append(f.getName());
+                    if (f.delete()) {
+                        sb.append(" (d)\n");
+                    } else {
+                        sb.append(" (tbd)\n");
+                        f.deleteOnExit();
+                    }
+                }
+            }
+            sb.append("}");
+            if (log.isDebugEnabled()) {
+                log.debug(sb.toString());
+            }
+        }
+
         String filepath = null;
 //        /** Generating an NCML to aggregate all files (via unions/joins) */
 //        File temp = null;
@@ -384,7 +409,7 @@ public class NcAgent extends AbstractNcAgent {
 //        }
 //        filepath = temp.getAbsolutePath();
 
-        filepath = buildNcmlMask(context.getNcmlMask(), TEMP_DIR);
+        filepath = buildNcmlMask(context.getNcmlMask(), tempDirPath);
 
         if (log.isDebugEnabled()) {
             log.debug("\n\nGenerated NCML aggregation...\n\t\"{}\"", filepath);
@@ -1090,11 +1115,11 @@ public class NcAgent extends AbstractNcAgent {
 //        dirPattern = "%yyyy%/%DDD%/";
 //        filePattern = "%yyyy%%MM%%dd%-EUR-L2P_GHRSST-SSTsubskin-AVHRR_METOP_A-eumetsat_sstmgr_metop02_%yyyy%%MM%%dd%_%HH%%mm%%ss%-v01\\.7-fv01.0\\.nc\\.bz2";
 //        joinName = "time";
-        
-        
-        
-        
-        
+
+
+
+
+
         List<GPBWrapper<?>> addlObjects = new ArrayList<GPBWrapper<?>>();
         net.ooici.services.sa.DataSource.EoiDataContextMessage.Builder cBldr = net.ooici.services.sa.DataSource.EoiDataContextMessage.newBuilder();
         net.ooici.services.sa.DataSource.SourceType sourceType = net.ooici.services.sa.DataSource.SourceType.NETCDF_S;

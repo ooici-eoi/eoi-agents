@@ -385,21 +385,42 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
         assert ncds != null;
 
         /* Apply OOICI geospatial-temporal metadata */
+        if (log.isInfoEnabled()) {
+            log.info("Apply OOI-CI Bounds Metadata");
+        }
         addOoiciBoundsMetadata(ncds);
 
         /* "finish" the dataset - applies any changes that have been applied to ensure they appear in the dataset as appropriate */
+        if (log.isDebugEnabled()) {
+            log.debug("Call \"finish()\" on the netcdf dataset");
+        }
         ncds.finish();
+        if (log.isDebugEnabled()) {
+            log.debug("\"finish()\" called successfully");
+        }
 
+        if (log.isDebugEnabled()) {
+            log.debug("Extract or generate the datasetName");
+        }
         datasetName = ncds.findAttValueIgnoreCase(null, "title", "NO-TITLE");
         datasetName = datasetName.replace(":", "_").replace(",", "").replace(".nc", "");
 
+        if (log.isDebugEnabled()) {
+            log.debug("Switch on the RunType");
+        }
         String ret = null;
         switch (runType) {
             case TEST_WRITE_OOICDM:
+                if (log.isDebugEnabled()) {
+                    log.debug("RunType.TEST_WRITE_OOICDM");
+                }
                 outputDir += "ooicdm/";
                 ret = ncds.toString();
                 break;
             case TEST_WRITE_NC:
+                if (log.isDebugEnabled()) {
+                    log.debug("RunType.TEST_WRITE_NC");
+                }
                 try {
                     /* Dump the dataset locally */
                     new java.io.File(outputDir).mkdir();
@@ -408,9 +429,17 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 } catch (Exception ex) {
                     log.error("Error writing file during testing...", ex);
                 }
-            case TEST_NO_WRITE:
                 ret = ncds.toString();
                 return ret;
+            case TEST_NO_WRITE:
+                if (log.isDebugEnabled()) {
+                    log.debug("RunType.TEST_NO_WRITE");
+                }
+                ret = ncds.toString();
+                return ret;
+        }
+        if (log.isDebugEnabled()) {
+            log.debug("RunType.NORMAL");
         }
 
         StatusCode statusCode = StatusCode.OK;
@@ -418,6 +447,9 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 
         /* Package the dataset */
         /* Build the OOICI Canonical Representation of the dataset and serialize as a byte[] */
+        if (log.isInfoEnabled()) {
+            log.info("Package and send the data");
+        }
         byte[] dataMessageContent;
         try {
             /** Estimate the size of the dataset */
@@ -428,10 +460,16 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
                 log.debug("size={}:max={} :: elms={}:max={}", new Object[]{estSize, maxSize, numElm, maxElements});
             }
             if (estSize <= maxSize && numElm <= maxElements) {
+                if (log.isInfoEnabled()) {
+                    log.info("Send the complete dataset");
+                }
                 /** Send the full dataset */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, subRanges);
                 sendDatasetMsg(dataMessageContent);
             } else {
+                if (log.isInfoEnabled()) {
+                    log.info("Decompose and send the dataset in chunks");
+                }
                 /** Send a "shell" of the dataset */
                 dataMessageContent = Unidata2Ooi.ncdfToByteArray(ncds, subRanges, false);
                 sendDatasetMsg(dataMessageContent);
@@ -662,15 +700,27 @@ public abstract class AbstractDatasetAgent implements IDatasetAgent {
 //        ft = NcUtils.determineFeatureType(ncds);
 
         /* Do Time */
+        if (log.isDebugEnabled()) {
+            log.debug("Apply OOI-CI Time Bounds Metadata");
+        }
         AttributeFactory.addTimeBoundsMetadata(ncds, subRanges);
 
         /* Do Lat */
+        if (log.isDebugEnabled()) {
+            log.debug("Apply OOI-CI Lat Bounds Metadata");
+        }
         AttributeFactory.addLatBoundsMetadata(ncds, ft);
 
         /* Do Lon */
+        if (log.isDebugEnabled()) {
+            log.debug("Apply OOI-CI Lon Bounds Metadata");
+        }
         AttributeFactory.addLonBoundsMetadata(ncds, ft);
 
         /* Do Vert */
+        if (log.isDebugEnabled()) {
+            log.debug("Apply OOI-CI Vert Bounds Metadata");
+        }
         AttributeFactory.addVertBoundsMetadata(ncds, ft);
     }
 

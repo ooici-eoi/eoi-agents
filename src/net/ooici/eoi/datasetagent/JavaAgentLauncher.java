@@ -16,7 +16,6 @@ import java.util.regex.Pattern;
 import net.ooici.core.container.Container;
 import net.ooici.core.message.IonMessage;
 import net.ooici.core.message.IonMessage.IonMsg;
-import net.ooici.play.TypeId1.A;
 import net.ooici.services.sa.DataSource;
 import net.ooici.services.sa.DataSource.EoiDataContextMessage;
 
@@ -161,6 +160,14 @@ public class JavaAgentLauncher {
                 for (GPBWrapper<DataSource.SubRange> rng : subRngList) {
                     contextBldr.addSubRanges(rng.getObjectValue());
                 }
+            }
+            
+            /* Check the end time - if negative or < start time, set to now */
+            long end = contextBldr.getEndDatetimeMillis();
+            long start = contextBldr.getStartDatetimeMillis();
+            if(end < 0 || end < start) {
+                end = AgentUtils.createUtcCal(new java.util.Date()).getTimeInMillis();
+                contextBldr.setEndDatetimeMillis(end);
             }
 
             GPBWrapper<DataSource.EoiDataContextMessage> contWrap = GPBWrapper.Factory(contextBldr.build());

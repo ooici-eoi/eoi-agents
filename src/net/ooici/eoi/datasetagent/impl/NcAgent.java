@@ -533,13 +533,62 @@ public class NcAgent extends AbstractNcAgent {
                     tdim = cat.getName();
                     if (sTime != null) {
                         sti = cat.findTimeIndexFromDate(sTime);
+                        if (log.isDebugEnabled()) {
+                            log.debug("sti: {}", sti);
+                        }
+                        if (sti < cat.getSize() - 1) {
+                            /* Ensure that the start index is truly correct - small rounding errors can cause issues */
+                            long stms = sTime.getTime();
+                            if (log.isDebugEnabled()) {
+                                log.debug("Look for time: {}", stms);
+                            }
+                            long stms1 = cat.getTimeDate(sti).getTime();
+                            if (log.isDebugEnabled()) {
+                                log.debug("Time at sti: {}", stms1);
+                            }
+                            long stms2 = cat.getTimeDate(sti + 1).getTime();
+                            if (log.isDebugEnabled()) {
+                                log.debug("Time at sti + 1: {}", stms2);
+                            }
+                            if ((stms2 - stms) < (stms - stms1)) {
+                                sti++;
+                            }
+                        }
+
                     } else {
                         sti = 0;
                     }
+                    if (log.isInfoEnabled()) {
+                        log.info("Start Time Index: {}", sti);
+                    }
                     if (eTime != null) {
                         eti = cat.findTimeIndexFromDate(eTime);
+                        if (log.isDebugEnabled()) {
+                            log.debug("eti: {}", eti);
+                        }
+                        if (eti < cat.getSize() - 1) {
+                            /* Ensure that the end index is truly correct - small rounding errors can cause issues */
+                            long etms = sTime.getTime();
+                            if (log.isDebugEnabled()) {
+                                log.debug("Look for etime: {}", etms);
+                            }
+                            long etms1 = cat.getTimeDate(eti).getTime();
+                            if (log.isDebugEnabled()) {
+                                log.debug("Time at eti: {}", etms1);
+                            }
+                            long etms2 = cat.getTimeDate(eti + 1).getTime();
+                            if (log.isDebugEnabled()) {
+                                log.debug("Time at eti + 1: {}", etms2);
+                            }
+                            if ((etms2 - etms) < (etms - etms1)) {
+                                eti++;
+                            }
+                        }
                     } else {
                         eti = cat.findTimeIndexFromDate(new Date());
+                    }
+                    if (log.isInfoEnabled()) {
+                        log.info("End Time Index: {}", eti);
                     }
                     try {
                         /* Only if this is a supplement rather than an initial update:

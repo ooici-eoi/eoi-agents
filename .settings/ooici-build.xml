@@ -280,21 +280,21 @@
       </ivy:makepom>
     </target>
 
-    <target name="ivy-publish-local" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/.m2/repository">
+    <target name="ivy-publish-local" depends="dist,gen-pom" description="==> publish jar/source to maven repo mounted at ~/.m2/repository">
       <!-- snapshots only exist locally, so kick the cache. -->
       <ivy:publish resolver="maven-local-publish" forcedeliver="true" overwrite="true" publishivy="true">
         <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
       </ivy:publish>
     </target>
 
-    <target name="ivy-publish-share" depends="dist,gen-pom" description="publish jar/source to maven repo mounted at ~/repo">
+    <target name="ivy-publish-share" depends="dist,gen-pom" description="==> publish jar/source to maven repo mounted at ~/repo">
       <ivy:publish resolver="maven-share" forcedeliver="true" overwrite="true" publishivy="true">
         <artifacts pattern="dist/lib/[artifact]-[revision].[ext]" />
       </ivy:publish>
     </target>
     <!-- end ivy targets -->
 
-    <target name="test-all" description="--> Runs JUnit tests for all classes named '*Test.java' or 'Test*.java'">
+    <target name="test-all" description="==> Runs JUnit tests for all classes named '*Test.java' or 'Test*.java'">
         <mkdir dir="${test-report.dir}" />
         <junit printsummary="yes" haltonfailure="no">
             <classpath refid="runtime.classpath" />

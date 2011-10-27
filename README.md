@@ -6,11 +6,16 @@
 ---
 
 # Description
-*need concise description of project*
+This project contains the codebase for the Dataset Agent Framework (DAF) developed by the External Observatory Integration (EOI) subsystem.  The codebase provides utility methods, interfaces, abstract classes, and provider-specific implementations for accessing and retrieving data from external repositories/services and sending the data to the Integrated Observatory Network (ION) via OOI-CI style AMQP messages.
+
+**References**  
+DAF Architecture Overview - https://confluence.oceanobservatories.org/display/syseng/CIAD+EOI+Dataset+Agent+Overview  
+DAF Architecture Details - https://confluence.oceanobservatories.org/display/syseng/CIAD+EOI+Dataset+Agent+Details  
+Class Inheritance Diagram - https://docs.google.com/drawings/d/1CaK8Br02AzR4Jnf7vW3FfUUo4051YUhXLU6YQRijKdc/edit?hl=en_US  
 
 #Source
 
-Obtain the THREDDS project by running:  
+Obtain the eoi-agents project by running:  
 
     git clone -b develop git@github.com:ooici-eoi/eoi-agents.git
     cd eoi-agents
@@ -42,7 +47,7 @@ Resolves the project dependencies and copies the jar files to the *lib* director
 
 
 ###Distribution
-Resulting JAR file in dist/lib  
+Resulting JAR file in *dist/lib/*
 
     ant dist
 
@@ -63,6 +68,7 @@ Resolves the project dependencies and copies the jar files to the *lib* director
     ant compile-dev
 
 ###Distribution
+Resulting JAR file in *dist/lib/*
 
     ant dist-dev
 

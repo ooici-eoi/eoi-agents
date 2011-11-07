@@ -530,7 +530,8 @@ public class NcAgent extends AbstractNcAgent {
                     }
                 }
                 if (cat != null) {
-                    tdim = cat.getName();
+                    /* By this point we know it's a 1D axis */
+                    tdim = cat.getDimension(0).getName();
                     if (sTime != null) {
                         sti = cat.findTimeIndexFromDate(sTime);
                         if (log.isDebugEnabled()) {

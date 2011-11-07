@@ -220,7 +220,7 @@ public class AgentUtils {
 	 * Static initializer for ISO8601_DATE_FORMAT field
 	 */
 	static {
-		ISO8601_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'");
+		ISO8601_DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
 		ISO8601_DATE_FORMAT.setTimeZone(TimeZone.getTimeZone("UTC"));
 	}
 

@@ -68,7 +68,8 @@ public class AttributeFactory {
                 int sti = 0;
                 int eti = (int) cat.getSize() - 1;
                 if (subRanges != null) {
-                    Range r = subRanges.get(cat.getName());
+                    String tdim = cat.getDimension(0).getName();
+                    Range r = subRanges.get(tdim);
                     if (r != null) {
                         sti = r.first();
                         eti = r.last();
@@ -84,6 +85,11 @@ public class AttributeFactory {
 
         if(thrown != null) {
             throw new IonException("Unable to determine start/end metadata", thrown);
+        }
+        
+        if (log.isDebugEnabled()) {
+            log.debug("Calculated Start Date/Time: {}", startdate);
+            log.debug("Calculated End Date/Time: {}", enddate);
         }
         
         ncds.addAttribute(null, new Attribute(IonNcConstants.ION_TIME_COVERAGE_START, startdate));
